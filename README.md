@@ -1,3 +1,24 @@
-print("Day-01:Git,GitHub,and_environment_setup")
-print("Day-02:Loops,functions,scope,and_data_structures")
-print("Day-03:OOP,dunder_methods,inheritance,polymorphism,and_encapsulation")
+# Coastal Seven Daily Tasks
+
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
+![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)
+
+---
+
+### Progress Tracker
+
+| Day | Module | Topics Covered | Status |
+| :---: | :--- | :--- | :---: |
+| **Day 01** | **Git & Environment** | Repository setup, Git workflow, bash commands | ![Completed](https://img.shields.io/badge/Status-Completed-success?style=flat-square) |
+| **Day 02** | **Python Foundations** | Loops, functions, variable scope, data structures | ![Completed](https://img.shields.io/badge/Status-Completed-success?style=flat-square) |
+| **Day 03** | **OOP Principles** | Classes, dunder methods, inheritance, polymorphism, encapsulation | ![Completed](https://img.shields.io/badge/Status-Completed-success?style=flat-square) |
+
+---
+
+### Quick Execution
+
+```python
+print("Day-01: Git, GitHub, and environment setup")
+print("Day-02: Loops, functions, scope, and data structures")
+print("Day-03: OOP, dunder methods, inheritance, polymorphism, and encapsulation" EOF

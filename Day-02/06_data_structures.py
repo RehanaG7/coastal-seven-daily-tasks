@@ -1,12 +1,3 @@
-"""
-Task: Core Data Structures (List, Tuple, Set, Dictionary)
-Demonstrates:
-- List operations (append, sort)
-- Tuple immutability
-- Set operations (union, intersection, difference)
-- Dictionary lookups using .get()
-"""
-
 def demonstrate_structures():
     tech_stack = ["Python", "FastAPI"]
     tech_stack.append("Docker")

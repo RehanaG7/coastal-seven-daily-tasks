@@ -1,11 +1,3 @@
-"""
-Task: Prime Number Checker
-Logic:
-- Numbers <= 1 are not prime.
-- Check divisors from 2 up to int(sqrt(n)).
-- If n % i == 0 for any divisor, it's not prime.
-"""
-
 def is_prime(n: int) -> bool:
     if n <= 1:
         return False

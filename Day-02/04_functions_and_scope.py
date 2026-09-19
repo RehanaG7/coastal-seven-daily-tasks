@@ -1,11 +1,3 @@
-"""
-Task: Functions, Variable Arguments (*args, **kwargs), and LEGB Scope
-Demonstrates:
-- Positional variable arguments packed into a Tuple (*args)
-- Keyword variable arguments packed into a Dictionary (**kwargs)
-- Python's LEGB resolution order
-"""
-
 def student_report(name, *marks, **details):
     total = sum(marks)
     average = round(total / len(marks), 2) if marks else 0.0

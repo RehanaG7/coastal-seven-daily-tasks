@@ -14,6 +14,7 @@
 | **Day 01** | **Python & FastAPI** | Python basics, FastAPI setup, Swagger UI documentation | ![Completed](https://img.shields.io/badge/Status-Completed-success?style=flat-square) |
 | **Day 02** | **Python Foundations** | Loops, functions, variable scope, data structures | ![Completed](https://img.shields.io/badge/Status-Completed-success?style=flat-square) |
 | **Day 03** | **OOP Principles** | Classes, dunder methods, inheritance, polymorphism, encapsulation | ![Completed](https://img.shields.io/badge/Status-Completed-success?style=flat-square) |
+| **Day 04** | **PostgreSQL & CLI Task Manager** | Neon PostgreSQL, psycopg2, schema design, joins & aggregations | ![Completed](https://img.shields.io/badge/Status-Completed-success?style=flat-square) |
 
 ---
 
@@ -23,3 +24,5 @@
 print("Day-01: Python basics, FastAPI, and Swagger UI")
 print("Day-02: Loops, functions, scope, and data structures")
 print("Day-03: OOP, dunder methods, inheritance, polymorphism, and encapsulation")
+print("Day-04: PostgreSQL persistence, psycopg2, indexes, and CLI Task Manager")
+```

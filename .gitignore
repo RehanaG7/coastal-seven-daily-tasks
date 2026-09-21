@@ -1,4 +1,6 @@
-__pycache__/
+﻿__pycache__/
 *.pyc
+*.log
 .env
-venv/
+tasks_export.json
+test_conn.py

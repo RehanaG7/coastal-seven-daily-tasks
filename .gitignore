@@ -4,3 +4,6 @@
 .env
 tasks_export.json
 test_conn.py
+.db
+.sqlite3
+venv/

@@ -22,15 +22,3 @@
 | **Day 04** | PostgreSQL & CLI Task Manager | Neon PostgreSQL, psycopg2, schema design, joins & aggregations | ![Status](https://img.shields.io/badge/Status-Completed-brightgreen?style=flat-square) |
 | **Day 05** | FastAPI & SQLAlchemy ORM | Relational DB modeling, Alembic migrations, session management, full CRUD operations | ![Status](https://img.shields.io/badge/Status-Completed-brightgreen?style=flat-square) |
 | **Day 06** | JWT Authentication & RBAC | Modular architecture, Bcrypt hashing, stateless JWT tokens, Role-Based Access Control | ![Status](https://img.shields.io/badge/Status-Completed-brightgreen?style=flat-square) |
-
----
-
-## Execution Log
-
-```python
-print("Day-01: Python basics, FastAPI, and Swagger UI")
-print("Day-02: Loops, functions, scope, and data structures")
-print("Day-03: OOP, dunder methods, inheritance, polymorphism, and encapsulation")
-print("Day-04: PostgreSQL persistence, psycopg2, indexes, and CLI Task Manager")
-print("Day-05: SQLAlchemy ORM, Alembic migrations, session lifecycle, and CRUD APIs")
-print("Day-06: Modular architecture, Bcrypt hashing, JWT auth, and RBAC security")

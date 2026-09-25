@@ -1,14 +1,22 @@
-import os
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-class Settings:
-    PROJECT_NAME: str = "Day 8 Enterprise Backend"
-    REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
-    REDIS_PORT: int = int(os.getenv("REDIS_PORT", 6379))
-    REDIS_URL: str = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
-    
-    # Cache & Rate Limiting Constants
-    CACHE_DEFAULT_TTL: int = 120  # 2 minutes
-    RATE_LIMIT_REQUESTS: int = 5   # Max 5 requests
-    RATE_LIMIT_WINDOW: int = 60    # Rolling 60 seconds
+class Settings(BaseSettings):
+    PROJECT_NAME: str = "High-Performance Async FastAPI"
+    API_V1_STR: str = "/api/v1"
+
+    # Redis Settings
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_URL: str = "redis://localhost:6379/0"
+    CACHE_DEFAULT_TTL: int = 120
+
+    # PostgreSQL Database URL
+    DATABASE_URL: str = "sqlite:///./fallback.db"
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
 
 settings = Settings()

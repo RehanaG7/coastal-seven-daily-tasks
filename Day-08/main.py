@@ -1,18 +1,20 @@
 from fastapi import FastAPI
-from routers.analytics import router as analytics_router
-from routers.products import router as products_router
-from routers.jobs import router as jobs_router
+from core.config import settings
+from core.database import Base, engine
+from routers import analytics, products, jobs
+
+# Auto-create tables on startup if they don't exist
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="Day 8: High-Performance Async, Caching & Distributed Systems",
-    description="Professional modular architecture demonstrating asyncio.gather, Redis Cache-Aside, Sliding-Window Rate Limiting, and Celery background workers.",
-    version="1.0.0"
+    title=settings.PROJECT_NAME,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-app.include_router(analytics_router)
-app.include_router(products_router)
-app.include_router(jobs_router)
+app.include_router(analytics.router)
+app.include_router(products.router)
+app.include_router(jobs.router)
 
-@app.get("/", tags=["Health"])
-async def root():
-    return {"status": "online", "architecture": "Enterprise Modular", "day": "Day 8"}
+@app.get("/")
+def root():
+    return {"message": "High-Performance API is up and running"}

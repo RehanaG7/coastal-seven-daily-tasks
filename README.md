@@ -6,6 +6,8 @@
   <img src="https://img.shields.io/badge/NEON-00E599?style=for-the-badge&logo=neon&logoColor=black" />
   <img src="https://img.shields.io/badge/REDIS-DC382D?style=for-the-badge&logo=redis&logoColor=white" />
   <img src="https://img.shields.io/badge/CELERY-37814A?style=for-the-badge&logo=celery&logoColor=white" />
+  <img src="https://img.shields.io/badge/WEBSOCKETS-010101?style=for-the-badge&logo=socketdotio&logoColor=white" />
+  <img src="https://img.shields.io/badge/PILLOW-8993BE?style=for-the-badge&logo=python&logoColor=white" />
   <img src="https://img.shields.io/badge/GIT-F05032?style=for-the-badge&logo=git&logoColor=white" />
   <img src="https://img.shields.io/badge/GITHUB-181717?style=for-the-badge&logo=github&logoColor=white" />
 </p>
@@ -24,3 +26,4 @@
 | **Day 06** | **Pydantic & CRUD APIs** | Request/response schemas, validation rules, structured REST endpoints | ![Status Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
 | **Day 07** | **Authentication & Security** | OAuth2 password flow, JWT tokens, bcrypt password hashing, APIRouter | ![Status Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
 | **Day 08** | **High-Performance FastAPI & Workers** | Async concurrency (`asyncio.gather`), Redis caching, rate limiting (`ZSET`), Celery background jobs | ![Status Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
+| **Day 09** | **File Processing & Real-Time WebSockets** | Multipart uploads, MIME & size validations, Pillow thumbnail generation, static file serving, real-time WebSocket broadcasting, 95% pytest coverage | ![Status Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |

@@ -1,0 +1,28 @@
+# Environment & Secrets
+.env
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Static Uploads (don't commit uploaded user files)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Local Databases
+*.db
+*.sqlite3
+
+# MyPy cache
+.mypy_cache/

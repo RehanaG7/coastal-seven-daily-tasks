@@ -1,0 +1,24 @@
+[tool.black]
+line-length = 88
+target-version = ['py313']
+workers = 1
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | __pycache__
+  | static
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+skip = [".venv", "static"]
+
+[tool.mypy]
+python_version = "3.13"
+ignore_missing_imports = true
+exclude = ["static", ".venv"]

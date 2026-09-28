@@ -57,19 +57,19 @@ def add_to_cart(
     db: Session = Depends(get_db),
     redis: Any = Depends(get_redis_client),
 ):
-    product = db.query(Product).filter(Product.id == item_in.product_id).first()
+    product = (
+        db.query(Product).filter(Product.id == item_in.product_id).first()
+    )
     if not product:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found",
         )
     if int(product.stock) < item_in.quantity:
-        msg = (
-            f"Requested {item_in.quantity} exceeds "
-            f"stock ({product.stock})"
-        )
+        detail_msg = f"Stock limit ({product.stock}) exceeded"
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=msg,
+            detail=detail_msg,
         )
 
     key = cart_key(int(current_user.id))

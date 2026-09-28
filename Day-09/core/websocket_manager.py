@@ -15,9 +15,6 @@ class ConnectionManager:
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
 
-    async def send_personal_message(self, message: str, websocket: WebSocket) -> None:
-        await websocket.send_text(message)
-
     async def broadcast(self, message: str) -> None:
         for connection in list(self.active_connections):
             try:
@@ -26,5 +23,5 @@ class ConnectionManager:
                 self.disconnect(connection)
 
 
-# Global singleton instance
 ws_manager = ConnectionManager()
+manager = ws_manager

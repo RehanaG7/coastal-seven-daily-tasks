@@ -1,112 +1,87 @@
-import io
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from PIL import Image
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from PIL import Image, UnidentifiedImageError
 
-from core.config import MAX_FILE_SIZE, THUMBNAIL_SIZE, UPLOAD_DIR, settings
-from core.database import UploadedFileModel, get_db
 from core.websocket_manager import ws_manager
 
 router = APIRouter(prefix="/uploads", tags=["Uploads"])
 
+UPLOAD_DIR = Path("static/uploads")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-@router.post("/image", status_code=status.HTTP_201_CREATED)
-async def upload_image(
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-):
-    # 1. Validate File Extension
-    file_ext = Path(file.filename or "").suffix.lower()
-    if file_ext not in settings.ALLOWED_EXTENSIONS:
-        allowed = ", ".join(settings.ALLOWED_EXTENSIONS)
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
+ALLOWED_MIME_TYPES = {"image/png", "image/jpeg", "image/jpg", "image/webp"}
+
+upload_history_db: List[Dict[str, Any]] = []
+
+
+@router.post(
+    "/image",
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload & Process Image",
+)
+async def upload_image(file: UploadFile = File(...)) -> Dict[str, Any]:
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported file extension '{file_ext}'. Allowed: {allowed}",
+            detail=(
+                f"Unsupported file extension '{ext}'. Allowed: {ALLOWED_EXTENSIONS}"
+            ),
         )
 
-    # 2. Validate MIME Type
-    if file.content_type not in settings.ALLOWED_MIME_TYPES:
+    if file.content_type not in ALLOWED_MIME_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid content type '{file.content_type}'. Must be an image.",
         )
 
-    # 3. Read content & Validate Size
+    unique_filename = f"{uuid.uuid4().hex}{ext}"
+    thumb_filename = f"thumb_{unique_filename}"
+    orig_path = UPLOAD_DIR / unique_filename
+    thumb_path = UPLOAD_DIR / thumb_filename
+
     contents = await file.read()
     if len(contents) > MAX_FILE_SIZE:
-        max_mb = settings.MAX_FILE_SIZE_MB
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"File exceeds maximum allowed size of {max_mb}MB.",
+            detail="File exceeds maximum allowed size of 5MB.",
         )
 
-    # 4. Pillow Image Verification
-    image_obj: Any
+    orig_path.write_bytes(contents)
     try:
-        image_obj = Image.open(io.BytesIO(contents))
-        image_obj.verify()
-        image_obj = Image.open(io.BytesIO(contents))
-    except Exception:
+        with Image.open(orig_path) as raw_img:
+            raw_img.verify()
+
+        with Image.open(orig_path) as verify_img:
+            processed_img = verify_img.convert("RGB")
+            processed_img.thumbnail((300, 300))
+            processed_img.save(thumb_path, format="JPEG", quality=85)
+    except (UnidentifiedImageError, Exception):
+        orig_path.unlink(missing_ok=True)
+        thumb_path.unlink(missing_ok=True)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Corrupted or invalid image file.",
         )
 
-    # 5. Unique naming & storage
-    unique_id = uuid.uuid4().hex[:8]
-    base_name = f"{unique_id}_{Path(file.filename or 'file').stem}"
-    original_filename = f"{base_name}{file_ext}"
-    thumb_filename = f"{base_name}_thumb{file_ext}"
+    await ws_manager.broadcast(f"New image uploaded: {file.filename}")
 
-    original_path = UPLOAD_DIR / original_filename
-    thumb_path = UPLOAD_DIR / thumb_filename
-
-    with open(original_path, "wb") as f:
-        f.write(contents)
-
-    # 6. Resize thumbnail
-    if file_ext in {".jpg", ".jpeg"} and image_obj.mode in ("RGBA", "P"):
-        image_obj = image_obj.convert("RGB")
-    image_obj.thumbnail(THUMBNAIL_SIZE)
-    image_obj.save(thumb_path)
-
-    # 7. Persist to Database
-    db_record = UploadedFileModel(
-        filename=original_filename,
-        thumbnail=thumb_filename,
-        original_url=f"/static/uploads/{original_filename}",
-        thumbnail_url=f"/static/uploads/{thumb_filename}",
-        file_size_bytes=len(contents),
-    )
-    db.add(db_record)
-    db.commit()
-    db.refresh(db_record)
-
-    # 8. Real-time WebSocket Broadcast
-    await ws_manager.broadcast(
-        f"New image uploaded: {original_filename} (Thumbnail: {thumb_filename})"
-    )
-
-    return {
-        "id": db_record.id,
-        "filename": original_filename,
+    record = {
+        "filename": unique_filename,
         "thumbnail": thumb_filename,
-        "original_url": db_record.original_url,
-        "thumbnail_url": db_record.thumbnail_url,
-        "size_bytes": db_record.file_size_bytes,
-        "uploaded_at": db_record.uploaded_at,
+        "original_url": f"/static/uploads/{unique_filename}",
+        "thumbnail_url": f"/static/uploads/{thumb_filename}",
     }
+    upload_history_db.append(record)
+
+    return record
 
 
-@router.get("/history")
-def get_upload_history(db: Session = Depends(get_db)):
-    """Retrieve metadata of all uploaded files from DB."""
-    return (
-        db.query(UploadedFileModel)
-        .order_by(UploadedFileModel.uploaded_at.desc())
-        .all()
-    )
+@router.get("/history", summary="View Upload History")
+def get_upload_history() -> List[Dict[str, Any]]:
+    return upload_history_db

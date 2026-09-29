@@ -1,108 +1,63 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from fastapi.security import OAuth2PasswordRequestForm
-from jose import JWTError, jwt
 from sqlalchemy.orm import Session
+from pydantic import BaseModel, EmailStr
+from typing import Literal
 
-from core.config import settings
 from core.database import get_db
-from core.security import (
-    create_access_token,
-    get_password_hash,
-    verify_password,
-)
+from core.security import verify_password, get_password_hash, create_access_token, get_current_user
 from models.user import User
-from schemas.user import Token, UserCreate, UserResponse, UserRole
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter()
 
-# HTTPBearer renders ONLY a single token input field in Swagger Authorize
-security = HTTPBearer()
+class UserRegister(BaseModel):
+    full_name: str
+    email: EmailStr
+    password: str
+    role: Literal["customer", "admin"] = "customer"
 
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
 
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db),
-) -> User:
-    credentials_exc = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    role: str
+
+class UserProfileResponse(BaseModel):
+    id: int
+    full_name: str
+    email: str
+    role: str
+
+    class Config:
+        from_attributes = True
+
+@router.post("/register", response_model=UserProfileResponse, status_code=status.HTTP_201_CREATED)
+def register(payload: UserRegister, db: Session = Depends(get_db)):
+    if db.query(User).filter(User.email == payload.email).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    new_user = User(
+        full_name=payload.full_name,
+        email=payload.email,
+        hashed_password=get_password_hash(payload.password),
+        role=payload.role
     )
-    token = credentials.credentials
-    try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
-        user_id_raw = payload.get("sub")
-        if user_id_raw is None:
-            raise credentials_exc
-        user_id = int(user_id_raw)
-    except (JWTError, ValueError):
-        raise credentials_exc
-
-    user = db.query(User).filter(User.id == user_id).first()
-    if user is None:
-        raise credentials_exc
-    return user
-
-
-def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.role != UserRole.ADMIN.value:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin privileges required",
-        )
-    return current_user
-
-
-@router.post(
-    "/register",
-    response_model=UserResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    normalized_email = user_in.email.strip().lower()
-    if db.query(User).filter(User.email == normalized_email).first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
-        )
-    user = User(
-        email=normalized_email,
-        hashed_password=get_password_hash(user_in.password),
-        full_name=user_in.full_name,
-        role=user_in.role.value,
-    )
-    db.add(user)
+    db.add(new_user)
     db.commit()
-    db.refresh(user)
-    return user
+    db.refresh(new_user)
+    return new_user
 
+@router.post("/login", response_model=TokenResponse)
+def login(credentials: LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == credentials.email).first()
+    if not user or not verify_password(credentials.password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+    
+    token = create_access_token(data={"sub": user.email, "role": user.role})
+    return {"access_token": token, "token_type": "bearer", "role": user.role}
 
-@router.post("/token", response_model=Token)
-def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db),
-):
-    normalized_email = form_data.username.strip().lower()
-    user = db.query(User).filter(User.email == normalized_email).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    if not verify_password(form_data.password, str(user.hashed_password)):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    token = create_access_token(subject=user.id, role=str(user.role))
-    return {"access_token": token, "token_type": "bearer"}
-
-
-@router.get("/me", response_model=UserResponse)
-def read_current_user(current_user: User = Depends(get_current_user)):
+@router.get("/me", response_model=UserProfileResponse)
+def get_current_user_profile(current_user: User = Depends(get_current_user)):
     return current_user

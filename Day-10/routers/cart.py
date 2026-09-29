@@ -1,110 +1,47 @@
-from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+import json
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+import redis.asyncio as aioredis
 
-from core.database import get_db
-from core.redis import get_redis_client
-from models.product import Product
+from core.config import settings
+from core.security import get_current_user
 from models.user import User
-from schemas.cart import CartItemAdd, CartItemDetail, CartResponse
-from routers.auth import get_current_user
 
-router = APIRouter(prefix="/cart", tags=["Redis Shopping Cart"])
+router = APIRouter()
 
+class CartItem(BaseModel):
+    product_id: int
+    quantity: int
 
-def cart_key(user_id: int) -> str:
-    return f"cart:{user_id}"
+@router.post("/items")
+async def add_to_cart(item: CartItem, current_user: User = Depends(get_current_user)):
+    r = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+    cart_key = f"cart:{current_user.id}"
+    
+    # Fetch existing cart or create empty
+    raw_cart = await r.get(cart_key)
+    cart = json.loads(raw_cart) if raw_cart else {}
+    
+    # Update quantity
+    str_pid = str(item.product_id)
+    cart[str_pid] = cart.get(str_pid, 0) + item.quantity
+    
+    # Store in Redis with 2-day expiration
+    await r.setex(cart_key, 172800, json.dumps(cart))
+    await r.close()
+    return {"message": "Cart updated", "cart": cart}
 
+@router.get("")
+async def get_cart(current_user: User = Depends(get_current_user)):
+    r = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+    cart_key = f"cart:{current_user.id}"
+    raw_cart = await r.get(cart_key)
+    await r.close()
+    return json.loads(raw_cart) if raw_cart else {}
 
-@router.get("", response_model=CartResponse)
-def view_cart(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-    redis: Any = Depends(get_redis_client),
-):
-    key = cart_key(int(current_user.id))
-    cart_data = redis.hgetall(key)
-    items = []
-    grand_total = 0.0
-
-    if cart_data:
-        for p_id_str, qty_str in cart_data.items():
-            product = (
-                db.query(Product).filter(Product.id == int(p_id_str)).first()
-            )
-            if product:
-                qty = int(qty_str)
-                price = float(product.price)
-                subtotal = price * qty
-                grand_total += subtotal
-                items.append(
-                    CartItemDetail(
-                        product_id=int(product.id),
-                        name=str(product.name),
-                        price=price,
-                        quantity=qty,
-                        subtotal=subtotal,
-                    )
-                )
-
-    return CartResponse(items=items, grand_total=round(grand_total, 2))
-
-
-@router.post("/items", status_code=status.HTTP_200_OK)
-def add_to_cart(
-    item_in: CartItemAdd,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-    redis: Any = Depends(get_redis_client),
-):
-    product = (
-        db.query(Product).filter(Product.id == item_in.product_id).first()
-    )
-    if not product:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Product not found",
-        )
-    if int(product.stock) < item_in.quantity:
-        detail_msg = f"Stock limit ({product.stock}) exceeded"
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=detail_msg,
-        )
-
-    key = cart_key(int(current_user.id))
-    existing_qty = redis.hgetall(key).get(str(item_in.product_id))
-    new_qty = (int(existing_qty) if existing_qty else 0) + item_in.quantity
-
-    if new_qty > int(product.stock):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Total cart quantity exceeds stock",
-        )
-
-    redis.hset(key, str(item_in.product_id), str(new_qty))
-    return {
-        "message": "Item added to cart",
-        "product_id": item_in.product_id,
-        "quantity": new_qty,
-    }
-
-
-@router.delete("/items/{product_id}", status_code=status.HTTP_200_OK)
-def remove_from_cart(
-    product_id: int,
-    current_user: User = Depends(get_current_user),
-    redis: Any = Depends(get_redis_client),
-):
-    key = cart_key(int(current_user.id))
-    redis.hdel(key, str(product_id))
-    return {"message": f"Product {product_id} removed from cart"}
-
-
-@router.delete("", status_code=status.HTTP_204_NO_CONTENT)
-def clear_cart(
-    current_user: User = Depends(get_current_user),
-    redis: Any = Depends(get_redis_client),
-):
-    redis.delete(cart_key(int(current_user.id)))
-    return None
+@router.delete("")
+async def clear_cart(current_user: User = Depends(get_current_user)):
+    r = aioredis.from_url(settings.REDIS_URL)
+    await r.delete(f"cart:{current_user.id}")
+    await r.close()
+    return {"message": "Cart cleared"}

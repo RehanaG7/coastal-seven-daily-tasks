@@ -1,123 +1,113 @@
-from typing import Any, List
-from fastapi import APIRouter, Depends, HTTPException, status
+import json
+from typing import Literal
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
+import redis.asyncio as aioredis
 
 from core.database import get_db
-from core.redis import get_redis_client
-from core.websocket_manager import order_ws_manager
+from core.config import settings
+from core.security import get_current_user, require_admin
+from models.user import User
 from models.order import Order, OrderItem
 from models.product import Product
-from models.user import User
-from schemas.order import OrderResponse, OrderStatusUpdate
-from routers.auth import get_current_admin, get_current_user
-from tasks.email_tasks import send_order_confirmation_email
+from tasks.celery_app import celery_app
 
-router = APIRouter(prefix="/orders", tags=["Order Management"])
+router = APIRouter()
+
+class OrderStatusUpdate(BaseModel):
+    status: Literal["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"]
 
 
-@router.post(
-    "",
-    response_model=OrderResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-def place_order(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-    redis: Any = Depends(get_redis_client),
-):
-    key = f"cart:{current_user.id}"
-    cart_items = redis.hgetall(key)
-    if not cart_items:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot place order with an empty cart",
-        )
-
+@router.post("/checkout")
+async def checkout(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """
+    1. Reads user's Cart from Redis
+    2. Validates stock in PostgreSQL & calculates totals
+    3. Persists Order & OrderItems in DB
+    4. Clears Redis Cart
+    5. Hands off fulfillment to background Celery Worker
+    """
+    r = aioredis.from_url(settings.REDIS_URL, decode_responses=True, protocol=2)
+    cart_key = f"cart:{current_user.id}"
+    raw_cart = await r.get(cart_key)
+    
+    if not raw_cart:
+        await r.close()
+        raise HTTPException(status_code=400, detail="Your cart is empty")
+    
+    cart_items = json.loads(raw_cart)
     total_amount = 0.0
-    items_to_create = []
+    items_to_save = []
 
-    for p_id_str, qty_str in cart_items.items():
-        p_id = int(p_id_str)
-        qty = int(qty_str)
-        product = db.query(Product).filter(Product.id == p_id).first()
-        if not product:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Product #{p_id} not found",
-            )
-        if int(product.stock) < qty:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Insufficient stock for '{product.name}'",
-            )
+    for product_id_str, qty in cart_items.items():
+        product = db.query(Product).filter(Product.id == int(product_id_str)).first()
+        if not product or product.stock < qty:
+            await r.close()
+            raise HTTPException(status_code=400, detail=f"Insufficient stock for Product ID: {product_id_str}")
+        
+        product.stock -= qty
+        total_amount += float(product.price) * qty
+        items_to_save.append((product.id, qty, product.price))
 
-        product.stock = int(product.stock) - qty
-        line_total = float(product.price) * qty
-        total_amount += line_total
-        items_to_create.append(
-            OrderItem(
-                product_id=int(product.id),
-                quantity=qty,
-                price_at_purchase=float(product.price),
-            )
-        )
-
-    order = Order(
-        user_id=int(current_user.id),
-        total_amount=round(total_amount, 2),
-        status="CONFIRMED",
-        items=items_to_create,
-    )
-    db.add(order)
+    # Persist Order in PostgreSQL
+    new_order = Order(user_id=current_user.id, total_amount=total_amount, status="PENDING")
+    db.add(new_order)
     db.commit()
-    db.refresh(order)
+    db.refresh(new_order)
 
-    redis.delete(key)
+    for pid, qty, price in items_to_save:
+        item = OrderItem(order_id=new_order.id, product_id=pid, quantity=qty, price=price)
+        db.add(item)
+    db.commit()
 
-    try:
-        send_order_confirmation_email.delay(
-            str(current_user.email), int(order.id), float(order.total_amount)
-        )
-    except Exception:
-        pass
+    # Clear Cart in Redis
+    await r.delete(cart_key)
+    await r.close()
 
-    return order
+    # Asynchronously dispatch to Celery background task
+    celery_app.send_task("process_order_task", args=[new_order.id])
+
+    return {
+        "message": "Order successfully placed. Celery fulfillment started.",
+        "order_id": new_order.id,
+        "total_amount": total_amount,
+        "status": new_order.status,
+        "client_websocket": f"/ws/orders/{new_order.id}"
+    }
 
 
-@router.get("", response_model=List[OrderResponse])
-def get_orders(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    if current_user.role == "admin":
-        return db.query(Order).all()
+@router.get("/my-orders")
+def get_my_orders(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return db.query(Order).filter(Order.user_id == current_user.id).all()
 
 
-@router.patch("/{order_id}/status", response_model=OrderResponse)
+@router.patch("/{order_id}/status")
 async def update_order_status(
     order_id: int,
-    status_update: OrderStatusUpdate,
+    payload: OrderStatusUpdate,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin),
+    _: User = Depends(require_admin)
 ):
+    """
+    Admin-only: Manually update order status and publish event to client WebSocket.
+    """
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Order not found"
-        )
-
-    order.status = str(status_update.status)
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    order.status = payload.status
     db.commit()
-    db.refresh(order)
 
-    await order_ws_manager.send_order_update(
-        int(order.user_id),
-        {
-            "event": "ORDER_STATUS_UPDATED",
-            "order_id": int(order.id),
-            "status": str(order.status),
-            "total_amount": float(order.total_amount),
-        },
+    # Send update directly to the client's WebSocket channel
+    r = aioredis.from_url(settings.REDIS_URL, protocol=2)
+    await r.publish(
+        f"order_updates_{order_id}",
+        json.dumps({
+            "order_id": order_id,
+            "status": payload.status,
+            "message": f"Administrator manually set status to {payload.status}"
+        })
     )
-    return order
+    await r.close()
+    return {"order_id": order_id, "status": order.status}

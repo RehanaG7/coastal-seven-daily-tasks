@@ -28,7 +28,7 @@ async def checkout(current_user: User = Depends(get_current_user), db: Session =
     4. Clears Redis Cart
     5. Hands off fulfillment to background Celery Worker
     """
-    r = aioredis.from_url(settings.REDIS_URL, decode_responses=True, protocol=2)
+    r = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
     cart_key = f"cart:{current_user.id}"
     raw_cart = await r.get(cart_key)
     
@@ -100,7 +100,7 @@ async def update_order_status(
     db.commit()
 
     # Send update directly to the client's WebSocket channel
-    r = aioredis.from_url(settings.REDIS_URL, protocol=2)
+    r = aioredis.from_url(settings.REDIS_URL)
     await r.publish(
         f"order_updates_{order_id}",
         json.dumps({

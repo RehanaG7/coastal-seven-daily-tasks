@@ -25,7 +25,7 @@ celery_app.conf.update(
 )
 
 # Direct Redis connection for real-time WebSocket publishing (enforces protocol=2)
-redis_client = redis.Redis.from_url(settings.REDIS_URL, protocol=2)
+redis_client = redis.Redis.from_url(settings.REDIS_URL)
 
 @celery_app.task(name="process_order_task", bind=True)
 def process_order_task(self, order_id: int):

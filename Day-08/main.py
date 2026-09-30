@@ -12,7 +12,7 @@ app = FastAPI(
 )
 
 app.include_router(analytics.router)
-app.include_router(products.router)
+app.include_router(products.router)d
 app.include_router(jobs.router)
 
 @app.get("/")

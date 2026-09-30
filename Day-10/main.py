@@ -1,55 +1,35 @@
-import os
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
-try:
-    from core.database import Base, engine
-except ImportError:
-    from database import Base, engine
+from routers.auth import router as auth_router
+from routers.products import router as products_router
+from routers.cart import router as cart_router
+from routers.orders import router as orders_router
+from routers.store import router as store_router
+from routers.ws import router as ws_router
 
-try:
-    from models.product import Product
-    from models.user import User
-    from models.ecommerce import Order, CartItem, WishlistItem, SupportTicket, Review
-except ImportError:
-    pass
-
-from routers import auth, products, store
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
-    yield
-
-app = FastAPI(
-    title="Modern Commerce API",
-    version="1.0.0",
-    lifespan=lifespan,
-)
+app = FastAPI(title="R-Mart Engine", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-app.include_router(auth.router, prefix="/api/v1")
-app.include_router(products.router, prefix="/api/v1/products")
-app.include_router(store.router, prefix="/api/v1")
+# Core R-Mart v1 Endpoints
+app.include_router(auth_router, prefix="/api/v1/auth", tags=["Auth"])
+app.include_router(products_router, prefix="/api/v1/products", tags=["Products"])
+app.include_router(cart_router, prefix="/api/v1/cart", tags=["Cart"])
+app.include_router(orders_router, prefix="/api/v1/orders", tags=["Orders"])
+app.include_router(store_router, prefix="/api/v1/store", tags=["Store"])
+app.include_router(ws_router, prefix="/api/v1/ws", tags=["WebSocket"])
 
 @app.get("/")
 def root():
-    return {"status": "healthy", "service": "Modern Commerce API"}
+    return {"brand": "R-Mart", "status": "online", "theme": "black-blue"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="127.0.0.1", port=8000)

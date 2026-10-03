@@ -10,6 +10,9 @@ export default function Navbar() {
   const newsBannerText = useUIStore((state) => state.newsBannerText);
   const openRightMenuView = useUIStore((state) => state.openRightMenuView);
   const openRightMenu = useUIStore((state) => state.openRightMenu);
+  const theme = useUIStore((state) => state.theme);
+  const toggleTheme = useUIStore((state) => state.toggleTheme);
+  const isDark = theme === "dark";
 
   const isAdmin = user?.role === "admin";
   const cartCount = getCartCount();
@@ -35,44 +38,70 @@ export default function Navbar() {
         alignItems: "center",
         justifyContent: "space-between",
         padding: "12px 24px",
-        backgroundColor: "#000000",
-        borderBottom: "1px solid #1E293B",
+        backgroundColor: isDark ? "#000000" : "#FFFFFF",
+        borderBottom: `1px solid ${isDark ? "#1E293B" : "#E2E8F0"}`,
         position: "sticky",
         top: 0,
         zIndex: 50,
         backdropFilter: "blur(14px)",
-        boxShadow: "0 4px 24px rgba(0, 0, 0, 0.8)",
+        boxShadow: isDark
+          ? "0 4px 24px rgba(0, 0, 0, 0.8)"
+          : "0 4px 20px rgba(0, 0, 0, 0.08)",
         gap: "18px",
       }}
     >
-      {/* 1. Brand Logo: R-Mart */}
-      <Link
-        to="/catalog"
-        style={{
-          textDecoration: "none",
-          color: "#FFFFFF",
-          fontSize: "20px",
-          fontWeight: "900",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          letterSpacing: "-0.5px",
-          flexShrink: 0,
-        }}
-      >
-        <span
+      {/* 1. Brand Logo: R-Mart + Theme Toggle beside it */}
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+        <Link
+          to="/catalog"
           style={{
-            color: "#F59E0B",
-            fontSize: "22px",
-            filter: "drop-shadow(0 0 8px rgba(245, 158, 11, 0.6))",
+            textDecoration: "none",
+            color: isDark ? "#FFFFFF" : "#0F172A",
+            fontSize: "20px",
+            fontWeight: "900",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            letterSpacing: "-0.5px",
           }}
         >
-          ⚡
-        </span>
-        <span style={{ letterSpacing: "1px" }}>
-          <strong style={{ color: "#F59E0B" }}>R</strong>-MART
-        </span>
-      </Link>
+          <span
+            style={{
+              color: "#F59E0B",
+              fontSize: "22px",
+              filter: "drop-shadow(0 0 8px rgba(245, 158, 11, 0.6))",
+            }}
+          >
+            ⚡
+          </span>
+          <span style={{ letterSpacing: "1px" }}>
+            <strong style={{ color: "#F59E0B" }}>R</strong>-MART
+          </span>
+        </Link>
+
+        {/* Theme Toggle Button (Light/Dark) beside RMart Logo */}
+        <button
+          onClick={toggleTheme}
+          title={`Switch to ${isDark ? "Light" : "Dark"} Mode`}
+          style={{
+            backgroundColor: isDark ? "rgba(30, 41, 59, 0.8)" : "rgba(241, 245, 249, 0.9)",
+            border: `1px solid ${isDark ? "rgba(56, 189, 248, 0.3)" : "#CBD5E1"}`,
+            color: isDark ? "#F59E0B" : "#0F172A",
+            padding: "5px 11px",
+            borderRadius: "20px",
+            fontSize: "12px",
+            fontWeight: "800",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            transition: "all 0.2s ease",
+          }}
+        >
+          <span>{isDark ? "🌙" : "☀️"}</span>
+          <span style={{ fontSize: "11px", fontWeight: "900" }}>{isDark ? "Dark" : "Light"}</span>
+        </button>
+      </div>
 
       {/* 2. Admin-Controlled News Banner Scrolling in Human Readable Speed */}
       <div

@@ -135,6 +135,8 @@ export const useUIStore = create(
   persist(
     (set) => ({
       theme: "dark",
+      toggleTheme: () => set((state) => ({ theme: state.theme === "dark" ? "light" : "dark" })),
+      setTheme: (theme) => set({ theme }),
 
       // Admin Controlled Scrolling News Banner
       newsBannerText:

@@ -16,6 +16,7 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [autoFilled, setAutoFilled] = useState(false);
+  const [saveCredentials, setSaveCredentials] = useState(true);
 
   // Auto-enter details if once registered
   React.useEffect(() => {
@@ -58,18 +59,20 @@ export default function AuthPage() {
       role: role,
     };
 
-    // Auto-save registered credentials to localStorage so user never has to retype
-    try {
-      localStorage.setItem(
-        "rmart_registered_user",
-        JSON.stringify({
-          name: finalName,
-          email: cleanEmail,
-          password: password,
-          role: role,
-        })
-      );
-    } catch (err) {}
+    // Save credentials to localStorage if checked
+    if (saveCredentials) {
+      try {
+        localStorage.setItem(
+          "rmart_registered_user",
+          JSON.stringify({
+            name: finalName,
+            email: cleanEmail,
+            password: password,
+            role: role,
+          })
+        );
+      } catch (err) {}
+    }
 
     const token = `rmart_jwt_${role}_${Date.now()}`;
     setUser(authenticatedUser, token);
@@ -352,6 +355,28 @@ export default function AuthPage() {
               }}
             />
           </div>
+
+          {/* Remember / Save Credentials Checkbox */}
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              cursor: "pointer",
+              fontSize: "12px",
+              fontWeight: "700",
+              color: c.text,
+              userSelect: "none",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={saveCredentials}
+              onChange={(e) => setSaveCredentials(e.target.checked)}
+              style={{ width: "16px", height: "16px", accentColor: "#10B981" }}
+            />
+            <span>💾 Save credentials (auto-fill automatically on login)</span>
+          </label>
 
           {/* Role Selection: User or Admin */}
           <div>

@@ -53,6 +53,16 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
   const [newTicketSubject, setNewTicketSubject] = useState("");
   const [newTicketMsg, setNewTicketMsg] = useState("");
   const [chatInput, setChatInput] = useState("");
+  const [feedbackMsg, setFeedbackMsg] = useState("");
+  const [supportTab, setSupportTab] = useState("chatbot"); // "chatbot" | "tickets"
+  const [chatbotMessages, setChatbotMessages] = useState([
+    {
+      sender: "bot",
+      text: "👋 Hi! I am R-Bot, your 24/7 AI Smart Assistant for R-Mart. While the store admin is away, I can answer your questions immediately. Try asking below or tap any quick prompt!",
+      time: "Online",
+    },
+  ]);
+  const [chatbotInput, setChatbotInput] = useState("");
 
   // Add Product Studio State
   const [productForm, setProductForm] = useState({
@@ -210,6 +220,114 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
     localStorage.setItem("rmart_support_tickets", JSON.stringify(updated));
     setTickets(updated);
     setChatInput("");
+
+    // If sent by user in ticket, trigger AI Chatbot response in admin absence!
+    if (!isAdmin) {
+      const userText = chatInput;
+      setTimeout(() => {
+        const botReply = generateBotReply(userText);
+        const stored = JSON.parse(localStorage.getItem("rmart_support_tickets") || "[]");
+        const withBot = stored.map((t) => {
+          if (t.id === activeTicketId) {
+            return {
+              ...t,
+              messages: [
+                ...t.messages,
+                {
+                  sender: "admin",
+                  isBot: true,
+                  text: botReply,
+                  time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                },
+              ],
+            };
+          }
+          return t;
+        });
+        localStorage.setItem("rmart_support_tickets", JSON.stringify(withBot));
+        setTickets(withBot);
+      }, 700);
+    }
+  };
+
+  const generateBotReply = (text) => {
+    const q = (text || "").toLowerCase();
+    if (q.includes("order") || q.includes("track") || q.includes("where") || q.includes("delivery") || q.includes("courier")) {
+      return "🤖 R-Bot: Your order tracking is handled in real-time via Celery background tasks! Check your Live Order Tracker modal or Notifications Inbox to see if it's Queued, Packed, Dispatched, or Out for Delivery.";
+    }
+    if (q.includes("pay later") || q.includes("later") || q.includes("credit") || q.includes("interest")) {
+      return "🤖 R-Bot: R-Mart Pay Later provides an instant pre-approved $500 credit limit at 0% interest for 30 days. No card or OTP needed at checkout!";
+    }
+    if (q.includes("return") || q.includes("refund") || q.includes("cancel") || q.includes("replace")) {
+      return "🤖 R-Bot: We offer a 7-day hassle-free doorstep return policy. Once requested, our courier picks up the package and refunds are credited within 24 hours.";
+    }
+    if (q.includes("payment") || q.includes("upi") || q.includes("card") || q.includes("cod")) {
+      return "🤖 R-Bot: We support R-Mart Pay Later (0% APR), Instant UPI (Google Pay, PhonePe, Paytm), Visa/Mastercard/RuPay cards, and Cash on Delivery.";
+    }
+    if (q.includes("hi") || q.includes("hello") || q.includes("hey")) {
+      return "🤖 R-Bot: Hello! I am R-Bot, your 24/7 AI Smart Assistant while our human store admin is away. Ask me about orders, Pay Later, returns, or payment options!";
+    }
+    return `🤖 R-Bot: Thanks for asking! I've noted down your query for our store administrator. A Celery background notification has been dispatched to alert the admin team.`;
+  };
+
+  const handleSendChatbotMessage = (queryText) => {
+    const textToSend = queryText || chatbotInput;
+    if (!textToSend.trim()) return;
+
+    const userMsg = {
+      sender: "user",
+      text: textToSend.trim(),
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+
+    const newHistory = [...chatbotMessages, userMsg];
+    setChatbotMessages(newHistory);
+    setChatbotInput("");
+
+    setTimeout(() => {
+      const botResponse = generateBotReply(textToSend);
+      setChatbotMessages([
+        ...newHistory,
+        {
+          sender: "bot",
+          text: botResponse,
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+    }, 500);
+  };
+
+  // Admin Tracker Modifier using Celery background tasks
+  const handleAdminUpdateOrderStatus = (orderId, newStatus) => {
+    const celeryTaskId = "celery-task-" + Math.random().toString(36).substring(2, 9);
+    const updated = orders.map((o) => {
+      if (o.orderId === orderId) {
+        return {
+          ...o,
+          status: newStatus,
+          celery_task_id: celeryTaskId,
+        };
+      }
+      return o;
+    });
+
+    localStorage.setItem("rmart_admin_orders", JSON.stringify(updated));
+    setOrders(updated);
+
+    // Send notification into User Inbox so user knows how far order came!
+    const existingNotifs = JSON.parse(localStorage.getItem("rmart_user_inbox") || "[]");
+    const newNotif = {
+      id: Date.now(),
+      title: `⚡ Order #${orderId} Tracker Updated: ${newStatus}`,
+      message: `Admin modified tracker stage. Celery worker [${celeryTaskId}] dispatched background email & push alert. Order stage: "${newStatus}".`,
+      time: "Just now",
+      read: false,
+      orderId: orderId,
+    };
+    localStorage.setItem("rmart_user_inbox", JSON.stringify([newNotif, ...existingNotifs]));
+
+    setFeedbackMsg(`⚡ Celery Task [${celeryTaskId}] dispatched! Order #${orderId} moved to "${newStatus}". Customer notified.`);
+    setTimeout(() => setFeedbackMsg(""), 4500);
   };
 
   // Resolve Ticket: "if issue solved click resolved both users and admin can close ticket"
@@ -1360,6 +1478,23 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
           {(activeView === "customer_orders" || activeView === "orders") &&
             !activeTicketId && (
               <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                {feedbackMsg && (
+                  <div
+                    style={{
+                      backgroundColor: "rgba(16, 185, 129, 0.2)",
+                      border: "1px solid #10B981",
+                      color: "#10B981",
+                      padding: "10px 14px",
+                      borderRadius: "10px",
+                      fontSize: "12px",
+                      fontWeight: "800",
+                      textAlign: "center",
+                    }}
+                  >
+                    {feedbackMsg}
+                  </div>
+                )}
+
                 {orders.length === 0 ? (
                   <div
                     style={{
@@ -1422,6 +1557,132 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
                         </strong>
                       </div>
 
+                      {/* Current Status Badge */}
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "11px", color: c.subtext }}>Stage:</span>
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: "900",
+                            backgroundColor:
+                              ord.status === "Delivered"
+                                ? "rgba(16, 185, 129, 0.15)"
+                                : "rgba(245, 158, 11, 0.15)",
+                            color: ord.status === "Delivered" ? "#10B981" : "#F59E0B",
+                            padding: "2px 8px",
+                            borderRadius: "6px",
+                            border: `1px solid ${
+                              ord.status === "Delivered" ? "#10B981" : "#F59E0B"
+                            }`,
+                          }}
+                        >
+                          {ord.status || "Processing (Queued in Redis)"}
+                        </span>
+                      </div>
+
+                      {/* ADMIN CELERY TRACKER CONTROLLER */}
+                      {isAdmin && (
+                        <div
+                          style={{
+                            backgroundColor: "rgba(10, 15, 30, 0.8)",
+                            border: "1px dashed #38BDF8",
+                            borderRadius: "10px",
+                            padding: "10px 12px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "8px",
+                            marginTop: "4px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: "900",
+                                color: "#38BDF8",
+                              }}
+                            >
+                              ⚡ CELERY WORKER TASK (ADMIN):
+                            </span>
+                            <span
+                              style={{
+                                fontSize: "10px",
+                                color: "#F59E0B",
+                                fontFamily: "monospace",
+                              }}
+                            >
+                              {ord.celery_task_id || "celery-worker-task"}
+                            </span>
+                          </div>
+
+                          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                            <select
+                              value={ord.status || "Processing (Queued in Redis)"}
+                              onChange={(e) =>
+                                handleAdminUpdateOrderStatus(
+                                  ord.orderId,
+                                  e.target.value
+                                )
+                              }
+                              style={{
+                                flex: 1,
+                                padding: "6px 8px",
+                                borderRadius: "6px",
+                                backgroundColor: "#030712",
+                                border: "1px solid #334155",
+                                color: "#FFFFFF",
+                                fontSize: "12px",
+                                fontWeight: "800",
+                              }}
+                            >
+                              <option value="Processing (Queued in Redis)">
+                                1. Processing (Queued in Redis)
+                              </option>
+                              <option value="Shipped (Celery Dispatched)">
+                                2. Shipped (Celery Dispatched)
+                              </option>
+                              <option value="Dispatched from Hub">
+                                3. Dispatched from Regional Hub
+                              </option>
+                              <option value="Out for Delivery">
+                                4. Out for Delivery (Courier Assigned)
+                              </option>
+                              <option value="Delivered">
+                                5. Delivered to Customer
+                              </option>
+                            </select>
+
+                            <button
+                              onClick={() =>
+                                handleAdminUpdateOrderStatus(
+                                  ord.orderId,
+                                  "Delivered"
+                                )
+                              }
+                              style={{
+                                backgroundColor: "#10B981",
+                                color: "#000",
+                                border: "none",
+                                padding: "6px 12px",
+                                borderRadius: "6px",
+                                fontSize: "11px",
+                                fontWeight: "900",
+                                cursor: "pointer",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              Deliver ✓
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
                       <div
                         style={{
                           display: "flex",
@@ -1473,8 +1734,236 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
           {(activeView === "support" || activeView === "queries") &&
             !activeTicketId && (
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                {/* User side: Raise new ticket */}
+                {/* Support Sub-tabs: AI Chatbot vs Admin Ticket (User Side) */}
                 {!isAdmin && (
+                  <div
+                    style={{
+                      display: "flex",
+                      backgroundColor: "rgba(15, 23, 42, 0.8)",
+                      borderRadius: "10px",
+                      padding: "4px",
+                      border: `1px solid ${c.border}`,
+                    }}
+                  >
+                    <button
+                      onClick={() => setSupportTab("chatbot")}
+                      style={{
+                        flex: 1,
+                        padding: "8px",
+                        borderRadius: "8px",
+                        border: "none",
+                        backgroundColor: supportTab === "chatbot" ? "#38BDF8" : "transparent",
+                        color: supportTab === "chatbot" ? "#030712" : "#94A3B8",
+                        fontWeight: "900",
+                        fontSize: "12px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <span>🤖</span>
+                      <span>R-Bot AI Assistant (Instant)</span>
+                    </button>
+                    <button
+                      onClick={() => setSupportTab("tickets")}
+                      style={{
+                        flex: 1,
+                        padding: "8px",
+                        borderRadius: "8px",
+                        border: "none",
+                        backgroundColor: supportTab === "tickets" ? "#F59E0B" : "transparent",
+                        color: supportTab === "tickets" ? "#030712" : "#94A3B8",
+                        fontWeight: "900",
+                        fontSize: "12px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <span>🎫</span>
+                      <span>Human Admin Tickets</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* 1. R-BOT AI CHATBOT MODE (Answers in Admin Absence) */}
+                {!isAdmin && supportTab === "chatbot" && (
+                  <div
+                    style={{
+                      backgroundColor: c.cardBg,
+                      border: `1px solid ${c.border}`,
+                      borderRadius: "14px",
+                      padding: "16px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "12px",
+                    }}
+                  >
+                    {/* Bot Header */}
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        borderBottom: `1px solid ${c.border}`,
+                        paddingBottom: "10px",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "20px" }}>🤖</span>
+                        <div>
+                          <div style={{ fontSize: "14px", fontWeight: "900", color: "#38BDF8" }}>
+                            R-Bot AI Smart Support
+                          </div>
+                          <div style={{ fontSize: "11px", color: c.subtext }}>
+                            24/7 Automated Query Solver (Active in Admin Absence)
+                          </div>
+                        </div>
+                      </div>
+                      <span
+                        style={{
+                          backgroundColor: "rgba(16, 185, 129, 0.2)",
+                          color: "#10B981",
+                          fontSize: "10px",
+                          fontWeight: "900",
+                          padding: "3px 8px",
+                          borderRadius: "12px",
+                        }}
+                      >
+                        ● ONLINE
+                      </span>
+                    </div>
+
+                    {/* Chat Messages Stream */}
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "10px",
+                        maxHeight: "260px",
+                        overflowY: "auto",
+                        padding: "4px",
+                      }}
+                    >
+                      {chatbotMessages.map((m, idx) => {
+                        const isBot = m.sender === "bot";
+                        return (
+                          <div
+                            key={idx}
+                            style={{
+                              alignSelf: isBot ? "flex-start" : "flex-end",
+                              backgroundColor: isBot ? "rgba(15, 23, 42, 0.85)" : "#38BDF8",
+                              color: isBot ? "#F8FAFC" : "#030712",
+                              border: isBot ? `1px solid ${c.border}` : "none",
+                              padding: "10px 14px",
+                              borderRadius: isBot ? "12px 12px 12px 2px" : "12px 12px 2px 12px",
+                              maxWidth: "85%",
+                              fontSize: "13px",
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            <div>{m.text}</div>
+                            <div
+                              style={{
+                                fontSize: "10px",
+                                opacity: 0.7,
+                                textAlign: "right",
+                                marginTop: "4px",
+                              }}
+                            >
+                              {m.time}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Instant Quick Action Prompt Chips */}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                      {[
+                        "📦 Where is my order?",
+                        "⏳ How does Pay Later work?",
+                        "↩️ 7-Day Return Policy",
+                        "💳 Supported payment methods",
+                      ].map((promptText, pIdx) => (
+                        <button
+                          key={pIdx}
+                          type="button"
+                          onClick={() => handleSendChatbotMessage(promptText)}
+                          style={{
+                            backgroundColor: "rgba(56, 189, 248, 0.1)",
+                            border: "1px solid rgba(56, 189, 248, 0.3)",
+                            color: "#38BDF8",
+                            padding: "4px 10px",
+                            borderRadius: "14px",
+                            fontSize: "11px",
+                            fontWeight: "800",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {promptText}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Input Bar */}
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSendChatbotMessage();
+                      }}
+                      style={{ display: "flex", gap: "8px", marginTop: "4px" }}
+                    >
+                      <input
+                        type="text"
+                        placeholder="Type any question (orders, pay later, returns)..."
+                        value={chatbotInput}
+                        onChange={(e) => setChatbotInput(e.target.value)}
+                        style={{ ...inputStyle(c), flex: 1 }}
+                      />
+                      <button
+                        type="submit"
+                        style={{
+                          backgroundColor: "#38BDF8",
+                          color: "#030712",
+                          border: "none",
+                          padding: "0 18px",
+                          borderRadius: "8px",
+                          fontWeight: "900",
+                          fontSize: "13px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Ask Bot
+                      </button>
+                    </form>
+
+                    <div style={{ textAlign: "center", marginTop: "4px" }}>
+                      <button
+                        type="button"
+                        onClick={() => setSupportTab("tickets")}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#F59E0B",
+                          fontSize: "11px",
+                          fontWeight: "800",
+                          cursor: "pointer",
+                          textDecoration: "underline",
+                        }}
+                      >
+                        Need human assistance? Escalate to Admin Support Ticket ➔
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. ADMIN TICKETS FORM & THREADS (When in tickets mode or admin) */}
+                {(!isAdmin && supportTab === "tickets") && (
                   <form
                     onSubmit={handleCreateTicket}
                     style={{
@@ -1488,7 +1977,7 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
                     }}
                   >
                     <div style={{ fontSize: "14px", fontWeight: "900", color: c.text }}>
-                      Raise a Customer Care Ticket
+                      Raise a Customer Care Ticket to Store Admin
                     </div>
                     <input
                       type="text"

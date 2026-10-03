@@ -636,56 +636,6 @@ export default function CinematicIntro({ onFinish }) {
           alignItems: "center",
         }}
       >
-        {/* Floating Order Notification Bubble when Tapped */}
-        {stage === "order" && (
-          <div
-            style={{
-              position: "absolute",
-              top: "-80px",
-              backgroundColor: "rgba(16, 185, 129, 0.95)",
-              color: "#FFFFFF",
-              padding: "8px 18px",
-              borderRadius: "20px",
-              fontSize: "13px",
-              fontWeight: "900",
-              boxShadow: "0 0 25px #10B981",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              whiteSpace: "nowrap",
-              animation: "bounceGently 0.8s ease infinite",
-            }}
-          >
-            <span>✓</span>
-            <span>ORDER PLACED INSTANTLY!</span>
-          </div>
-        )}
-
-        {/* When Delivery Arrives: Package Collected Badge */}
-        {(stage === "delivery" || stage === "finished") && (
-          <div
-            style={{
-              position: "absolute",
-              top: "-85px",
-              backgroundColor: "rgba(245, 158, 11, 0.95)",
-              color: "#030712",
-              padding: "8px 20px",
-              borderRadius: "20px",
-              fontSize: "13px",
-              fontWeight: "900",
-              boxShadow: "0 0 25px rgba(245, 158, 11, 0.8)",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              whiteSpace: "nowrap",
-              animation: "bounceGently 0.8s ease infinite",
-            }}
-          >
-            <span>📦</span>
-            <span>ORDER DELIVERED AT DOORSTEP!</span>
-          </div>
-        )}
-
         {/* STYLIZED 2D VECTOR CHARACTER: PERSON SCROLLING PHONE */}
         <div style={{ position: "relative", width: "120px", height: "230px" }}>
           <svg width="120" height="230" viewBox="0 0 120 230">
@@ -927,43 +877,13 @@ export default function CinematicIntro({ onFinish }) {
       <div
         style={{
           position: "absolute",
-          bottom: "36px",
+          bottom: "32px",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "10px",
           zIndex: 50,
         }}
       >
-        <div
-          style={{
-            backgroundColor: "rgba(10, 15, 30, 0.85)",
-            border: "1px solid rgba(245, 158, 11, 0.4)",
-            borderRadius: "30px",
-            padding: "10px 28px",
-            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.9), 0 0 20px rgba(245, 158, 11, 0.2)",
-            backdropFilter: "blur(16px)",
-            display: "flex",
-            alignItems: "center",
-            gap: "14px",
-          }}
-        >
-          <span style={{ fontSize: "18px" }}>
-            {stage === "entering" && "📱"}
-            {stage === "mart_open" && "🏪"}
-            {stage === "order" && "⚡"}
-            {stage === "delivery" && "🛵"}
-            {stage === "finished" && "🎉"}
-          </span>
-          <span style={{ color: "#F8FAFC", fontSize: "14px", fontWeight: "800", letterSpacing: "0.2px" }}>
-            {stage === "entering" && "Browsing R-Mart catalog on smartphone..."}
-            {stage === "mart_open" && "R-Mart Superstore opens with luminous display!"}
-            {stage === "order" && "Tapping 'Place Order' on smartphone..."}
-            {stage === "delivery" && "Delivery agent hands over fresh grocery boxes!"}
-            {stage === "finished" && "Delivered! Opening store now..."}
-          </span>
-        </div>
-
         {/* One-Click Enter Store Button */}
         <button
           onClick={handleFinish}
@@ -971,16 +891,20 @@ export default function CinematicIntro({ onFinish }) {
             backgroundColor: "#F59E0B",
             color: "#030712",
             border: "none",
-            borderRadius: "20px",
-            padding: "8px 24px",
-            fontSize: "12px",
+            borderRadius: "24px",
+            padding: "10px 30px",
+            fontSize: "13px",
             fontWeight: "900",
             cursor: "pointer",
-            boxShadow: "0 0 20px rgba(245, 158, 11, 0.5)",
+            boxShadow: "0 0 25px rgba(245, 158, 11, 0.6)",
             display: "flex",
             alignItems: "center",
-            gap: "6px",
+            gap: "8px",
+            letterSpacing: "0.5px",
+            transition: "transform 0.15s ease",
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
         >
           <span>START SHOPPING NOW</span>
           <span>➔</span>

@@ -109,15 +109,15 @@ export default function Navbar() {
           flex: 1,
           overflow: "hidden",
           position: "relative",
-          backgroundColor: "#0B0F19",
+          backgroundColor: isDark ? "#0B0F19" : "#F1F5F9",
           borderRadius: "999px",
-          border: "1px solid #1E293B",
+          border: `1px solid ${isDark ? "#1E293B" : "#CBD5E1"}`,
           padding: "6px 14px",
           display: "flex",
           alignItems: "center",
           gap: "10px",
           maxWidth: "760px",
-          boxShadow: "inset 0 1px 4px rgba(0,0,0,0.6)",
+          boxShadow: isDark ? "inset 0 1px 4px rgba(0,0,0,0.6)" : "0 1px 3px rgba(0,0,0,0.05)",
         }}
         title="Admin announcement banner (hover to pause reading)"
       >
@@ -159,7 +159,7 @@ export default function Navbar() {
             className="scrolling-news-track"
             style={{
               display: "inline-block",
-              color: "#F1F5F9",
+              color: isDark ? "#F1F5F9" : "#0F172A",
               fontSize: "13px",
               fontWeight: "600",
               letterSpacing: "0.3px",
@@ -205,18 +205,22 @@ export default function Navbar() {
         <button
           onClick={handleOpenNotifications}
           style={{
-            backgroundColor: "#0B0F19",
-            border: "1px solid rgba(239, 68, 68, 0.5)",
+            backgroundColor: isDark ? "#0B0F19" : "#FFFFFF",
+            border: isDark
+              ? "1px solid rgba(239, 68, 68, 0.5)"
+              : "1px solid rgba(239, 68, 68, 0.4)",
             borderRadius: "10px",
             padding: "8px 12px",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             gap: "6px",
-            color: "#FFFFFF",
+            color: isDark ? "#FFFFFF" : "#0F172A",
             fontSize: "13px",
             fontWeight: "800",
-            boxShadow: "0 0 12px rgba(239, 68, 68, 0.2)",
+            boxShadow: isDark
+              ? "0 0 12px rgba(239, 68, 68, 0.2)"
+              : "0 2px 8px rgba(0, 0, 0, 0.05)",
           }}
           title={
             isAdmin
@@ -281,10 +285,14 @@ export default function Navbar() {
         <button
           onClick={openRightMenu}
           style={{
-            backgroundColor: "#0F172A",
-            color: isAdmin ? "#F59E0B" : "#38BDF8",
+            backgroundColor: isDark ? "#0F172A" : "#FFFFFF",
+            color: isAdmin ? "#F59E0B" : isDark ? "#38BDF8" : "#0284C7",
             border: `1px solid ${
-              isAdmin ? "rgba(245, 158, 11, 0.4)" : "rgba(56, 189, 248, 0.4)"
+              isAdmin
+                ? "rgba(245, 158, 11, 0.4)"
+                : isDark
+                ? "rgba(56, 189, 248, 0.4)"
+                : "#CBD5E1"
             }`,
             borderRadius: "10px",
             padding: "8px 14px",
@@ -294,7 +302,9 @@ export default function Navbar() {
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.5)",
+            boxShadow: isDark
+              ? "0 2px 8px rgba(0,0,0,0.5)"
+              : "0 2px 6px rgba(0,0,0,0.06)",
           }}
           title={isAdmin ? "Open Admin Console Toggle" : "Open User Hub Toggle"}
         >

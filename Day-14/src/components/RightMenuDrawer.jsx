@@ -461,32 +461,38 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
     accent: isAdmin ? "#F59E0B" : "#38BDF8",
   };
 
+  const isAddProductFullScreen =
+    activeView === "add_product" && !activeTicketId && isAdmin;
+
   return (
     <div
       style={{
         position: "fixed",
         inset: 0,
         zIndex: 99999,
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        backgroundColor: "rgba(0, 0, 0, 0.65)",
         display: "flex",
-        justifyContent: "flex-end",
+        justifyContent: isAddProductFullScreen ? "center" : "flex-end",
         backdropFilter: "blur(8px)",
       }}
     >
       <div
         style={{
           width: "100%",
-          maxWidth: "470px",
+          maxWidth: isAddProductFullScreen ? "100vw" : "470px",
           height: "100%",
           backgroundColor: c.bg,
           backdropFilter: "blur(24px)",
           WebkitBackdropFilter: "blur(24px)",
-          borderLeft: `1px solid ${c.border}`,
+          borderLeft: isAddProductFullScreen ? "none" : `1px solid ${c.border}`,
           display: "flex",
           flexDirection: "column",
-          boxShadow: "-16px 0 50px rgba(0, 0, 0, 0.8), inset 1px 0 0 rgba(255, 255, 255, 0.08)",
+          boxShadow: isAddProductFullScreen
+            ? "none"
+            : "-16px 0 50px rgba(0, 0, 0, 0.8), inset 1px 0 0 rgba(255, 255, 255, 0.08)",
           fontFamily: "'Inter', system-ui, sans-serif",
           color: c.text,
+          transition: "max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
         }}
       >
         {/* Drawer Header (Translucent Glass) */}
@@ -1062,289 +1068,542 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
           )}
 
           {/* ================================================================ */}
-          {/* ADMIN VIEW: ADD PRODUCTS (3 WAYS TO UPLOAD IMAGES) */}
+          {/* ADMIN VIEW: ADD PRODUCTS (FULL SCREEN STUDIO WITH 3-WAY UPLOAD & LIVE 3D PREVIEW) */}
           {/* ================================================================ */}
           {activeView === "add_product" && !activeTicketId && isAdmin && (
-            <form
-              onSubmit={handleAddProductSubmit}
-              style={{ display: "flex", flexDirection: "column", gap: "14px" }}
+            <div
+              style={{
+                maxWidth: "1280px",
+                width: "100%",
+                margin: "0 auto",
+                padding: "10px 0 40px 0",
+              }}
             >
-              <div>
-                <label style={labelStyle(c)}>Product Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. RGB Wireless Pro Gaming Headset"
-                  value={productForm.name}
-                  onChange={(e) =>
-                    setProductForm({ ...productForm, name: e.target.value })
-                  }
-                  style={inputStyle(c)}
-                />
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              {/* Top Studio Banner */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "24px",
+                  paddingBottom: "16px",
+                  borderBottom: `1px solid ${c.border}`,
+                  flexWrap: "wrap",
+                  gap: "12px",
+                }}
+              >
                 <div>
-                  <label style={labelStyle(c)}>Category *</label>
-                  <select
-                    value={productForm.category}
-                    onChange={(e) =>
-                      setProductForm({ ...productForm, category: e.target.value })
-                    }
-                    style={inputStyle(c)}
-                  >
-                    <option value="Electronics">Electronics</option>
-                    <option value="Peripherals">Peripherals</option>
-                    <option value="Accessories">Accessories</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={labelStyle(c)}>Price ($) *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    placeholder="99.99"
-                    value={productForm.price}
-                    onChange={(e) =>
-                      setProductForm({ ...productForm, price: e.target.value })
-                    }
-                    style={inputStyle(c)}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={labelStyle(c)}>Initial Stock Units</label>
-                <input
-                  type="number"
-                  required
-                  value={productForm.stock}
-                  onChange={(e) =>
-                    setProductForm({ ...productForm, stock: e.target.value })
-                  }
-                  style={inputStyle(c)}
-                />
-              </div>
-
-              <div>
-                <label style={labelStyle(c)}>Description</label>
-                <textarea
-                  rows="3"
-                  placeholder="Details, specs, and features of the product..."
-                  value={productForm.description}
-                  onChange={(e) =>
-                    setProductForm({
-                      ...productForm,
-                      description: e.target.value,
-                    })
-                  }
-                  style={textareaStyle(c)}
-                />
-              </div>
-
-              {/* 3 WAYS TO UPLOAD IMAGES */}
-              <div>
-                <label style={labelStyle(c)}>
-                  Upload Product Image (3 Ways):
-                </label>
-                <div
-                  style={{
-                    display: "flex",
-                    backgroundColor: c.cardBg,
-                    border: `1px solid ${c.border}`,
-                    borderRadius: "10px",
-                    padding: "4px",
-                    marginBottom: "12px",
-                    gap: "4px",
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setImageUploadMethod("browse")}
-                    style={uploadTabStyle(imageUploadMethod === "browse")}
-                  >
-                    1. Browse File
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setImageUploadMethod("dragdrop")}
-                    style={uploadTabStyle(imageUploadMethod === "dragdrop")}
-                  >
-                    2. Drag & Drop
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setImageUploadMethod("url")}
-                    style={uploadTabStyle(imageUploadMethod === "url")}
-                  >
-                    3. Image URL
-                  </button>
-                </div>
-
-                {/* Way 1: Browse File */}
-                {imageUploadMethod === "browse" && (
-                  <div
-                    style={{
-                      padding: "16px",
-                      borderRadius: "12px",
-                      backgroundColor: c.cardBg,
-                      border: `1px dashed ${c.border}`,
-                      textAlign: "center",
-                    }}
-                  >
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      accept="image/*"
-                      style={{ display: "none" }}
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          handleFileChosen(e.target.files[0]);
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <span style={{ fontSize: "28px" }}>📦</span>
+                    <h2 style={{ fontSize: "22px", fontWeight: "900", margin: 0, color: c.text }}>
+                      R-Mart Product Creation Studio
+                    </h2>
+                    <span
                       style={{
-                        backgroundColor: "#1E293B",
-                        color: "#38BDF8",
-                        border: "1px solid rgba(56, 189, 248, 0.4)",
-                        padding: "10px 18px",
-                        borderRadius: "8px",
-                        fontWeight: "800",
-                        fontSize: "12px",
-                        cursor: "pointer",
+                        backgroundColor: "rgba(16, 185, 129, 0.2)",
+                        color: "#10B981",
+                        border: "1px solid rgba(16, 185, 129, 0.4)",
+                        fontSize: "11px",
+                        fontWeight: "900",
+                        padding: "3px 10px",
+                        borderRadius: "999px",
                       }}
                     >
-                      📁 Browse and Upload from Computer
-                    </button>
-                    <div style={{ fontSize: "11px", color: c.subtext, marginTop: "6px" }}>
-                      Supports PNG, JPG, WEBP formats
-                    </div>
+                      🖥️ FULL SCREEN STUDIO
+                    </span>
                   </div>
-                )}
+                  <p style={{ color: c.subtext, fontSize: "13px", margin: "4px 0 0 0" }}>
+                    Add inventory with live stock validation, 3-way photography uploads, and instant TanStack cache invalidation.
+                  </p>
+                </div>
 
-                {/* Way 2: Drag & Drop */}
-                {imageUploadMethod === "dragdrop" && (
-                  <div
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setIsDragOver(true);
-                    }}
-                    onDragLeave={() => setIsDragOver(false)}
-                    onDrop={handleDrop}
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveView("menu")}
                     style={{
-                      padding: "24px 16px",
-                      borderRadius: "12px",
-                      backgroundColor: isDragOver
-                        ? "rgba(56, 189, 248, 0.15)"
-                        : c.cardBg,
-                      border: `2px dashed ${
-                        isDragOver ? "#38BDF8" : c.border
-                      }`,
-                      textAlign: "center",
+                      backgroundColor: "rgba(255, 255, 255, 0.08)",
+                      color: c.text,
+                      border: `1px solid ${c.border}`,
+                      padding: "8px 16px",
+                      borderRadius: "10px",
+                      fontWeight: "800",
+                      fontSize: "12px",
                       cursor: "pointer",
-                      transition: "all 0.2s ease",
                     }}
                   >
-                    <div style={{ fontSize: "28px", marginBottom: "4px" }}>
-                      📥
-                    </div>
-                    <div style={{ fontSize: "13px", fontWeight: "800", color: c.text }}>
-                      Drag and Drop product image here
-                    </div>
-                    <div style={{ fontSize: "11px", color: c.subtext, marginTop: "4px" }}>
-                      Release file to instantly preview
-                    </div>
-                  </div>
-                )}
+                    ← Back to Admin Menu
+                  </button>
+                </div>
+              </div>
 
-                {/* Way 3: Direct URL */}
-                {imageUploadMethod === "url" && (
+              {/* 2-Column Responsive Studio Layout */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+                  gap: "32px",
+                  alignItems: "start",
+                }}
+              >
+                {/* Column 1: Form & 3-Way Upload */}
+                <form
+                  onSubmit={handleAddProductSubmit}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "16px",
+                    backgroundColor: c.cardBg,
+                    border: `1px solid ${c.border}`,
+                    borderRadius: "16px",
+                    padding: "24px",
+                    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.3)",
+                  }}
+                >
+                  <div style={{ fontSize: "14px", fontWeight: "900", color: "#F59E0B" }}>
+                    1. PRODUCT SPECIFICATIONS
+                  </div>
+
                   <div>
+                    <label style={labelStyle(c)}>Product Name *</label>
                     <input
-                      type="url"
-                      placeholder="https://images.unsplash.com/... or direct image link"
-                      value={imageUrlInput}
-                      onChange={(e) => setImageUrlInput(e.target.value)}
+                      type="text"
+                      required
+                      placeholder="e.g. RGB Wireless Pro Gaming Headset"
+                      value={productForm.name}
+                      onChange={(e) =>
+                        setProductForm({ ...productForm, name: e.target.value })
+                      }
                       style={inputStyle(c)}
                     />
                   </div>
-                )}
 
-                {/* Image Live Preview */}
-                {(previewImage || imageUrlInput) && (
-                  <div
-                    style={{
-                      marginTop: "12px",
-                      padding: "10px",
-                      backgroundColor: c.cardBg,
-                      borderRadius: "12px",
-                      border: `1px solid ${c.border}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <img
-                        src={previewImage || imageUrlInput}
-                        alt="Preview"
-                        style={{
-                          width: "50px",
-                          height: "50px",
-                          objectFit: "cover",
-                          borderRadius: "8px",
-                          backgroundColor: "#000",
-                        }}
-                      />
-                      <span style={{ fontSize: "12px", fontWeight: "800", color: "#10B981" }}>
-                        ✔ Image Ready for Upload
-                      </span>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
+                    <div>
+                      <label style={labelStyle(c)}>Category *</label>
+                      <select
+                        value={productForm.category}
+                        onChange={(e) =>
+                          setProductForm({ ...productForm, category: e.target.value })
+                        }
+                        style={inputStyle(c)}
+                      >
+                        <option value="Electronics">Electronics</option>
+                        <option value="Groceries">Groceries</option>
+                        <option value="Fashion">Fashion</option>
+                        <option value="Home & Kitchen">Home & Kitchen</option>
+                        <option value="Peripherals">Peripherals</option>
+                        <option value="Accessories">Accessories</option>
+                      </select>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPreviewImage("");
-                        setImageUrlInput("");
-                      }}
+
+                    <div>
+                      <label style={labelStyle(c)}>Price ($) *</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        placeholder="99.99"
+                        value={productForm.price}
+                        onChange={(e) =>
+                          setProductForm({ ...productForm, price: e.target.value })
+                        }
+                        style={inputStyle(c)}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={labelStyle(c)}>Stock Units *</label>
+                      <input
+                        type="number"
+                        required
+                        value={productForm.stock}
+                        onChange={(e) =>
+                          setProductForm({ ...productForm, stock: e.target.value })
+                        }
+                        style={inputStyle(c)}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={labelStyle(c)}>Description</label>
+                    <textarea
+                      rows="3"
+                      placeholder="Details, specs, and features of the product..."
+                      value={productForm.description}
+                      onChange={(e) =>
+                        setProductForm({
+                          ...productForm,
+                          description: e.target.value,
+                        })
+                      }
+                      style={textareaStyle(c)}
+                    />
+                  </div>
+
+                  {/* 3 WAYS TO UPLOAD IMAGES */}
+                  <div>
+                    <div style={{ fontSize: "14px", fontWeight: "900", color: "#F59E0B", margin: "8px 0 10px 0" }}>
+                      2. PRODUCT IMAGE (3 WAYS TO UPLOAD)
+                    </div>
+                    <div
                       style={{
-                        background: "none",
-                        border: "none",
-                        color: "#EF4444",
-                        fontSize: "12px",
-                        fontWeight: "800",
-                        cursor: "pointer",
+                        display: "flex",
+                        backgroundColor: "rgba(0, 0, 0, 0.4)",
+                        border: `1px solid ${c.border}`,
+                        borderRadius: "10px",
+                        padding: "4px",
+                        marginBottom: "12px",
+                        gap: "4px",
                       }}
                     >
-                      Remove ✕
-                    </button>
-                  </div>
-                )}
-              </div>
+                      <button
+                        type="button"
+                        onClick={() => setImageUploadMethod("browse")}
+                        style={uploadTabStyle(imageUploadMethod === "browse")}
+                      >
+                        1. Browse File
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setImageUploadMethod("dragdrop")}
+                        style={uploadTabStyle(imageUploadMethod === "dragdrop")}
+                      >
+                        2. Drag & Drop
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setImageUploadMethod("url")}
+                        style={uploadTabStyle(imageUploadMethod === "url")}
+                      >
+                        3. Image URL
+                      </button>
+                    </div>
 
-              {/* Upload Product Button */}
-              <button
-                type="submit"
-                style={{
-                  backgroundColor: "#10B981",
-                  color: "#030712",
-                  border: "none",
-                  padding: "14px",
-                  borderRadius: "10px",
-                  fontWeight: "900",
-                  fontSize: "14px",
-                  cursor: "pointer",
-                  marginTop: "6px",
-                  boxShadow: "0 4px 15px rgba(16, 185, 129, 0.3)",
-                }}
-              >
-                🚀 Click on Upload Product
-              </button>
-            </form>
+                    {/* Way 1: Browse File */}
+                    {imageUploadMethod === "browse" && (
+                      <div
+                        style={{
+                          padding: "20px",
+                          borderRadius: "12px",
+                          backgroundColor: "rgba(0,0,0,0.3)",
+                          border: `1px dashed ${c.border}`,
+                          textAlign: "center",
+                        }}
+                      >
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          accept="image/*"
+                          style={{ display: "none" }}
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              handleFileChosen(e.target.files[0]);
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          style={{
+                            backgroundColor: "#1E293B",
+                            color: "#38BDF8",
+                            border: "1px solid rgba(56, 189, 248, 0.4)",
+                            padding: "12px 22px",
+                            borderRadius: "10px",
+                            fontWeight: "800",
+                            fontSize: "13px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          📁 Browse & Upload Image
+                        </button>
+                        <div style={{ fontSize: "11px", color: c.subtext, marginTop: "8px" }}>
+                          Supports PNG, JPG, WEBP, GIF formats
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Way 2: Drag & Drop */}
+                    {imageUploadMethod === "dragdrop" && (
+                      <div
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setIsDragOver(true);
+                        }}
+                        onDragLeave={() => setIsDragOver(false)}
+                        onDrop={handleDrop}
+                        style={{
+                          padding: "32px 16px",
+                          borderRadius: "12px",
+                          backgroundColor: isDragOver
+                            ? "rgba(56, 189, 248, 0.15)"
+                            : "rgba(0,0,0,0.3)",
+                          border: `2px dashed ${
+                            isDragOver ? "#38BDF8" : c.border
+                          }`,
+                          textAlign: "center",
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        <div style={{ fontSize: "36px", marginBottom: "6px" }}>
+                          📥
+                        </div>
+                        <div style={{ fontSize: "14px", fontWeight: "800", color: c.text }}>
+                          Drag and Drop product image here
+                        </div>
+                        <div style={{ fontSize: "12px", color: c.subtext, marginTop: "4px" }}>
+                          Drop your image file anywhere in this box to preview instantly
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Way 3: Direct URL */}
+                    {imageUploadMethod === "url" && (
+                      <div>
+                        <input
+                          type="url"
+                          placeholder="https://images.unsplash.com/... or direct image link"
+                          value={imageUrlInput}
+                          onChange={(e) => setImageUrlInput(e.target.value)}
+                          style={inputStyle(c)}
+                        />
+                      </div>
+                    )}
+
+                    {/* Image Live Preview Bar */}
+                    {(previewImage || imageUrlInput) && (
+                      <div
+                        style={{
+                          marginTop: "12px",
+                          padding: "10px 14px",
+                          backgroundColor: "rgba(16, 185, 129, 0.1)",
+                          borderRadius: "12px",
+                          border: "1px solid rgba(16, 185, 129, 0.3)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <img
+                            src={previewImage || imageUrlInput}
+                            alt="Preview"
+                            style={{
+                              width: "48px",
+                              height: "48px",
+                              objectFit: "cover",
+                              borderRadius: "8px",
+                              backgroundColor: "#000",
+                            }}
+                          />
+                          <span style={{ fontSize: "12px", fontWeight: "800", color: "#10B981" }}>
+                            ✔ Image Loaded & Ready to Publish
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPreviewImage("");
+                            setImageUrlInput("");
+                          }}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: "#EF4444",
+                            fontSize: "12px",
+                            fontWeight: "800",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Remove ✕
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Upload Product Button */}
+                  <button
+                    type="submit"
+                    style={{
+                      backgroundColor: "#10B981",
+                      color: "#030712",
+                      border: "none",
+                      padding: "16px",
+                      borderRadius: "12px",
+                      fontWeight: "900",
+                      fontSize: "15px",
+                      cursor: "pointer",
+                      marginTop: "10px",
+                      boxShadow: "0 6px 20px rgba(16, 185, 129, 0.4)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <span>🚀 Publish Product to R-Mart 3D Catalog</span>
+                  </button>
+                </form>
+
+                {/* Column 2: Live 3D Customer Card Preview */}
+                <div
+                  style={{
+                    backgroundColor: c.cardBg,
+                    border: `1px solid ${c.border}`,
+                    borderRadius: "16px",
+                    padding: "24px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "16px",
+                    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.3)",
+                    position: "sticky",
+                    top: "10px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ fontSize: "14px", fontWeight: "900", color: "#38BDF8" }}>
+                      3. LIVE 3D CUSTOMER CARD PREVIEW
+                    </div>
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        backgroundColor: "rgba(56, 189, 248, 0.15)",
+                        color: "#38BDF8",
+                        padding: "2px 8px",
+                        borderRadius: "8px",
+                        fontWeight: "800",
+                      }}
+                    >
+                      Real-time
+                    </span>
+                  </div>
+
+                  <p style={{ color: c.subtext, fontSize: "12px", margin: 0 }}>
+                    This preview shows exactly how shoppers will see your product card in the 3D grid:
+                  </p>
+
+                  {/* Card Simulation */}
+                  <div
+                    style={{
+                      backgroundColor: "#0B0F19",
+                      borderRadius: "18px",
+                      border: "1px solid #1E293B",
+                      overflow: "hidden",
+                      boxShadow: "0 12px 30px rgba(0,0,0,0.6)",
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                  >
+                    <div style={{ position: "relative", height: "220px", backgroundColor: "#020617" }}>
+                      <img
+                        src={
+                          previewImage ||
+                          imageUrlInput.trim() ||
+                          "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=500"
+                        }
+                        alt="Product Preview"
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                      />
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "12px",
+                          left: "12px",
+                          backgroundColor: "rgba(0,0,0,0.6)",
+                          backdropFilter: "blur(6px)",
+                          color: "#38BDF8",
+                          fontSize: "11px",
+                          fontWeight: "800",
+                          padding: "3px 8px",
+                          borderRadius: "6px",
+                          border: "1px solid rgba(56, 189, 248, 0.3)",
+                        }}
+                      >
+                        {productForm.category || "Category"}
+                      </div>
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "12px",
+                          right: "12px",
+                          backgroundColor: "rgba(0,0,0,0.6)",
+                          color: "#EF4444",
+                          width: "32px",
+                          height: "32px",
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "16px",
+                        }}
+                      >
+                        ❤️
+                      </div>
+                    </div>
+
+                    <div style={{ padding: "18px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <div style={{ fontSize: "16px", fontWeight: "900", color: "#FFFFFF" }}>
+                        {productForm.name || "Product Name (e.g. RGB Gaming Headset)"}
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#94A3B8", lineHeight: 1.4 }}>
+                        {productForm.description || "Product description will appear here..."}
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "baseline",
+                          marginTop: "8px",
+                        }}
+                      >
+                        <div style={{ fontSize: "22px", fontWeight: "900", color: "#38BDF8" }}>
+                          ${productForm.price ? parseFloat(productForm.price).toFixed(2) : "99.99"}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: "800",
+                            color: "#10B981",
+                            backgroundColor: "rgba(16, 185, 129, 0.15)",
+                            padding: "2px 8px",
+                            borderRadius: "6px",
+                          }}
+                        >
+                          Stock: {productForm.stock || 15} units
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled
+                        style={{
+                          marginTop: "10px",
+                          backgroundColor: "#F59E0B",
+                          color: "#030712",
+                          border: "none",
+                          padding: "10px",
+                          borderRadius: "8px",
+                          fontWeight: "900",
+                          fontSize: "13px",
+                          cursor: "not-allowed",
+                          opacity: 0.9,
+                        }}
+                      >
+                        🛒 Add to Cart (Customer View)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* ================================================================ */}

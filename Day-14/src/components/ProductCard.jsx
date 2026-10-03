@@ -53,11 +53,13 @@ const ProductCard = memo(({ product }) => {
         className="preserve-3d"
         style={{
           height: "100%",
-          backgroundColor: "#0B0F19",
+          backgroundColor: isDark ? "#0B0F19" : "#FFFFFF",
           border: `1px solid ${
             tilt.isHovered
               ? "rgba(56, 189, 248, 0.6)"
-              : "#1E293B"
+              : isDark
+              ? "#1E293B"
+              : "#E2E8F0"
           }`,
           borderRadius: "18px",
           overflow: "hidden",

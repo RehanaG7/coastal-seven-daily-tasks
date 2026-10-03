@@ -2,9 +2,12 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useInfiniteProducts } from "../hooks/useProducts";
 import { useUIStore, useAuthStore } from "../store/useStore";
 import ProductCard from "../components/ProductCard";
+import Footer from "../components/Footer";
 
 export default function ProductsPage() {
   const user = useAuthStore((s) => s.user);
+  const theme = useUIStore((s) => s.theme);
+  const isDark = theme === "dark";
   const openRightMenu = useUIStore((s) => s.openRightMenu);
   const openRightMenuView = useUIStore((s) => s.openRightMenuView);
   const isAdmin = user?.role === "admin";
@@ -60,16 +63,25 @@ export default function ProductsPage() {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const categories = ["All", "Electronics", "Peripherals", "Accessories"];
+  const categories = [
+    "All",
+    "Electronics",
+    "Groceries",
+    "Fashion",
+    "Home & Kitchen",
+    "Peripherals",
+    "Accessories",
+  ];
 
   return (
     <div
       style={{
-        backgroundColor: "#000000",
+        backgroundColor: isDark ? "#000000" : "#F8FAFC",
         minHeight: "100vh",
-        padding: "24px 20px 80px 20px",
+        padding: "24px 20px 0 20px",
         fontFamily: "'Inter', system-ui, sans-serif",
-        color: "#FFFFFF",
+        color: isDark ? "#FFFFFF" : "#0F172A",
+        transition: "background-color 0.25s ease, color 0.25s ease",
       }}
     >
       <div style={{ maxWidth: "1280px", margin: "0 auto" }}>
@@ -147,8 +159,8 @@ export default function ProductsPage() {
           /* Subtle Customer Assurance Bar with Notification Alert */
           <div
             style={{
-              backgroundColor: "#0B0F19",
-              border: "1px solid #1E293B",
+              backgroundColor: isDark ? "#0B0F19" : "#FFFFFF",
+              border: isDark ? "1px solid #1E293B" : "1px solid #E2E8F0",
               borderRadius: "14px",
               padding: "12px 20px",
               display: "flex",
@@ -157,15 +169,41 @@ export default function ProductsPage() {
               marginBottom: "16px",
               flexWrap: "wrap",
               gap: "10px",
+              boxShadow: isDark ? "none" : "0 2px 10px rgba(0,0,0,0.04)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: "800", color: "#FFFFFF" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "13px",
+                fontWeight: "800",
+                color: isDark ? "#FFFFFF" : "#0F172A",
+              }}
+            >
               <span style={{ color: "#F59E0B" }}>⚡</span>
               <span>R-MART OFFICIAL 3D STORE</span>
-              <span style={{ fontSize: "11px", color: "#10B981", backgroundColor: "rgba(16, 185, 129, 0.15)", padding: "2px 8px", borderRadius: "999px" }}>
+              <span
+                style={{
+                  fontSize: "11px",
+                  color: "#10B981",
+                  backgroundColor: "rgba(16, 185, 129, 0.15)",
+                  padding: "2px 8px",
+                  borderRadius: "999px",
+                }}
+              >
                 100% Trusted
               </span>
-              <span style={{ fontSize: "11px", color: "#38BDF8", backgroundColor: "rgba(56, 189, 248, 0.15)", padding: "2px 8px", borderRadius: "999px" }}>
+              <span
+                style={{
+                  fontSize: "11px",
+                  color: "#38BDF8",
+                  backgroundColor: "rgba(56, 189, 248, 0.15)",
+                  padding: "2px 8px",
+                  borderRadius: "999px",
+                }}
+              >
                 Delivered in 24-48 hrs
               </span>
             </div>
@@ -175,7 +213,7 @@ export default function ProductsPage() {
                 onClick={() => openRightMenuView("inbox")}
                 style={{
                   backgroundColor: "rgba(56, 189, 248, 0.15)",
-                  color: "#38BDF8",
+                  color: isDark ? "#38BDF8" : "#0284C7",
                   border: "1px solid rgba(56, 189, 248, 0.4)",
                   padding: "6px 12px",
                   borderRadius: "8px",
@@ -194,9 +232,9 @@ export default function ProductsPage() {
               <button
                 onClick={openRightMenu}
                 style={{
-                  backgroundColor: "#1E293B",
-                  color: "#FFFFFF",
-                  border: "1px solid #334155",
+                  backgroundColor: isDark ? "#1E293B" : "#F1F5F9",
+                  color: isDark ? "#FFFFFF" : "#0F172A",
+                  border: isDark ? "1px solid #334155" : "1px solid #CBD5E1",
                   padding: "6px 14px",
                   borderRadius: "8px",
                   fontSize: "12px",
@@ -235,15 +273,17 @@ export default function ProductsPage() {
                 onChange={(e) => setQuery(e.target.value)}
                 style={{
                   width: "100%",
-                  backgroundColor: "#0B0F19",
-                  border: "1px solid #1E293B",
+                  backgroundColor: isDark ? "#0B0F19" : "#FFFFFF",
+                  border: isDark ? "1px solid #1E293B" : "1px solid #CBD5E1",
                   borderRadius: "12px",
                   padding: "12px 16px",
-                  color: "#FFFFFF",
+                  color: isDark ? "#FFFFFF" : "#0F172A",
                   fontSize: "14px",
                   outline: "none",
                   boxSizing: "border-box",
-                  boxShadow: "inset 0 1px 3px rgba(0,0,0,0.6)",
+                  boxShadow: isDark
+                    ? "inset 0 1px 3px rgba(0,0,0,0.6)"
+                    : "0 2px 6px rgba(0,0,0,0.03)",
                 }}
               />
             </div>
@@ -255,15 +295,35 @@ export default function ProductsPage() {
                   key={cat}
                   onClick={() => setCategory(cat)}
                   style={{
-                    backgroundColor: category === cat ? "#38BDF8" : "#0B0F19",
-                    color: category === cat ? "#030712" : "#94A3B8",
-                    border: `1px solid ${category === cat ? "#38BDF8" : "#1E293B"}`,
+                    backgroundColor:
+                      category === cat
+                        ? "#38BDF8"
+                        : isDark
+                        ? "#0B0F19"
+                        : "#FFFFFF",
+                    color:
+                      category === cat
+                        ? "#030712"
+                        : isDark
+                        ? "#94A3B8"
+                        : "#475569",
+                    border: `1px solid ${
+                      category === cat
+                        ? "#38BDF8"
+                        : isDark
+                        ? "#1E293B"
+                        : "#CBD5E1"
+                    }`,
                     padding: "8px 16px",
                     borderRadius: "10px",
                     fontWeight: "800",
                     fontSize: "12px",
                     cursor: "pointer",
                     transition: "all 0.2s ease",
+                    boxShadow:
+                      !isDark && category !== cat
+                        ? "0 1px 3px rgba(0,0,0,0.05)"
+                        : "none",
                   }}
                 >
                   {cat}
@@ -276,11 +336,11 @@ export default function ProductsPage() {
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               style={{
-                backgroundColor: "#0B0F19",
-                border: "1px solid #1E293B",
+                backgroundColor: isDark ? "#0B0F19" : "#FFFFFF",
+                border: isDark ? "1px solid #1E293B" : "1px solid #CBD5E1",
                 borderRadius: "10px",
                 padding: "8px 14px",
-                color: "#FFFFFF",
+                color: isDark ? "#FFFFFF" : "#0F172A",
                 fontSize: "13px",
                 fontWeight: "700",
                 cursor: "pointer",
@@ -309,8 +369,8 @@ export default function ProductsPage() {
                 key={n}
                 style={{
                   height: "380px",
-                  backgroundColor: "#0B0F19",
-                  border: "1px solid #1E293B",
+                  backgroundColor: isDark ? "#0B0F19" : "#F1F5F9",
+                  border: isDark ? "1px solid #1E293B" : "1px solid #E2E8F0",
                   borderRadius: "18px",
                   animation: "pulse 1.5s infinite",
                 }}
@@ -322,12 +382,19 @@ export default function ProductsPage() {
             style={{
               padding: "48px 24px",
               textAlign: "center",
-              backgroundColor: "#0B0F19",
+              backgroundColor: isDark ? "#0B0F19" : "#FFFFFF",
               border: "1px solid #DC2626",
               borderRadius: "18px",
             }}
           >
-            <h3 style={{ color: "#DC2626", fontSize: "18px", fontWeight: "900", marginBottom: "8px" }}>
+            <h3
+              style={{
+                color: "#DC2626",
+                fontSize: "18px",
+                fontWeight: "900",
+                marginBottom: "8px",
+              }}
+            >
               Unable to load products
             </h3>
             <button
@@ -350,16 +417,30 @@ export default function ProductsPage() {
             style={{
               padding: "60px 24px",
               textAlign: "center",
-              backgroundColor: "#0B0F19",
-              border: "1px solid #1E293B",
+              backgroundColor: isDark ? "#0B0F19" : "#FFFFFF",
+              border: isDark ? "1px solid #1E293B" : "1px solid #E2E8F0",
               borderRadius: "18px",
+              boxShadow: isDark ? "none" : "0 4px 16px rgba(0,0,0,0.05)",
             }}
           >
             <div style={{ fontSize: "40px", marginBottom: "12px" }}>🔍</div>
-            <h3 style={{ color: "#FFFFFF", fontSize: "18px", fontWeight: "900", margin: "0 0 6px 0" }}>
+            <h3
+              style={{
+                color: isDark ? "#FFFFFF" : "#0F172A",
+                fontSize: "18px",
+                fontWeight: "900",
+                margin: "0 0 6px 0",
+              }}
+            >
               No products found
             </h3>
-            <p style={{ color: "#94A3B8", fontSize: "14px", margin: 0 }}>
+            <p
+              style={{
+                color: isDark ? "#94A3B8" : "#64748B",
+                fontSize: "14px",
+                margin: 0,
+              }}
+            >
               Try searching with different terms or selecting another category.
             </p>
           </div>
@@ -381,7 +462,7 @@ export default function ProductsPage() {
         <div
           ref={loadMoreRef}
           style={{
-            padding: "48px 0 24px 0",
+            padding: "48px 0 36px 0",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -390,33 +471,56 @@ export default function ProductsPage() {
           }}
         >
           {isFetchingNextPage ? (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#38BDF8", fontWeight: "800", fontSize: "13px" }}>
-              <span className="animate-spin">⚡</span> Loading next batch with TanStack infinite stream...
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                color: isDark ? "#38BDF8" : "#0284C7",
+                fontWeight: "800",
+                fontSize: "13px",
+              }}
+            >
+              <span className="animate-spin">⚡</span> Loading next batch with
+              TanStack infinite stream...
             </div>
           ) : hasNextPage ? (
             <button
               onClick={() => fetchNextPage()}
               style={{
-                backgroundColor: "#0B0F19",
-                color: "#38BDF8",
-                border: "1px solid rgba(56, 189, 248, 0.4)",
+                backgroundColor: isDark ? "#0B0F19" : "#FFFFFF",
+                color: isDark ? "#38BDF8" : "#0284C7",
+                border: isDark
+                  ? "1px solid rgba(56, 189, 248, 0.4)"
+                  : "1px solid #38BDF8",
                 padding: "12px 28px",
                 borderRadius: "12px",
                 fontWeight: "900",
                 fontSize: "13px",
                 cursor: "pointer",
-                boxShadow: "0 4px 15px rgba(0,0,0,0.4)",
+                boxShadow: isDark
+                  ? "0 4px 15px rgba(0,0,0,0.4)"
+                  : "0 4px 12px rgba(56,189,248,0.15)",
               }}
             >
               Load More Products ↓
             </button>
           ) : (
-            <div style={{ color: "#64748B", fontSize: "12px", fontWeight: "700" }}>
+            <div
+              style={{
+                color: isDark ? "#64748B" : "#94A3B8",
+                fontSize: "12px",
+                fontWeight: "700",
+              }}
+            >
               ✔ All authentic catalog items loaded into memory
             </div>
           )}
         </div>
       </div>
+
+      {/* Modern Superstore Footer with Copyrights */}
+      <Footer />
     </div>
   );
 }

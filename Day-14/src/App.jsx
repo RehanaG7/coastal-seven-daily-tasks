@@ -56,7 +56,15 @@ function AppContent() {
     location.pathname === "/register";
 
   return (
-    <div style={{ minHeight: "100vh", position: "relative" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        position: "relative",
+        backgroundColor: theme === "dark" ? "#000000" : "#F8FAFC",
+        color: theme === "dark" ? "#FFFFFF" : "#0F172A",
+        transition: "background-color 0.25s ease, color 0.25s ease",
+      }}
+    >
       {/* 1. Full-Screen Cinematic Animated Intro */}
       {isIntroActive && <CinematicIntro onFinish={dismissIntro} />}
 

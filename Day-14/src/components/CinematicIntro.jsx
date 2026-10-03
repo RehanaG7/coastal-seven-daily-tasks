@@ -181,6 +181,7 @@ export default function CinematicIntro({ onFinish }) {
 
   return (
     <div
+      onClick={handleFinish}
       style={{
         position: "fixed",
         inset: 0,
@@ -193,6 +194,7 @@ export default function CinematicIntro({ onFinish }) {
         alignItems: "center",
         justifyContent: "center",
         userSelect: "none",
+        cursor: "pointer",
       }}
     >
       {/* Dynamic Keyframe Styles */}
@@ -261,72 +263,47 @@ export default function CinematicIntro({ onFinish }) {
         {/* Audio Mute/Unmute */}
         <button
           onClick={toggleSound}
+          title={soundOn ? "Mute Audio" : "Unmute Audio"}
           style={{
             background: "rgba(15, 23, 42, 0.6)",
             border: "1px solid rgba(56, 189, 248, 0.25)",
             color: soundOn ? "#38BDF8" : "#64748B",
-            padding: "6px 14px",
-            borderRadius: "8px",
-            fontSize: "12px",
-            fontWeight: "800",
+            width: "36px",
+            height: "36px",
+            borderRadius: "50%",
+            fontSize: "16px",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
-            gap: "6px",
+            justifyContent: "center",
             backdropFilter: "blur(12px)",
           }}
         >
-          <span>{soundOn ? "🔊" : "🔇"}</span>
-          <span>{soundOn ? "AUDIO ON" : "MUTED"}</span>
+          {soundOn ? "🔊" : "🔇"}
         </button>
 
-        {/* 5-Second Timer Pill & Skip */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              backgroundColor: "rgba(15, 23, 42, 0.7)",
-              border: "1px solid rgba(245, 158, 11, 0.3)",
-              padding: "6px 14px",
-              borderRadius: "20px",
-              backdropFilter: "blur(12px)",
-            }}
-          >
-            <div
-              style={{
-                width: "8px",
-                height: "8px",
-                borderRadius: "50%",
-                backgroundColor: "#F59E0B",
-                boxShadow: "0 0 8px #F59E0B",
-                animation: "bounceGently 1s infinite",
-              }}
-            />
-            <span style={{ color: "#F8FAFC", fontSize: "12px", fontWeight: "800" }}>
-              5s Fast Intro
-            </span>
-          </div>
-
-          <button
-            onClick={handleFinish}
-            style={{
-              backgroundColor: "rgba(245, 158, 11, 0.15)",
-              border: "1px solid #F59E0B",
-              color: "#F59E0B",
-              padding: "7px 18px",
-              borderRadius: "8px",
-              fontSize: "12px",
-              fontWeight: "900",
-              cursor: "pointer",
-              backdropFilter: "blur(12px)",
-              letterSpacing: "0.5px",
-            }}
-          >
-            SKIP ➔
-          </button>
-        </div>
+        {/* Minimal Skip Icon */}
+        <button
+          onClick={handleFinish}
+          title="Skip"
+          style={{
+            backgroundColor: "rgba(15, 23, 42, 0.6)",
+            border: "1px solid rgba(245, 158, 11, 0.4)",
+            color: "#F59E0B",
+            width: "36px",
+            height: "36px",
+            borderRadius: "50%",
+            fontSize: "16px",
+            fontWeight: "900",
+            cursor: "pointer",
+            backdropFilter: "blur(12px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          ✕
+        </button>
       </div>
 
       {/* Top 5-Second Linear Progress Bar */}
@@ -507,20 +484,6 @@ export default function CinematicIntro({ onFinish }) {
               >
                 R - M A R T
               </span>
-              <span
-                style={{
-                  backgroundColor: "#10B981",
-                  color: "#030712",
-                  fontSize: "10px",
-                  fontWeight: "900",
-                  padding: "3px 8px",
-                  borderRadius: "6px",
-                  letterSpacing: "1px",
-                  boxShadow: "0 0 8px #10B981",
-                }}
-              >
-                OPEN 24/7
-              </span>
             </div>
 
             {/* Illuminated Glass Storefront Windows with Warm Shelves Inside */}
@@ -546,16 +509,13 @@ export default function CinematicIntro({ onFinish }) {
                   boxShadow: "inset 0 0 20px rgba(245, 158, 11, 0.2)",
                 }}
               >
-                <div style={{ fontSize: "10px", fontWeight: "800", color: "#F59E0B" }}>
-                  🍎 Fresh Mart
-                </div>
                 {/* Lit Shelves */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px" }}>
                   <div style={{ height: "4px", backgroundColor: "#F59E0B", opacity: 0.7, borderRadius: "2px" }} />
                   <div style={{ height: "4px", backgroundColor: "#F59E0B", opacity: 0.5, borderRadius: "2px" }} />
                   <div style={{ height: "4px", backgroundColor: "#F59E0B", opacity: 0.3, borderRadius: "2px" }} />
                 </div>
-                <div style={{ fontSize: "16px", textAlign: "center" }}>🛒 🥑 🥛</div>
+                <div style={{ fontSize: "20px", textAlign: "center" }}>🛒</div>
               </div>
 
               {/* Window 2: Main Glass Sliding Entrance */}
@@ -568,17 +528,11 @@ export default function CinematicIntro({ onFinish }) {
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
-                  justifyContent: "space-between",
+                  justifyContent: "center",
                   boxShadow: "inset 0 0 25px rgba(56, 189, 248, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)",
                 }}
               >
-                <div style={{ fontSize: "10px", fontWeight: "800", color: "#38BDF8" }}>
-                  ✨ Glass Doors
-                </div>
-                <div style={{ fontSize: "28px" }}>🏪</div>
-                <div style={{ fontSize: "9px", fontWeight: "800", color: "#38BDF8" }}>
-                  ENTRANCE
-                </div>
+                <div style={{ fontSize: "36px" }}>🏪</div>
               </div>
 
               {/* Window 3: Electronics & Deals */}
@@ -594,15 +548,13 @@ export default function CinematicIntro({ onFinish }) {
                   boxShadow: "inset 0 0 20px rgba(16, 185, 129, 0.2)",
                 }}
               >
-                <div style={{ fontSize: "10px", fontWeight: "800", color: "#10B981" }}>
-                  ⚡ Daily Deals
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                {/* Lit Shelves */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px" }}>
                   <div style={{ height: "4px", backgroundColor: "#10B981", opacity: 0.7, borderRadius: "2px" }} />
                   <div style={{ height: "4px", backgroundColor: "#10B981", opacity: 0.5, borderRadius: "2px" }} />
                   <div style={{ height: "4px", backgroundColor: "#10B981", opacity: 0.3, borderRadius: "2px" }} />
                 </div>
-                <div style={{ fontSize: "16px", textAlign: "center" }}>📦 🏷️ 🎧</div>
+                <div style={{ fontSize: "20px", textAlign: "center" }}>📦</div>
               </div>
             </div>
           </div>
@@ -874,42 +826,7 @@ export default function CinematicIntro({ onFinish }) {
       {/* ====================================================================
           BOTTOM STATUS TOAST: CLEAR NARRATIVE & AUTO-TRANSITION
           ==================================================================== */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: "32px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          zIndex: 50,
-        }}
-      >
-        {/* One-Click Enter Store Button */}
-        <button
-          onClick={handleFinish}
-          style={{
-            backgroundColor: "#F59E0B",
-            color: "#030712",
-            border: "none",
-            borderRadius: "24px",
-            padding: "10px 30px",
-            fontSize: "13px",
-            fontWeight: "900",
-            cursor: "pointer",
-            boxShadow: "0 0 25px rgba(245, 158, 11, 0.6)",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            letterSpacing: "0.5px",
-            transition: "transform 0.15s ease",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-        >
-          <span>START SHOPPING NOW</span>
-          <span>➔</span>
-        </button>
-      </div>
+      {/* Seamless Tap Anywhere to Enter Store */}
     </div>
   );
 }

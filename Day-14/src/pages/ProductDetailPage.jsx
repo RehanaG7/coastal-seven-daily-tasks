@@ -1,17 +1,8 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useCartStore, useAuthStore, useUIStore } from "../store/useStore";
-
-const CATALOG_DATA = [
-  { id: 1, name: "Mechanical Gaming Keyboard RGB", price: 89.99, stock: 12, category: "Peripherals", image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=500", description: "Hot-swappable tactile mechanical switches with per-key customizable RGB backlighting and durable PBT keycaps." },
-  { id: 2, name: "Pro Precision Wireless Mouse", price: 49.99, stock: 8, category: "Peripherals", image: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=500", description: "Ultra-low latency 2.4GHz wireless gaming mouse with 20K DPI optical sensor and 70-hour battery life." },
-  { id: 3, name: "27-Inch 165Hz Curved Monitor", price: 299.99, stock: 2, category: "Electronics", image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500", description: "Immersive 1500R curvature QHD display with 1ms response time, HDR400, and AMD FreeSync Premium." },
-  { id: 4, name: "Active Noise-Cancelling Headphones", price: 179.99, stock: 0, category: "Electronics", image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500", description: "Hybrid ANC technology with 40-hour playtime, quick USB-C charging, and spatial studio audio profile." },
-  { id: 5, name: "Studio USB Condenser Microphone", price: 69.99, stock: 15, category: "Accessories", image: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=500", description: "Cardioid pickup pattern with built-in metal pop filter, gain dial, and zero-latency headphone monitoring." },
-  { id: 6, name: "Ultra-Fast NVMe M.2 2TB SSD", price: 139.99, stock: 5, category: "Electronics", image: "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=500", description: "PCIe Gen 4.0 read speeds up to 7450 MB/s engineered for high-performance creative and gaming rigs." },
-  { id: 7, name: "Braided 100W USB-C PD Cable", price: 14.99, stock: 35, category: "Accessories", image: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=500", description: "Reinforced ballistic nylon cord rated for 20,000+ bends, supporting 4K video and 100W Power Delivery." },
-  { id: 8, name: "Ergonomic Memory Foam Wrist Rest", price: 22.99, stock: 19, category: "Accessories", image: "https://images.unsplash.com/photo-1616401784845-180882ba9ba8?w=500", description: "Cooling-gel infused high-density memory foam designed to relieve wrist stress during all-day workflows." },
-];
+import { MOCK_CATALOG } from "../hooks/useProducts";
+import Footer from "../components/Footer";
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -40,15 +31,17 @@ export default function ProductDetailPage() {
 
   const targetId = Number(id);
   const customProducts = JSON.parse(localStorage.getItem("rmart_custom_products") || "[]");
-  const fullCatalog = [...customProducts, ...CATALOG_DATA];
+  const fullCatalog = [...customProducts, ...MOCK_CATALOG];
   const product = fullCatalog.find((p) => p.id === targetId || String(p.id) === String(id));
 
   const c = {
-    bg: "#000000",
-    card: "#0B0F19",
-    border: "#1E293B",
-    text: "#FFFFFF",
-    sub: "#94A3B8",
+    bg: isDark ? "#000000" : "#F8FAFC",
+    card: isDark ? "#0B0F19" : "#FFFFFF",
+    border: isDark ? "#1E293B" : "#CBD5E1",
+    text: isDark ? "#FFFFFF" : "#0F172A",
+    sub: isDark ? "#94A3B8" : "#64748B",
+    btnBg: isDark ? "#0B0F19" : "#FFFFFF",
+    btnText: isDark ? "#FFFFFF" : "#0F172A",
   };
 
   if (!product) {
@@ -342,8 +335,8 @@ export default function ProductDetailPage() {
                     disabled={isStockout}
                     style={{
                       flex: 1,
-                      backgroundColor: "#0B0F19",
-                      color: "#FFFFFF",
+                      backgroundColor: c.btnBg,
+                      color: c.btnText,
                       border: `1px solid ${c.border}`,
                       padding: "14px",
                       borderRadius: "12px",
@@ -354,6 +347,7 @@ export default function ProductDetailPage() {
                       alignItems: "center",
                       justifyContent: "center",
                       gap: "8px",
+                      boxShadow: !isDark ? "0 2px 8px rgba(0,0,0,0.06)" : "none",
                     }}
                   >
                     <span>🛒</span>
@@ -391,6 +385,11 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
+      </div>
+
+      {/* Footer with Copyrights & Guarantees */}
+      <div style={{ marginTop: "60px", marginInline: "-24px", marginBottom: "-80px" }}>
+        <Footer />
       </div>
     </div>
   );

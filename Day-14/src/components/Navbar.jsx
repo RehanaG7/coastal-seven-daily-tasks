@@ -8,10 +8,25 @@ export default function Navbar() {
 
   const user = useAuthStore((state) => state.user);
   const newsBannerText = useUIStore((state) => state.newsBannerText);
+  const openRightMenuView = useUIStore((state) => state.openRightMenuView);
   const openRightMenu = useUIStore((state) => state.openRightMenu);
 
   const isAdmin = user?.role === "admin";
   const cartCount = getCartCount();
+
+  // Notification counts
+  const userNotifCount = 3; // Celery workers, Redis cache, Order confirmation
+  const adminTickets = JSON.parse(localStorage.getItem("rmart_support_tickets") || "[]");
+  const adminNotifCount = adminTickets.filter((t) => t.status === "open").length || 1;
+  const notifCount = isAdmin ? adminNotifCount : userNotifCount;
+
+  const handleOpenNotifications = () => {
+    if (isAdmin) {
+      openRightMenuView("queries");
+    } else {
+      openRightMenuView("inbox");
+    }
+  };
 
   return (
     <header
@@ -127,7 +142,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* 3. Right Controls: Role Based Toggle and Cart */}
+      {/* 3. Right Controls: Role Based Toggle, Notifications and Cart */}
       <div
         style={{
           display: "flex",
@@ -156,6 +171,45 @@ export default function Navbar() {
             <span>Welcome Admin</span>
           </div>
         )}
+
+        {/* NOTIFICATION BUTTON: Takes user or admin directly to new notifications/queries in toggle */}
+        <button
+          onClick={handleOpenNotifications}
+          style={{
+            backgroundColor: "#0B0F19",
+            border: "1px solid rgba(239, 68, 68, 0.5)",
+            borderRadius: "10px",
+            padding: "8px 12px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            color: "#FFFFFF",
+            fontSize: "13px",
+            fontWeight: "800",
+            boxShadow: "0 0 12px rgba(239, 68, 68, 0.2)",
+          }}
+          title={
+            isAdmin
+              ? "Open Customer Query Tickets in Toggle"
+              : "Open Live Notifications in Toggle"
+          }
+        >
+          <span>🔔</span>
+          <span
+            style={{
+              backgroundColor: "#EF4444",
+              color: "#FFFFFF",
+              borderRadius: "999px",
+              padding: "1px 6px",
+              fontSize: "10px",
+              fontWeight: "900",
+              animation: "pulse 1.5s infinite",
+            }}
+          >
+            {notifCount}
+          </span>
+        </button>
 
         {/* FOR USERS ONLY: Cart Button with Dynamic Badge */}
         {!isAdmin && (

@@ -115,13 +115,15 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
     setNewsInput(newsBannerText);
   };
 
+  const rightMenuView = useUIStore((s) => s.rightMenuView);
+
   useEffect(() => {
     if (effectiveIsOpen) {
       reloadData();
-      setActiveView("menu");
+      setActiveView(rightMenuView || "menu");
       setActiveTicketId(null);
     }
-  }, [effectiveIsOpen]);
+  }, [effectiveIsOpen, rightMenuView]);
 
   if (!effectiveIsOpen) return null;
 
@@ -331,11 +333,11 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
 
   const selectedTicket = tickets.find((t) => t.id === activeTicketId);
 
-  // Pure black and dark slate palette
+  // Translucent Frosted Glass Palette (Allows store & products to be seen beneath overlay)
   const c = {
-    bg: "#050811",
-    cardBg: "#0B0F19",
-    border: "#1E293B",
+    bg: "rgba(5, 8, 17, 0.78)",
+    cardBg: "rgba(15, 23, 42, 0.62)",
+    border: "rgba(56, 189, 248, 0.25)",
     text: "#FFFFFF",
     subtext: "#94A3B8",
     accent: isAdmin ? "#F59E0B" : "#38BDF8",
@@ -347,27 +349,29 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
         position: "fixed",
         inset: 0,
         zIndex: 99999,
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
         display: "flex",
         justifyContent: "flex-end",
-        backdropFilter: "blur(6px)",
+        backdropFilter: "blur(8px)",
       }}
     >
       <div
         style={{
           width: "100%",
-          maxWidth: "460px",
+          maxWidth: "470px",
           height: "100%",
           backgroundColor: c.bg,
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
           borderLeft: `1px solid ${c.border}`,
           display: "flex",
           flexDirection: "column",
-          boxShadow: "-12px 0 40px rgba(0, 0, 0, 0.9)",
+          boxShadow: "-16px 0 50px rgba(0, 0, 0, 0.8), inset 1px 0 0 rgba(255, 255, 255, 0.08)",
           fontFamily: "'Inter', system-ui, sans-serif",
           color: c.text,
         }}
       >
-        {/* Drawer Header */}
+        {/* Drawer Header (Translucent Glass) */}
         <div
           style={{
             padding: "16px 20px",
@@ -375,7 +379,8 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            backgroundColor: "#000000",
+            backgroundColor: "rgba(0, 0, 0, 0.55)",
+            backdropFilter: "blur(12px)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -438,6 +443,147 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
           >
             ✕
           </button>
+        </div>
+
+        {/* TRANSLUCENT OPTION QUICK-NAVIGATOR (Options are always visible and switchable) */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "10px 16px",
+            backgroundColor: "rgba(10, 15, 29, 0.5)",
+            borderBottom: `1px solid ${c.border}`,
+            overflowX: "auto",
+            scrollbarWidth: "none",
+          }}
+        >
+          <button
+            onClick={() => {
+              setActiveTicketId(null);
+              setActiveView("menu");
+            }}
+            style={{
+              padding: "4px 10px",
+              borderRadius: "999px",
+              fontSize: "11px",
+              fontWeight: "800",
+              cursor: "pointer",
+              border: "none",
+              backgroundColor: activeView === "menu" ? c.accent : "rgba(255, 255, 255, 0.08)",
+              color: activeView === "menu" ? "#000" : c.subtext,
+              whiteSpace: "nowrap",
+            }}
+          >
+            📋 Menu
+          </button>
+
+          {isAdmin ? (
+            <>
+              <button
+                onClick={() => {
+                  setActiveTicketId(null);
+                  setActiveView("profile");
+                }}
+                style={navPillStyle(activeView === "profile", c)}
+              >
+                ✏️ Profile
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTicketId(null);
+                  setActiveView("news");
+                }}
+                style={navPillStyle(activeView === "news", c)}
+              >
+                📢 News
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTicketId(null);
+                  setActiveView("add_product");
+                }}
+                style={navPillStyle(activeView === "add_product", c)}
+              >
+                ➕ Add Product
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTicketId(null);
+                  setActiveView("offers");
+                }}
+                style={navPillStyle(activeView === "offers", c)}
+              >
+                🏷️ Offers
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTicketId(null);
+                  setActiveView("customer_orders");
+                }}
+                style={navPillStyle(activeView === "customer_orders", c)}
+              >
+                📦 Orders
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTicketId(null);
+                  setActiveView("queries");
+                }}
+                style={navPillStyle(activeView === "queries", c)}
+              >
+                💬 Queries
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => {
+                  setActiveTicketId(null);
+                  setActiveView("profile");
+                }}
+                style={navPillStyle(activeView === "profile", c)}
+              >
+                ✏️ Profile
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTicketId(null);
+                  setActiveView("orders");
+                }}
+                style={navPillStyle(activeView === "orders", c)}
+              >
+                📦 Orders
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTicketId(null);
+                  setActiveView("inbox");
+                }}
+                style={navPillStyle(activeView === "inbox", c)}
+              >
+                🔔 Inbox
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTicketId(null);
+                  setActiveView("support");
+                }}
+                style={navPillStyle(activeView === "support", c)}
+              >
+                🎧 Care
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTicketId(null);
+                  setActiveView("wishlist");
+                }}
+                style={navPillStyle(activeView === "wishlist", c)}
+              >
+                ❤️ Wishlist
+              </button>
+            </>
+          )}
         </div>
 
         {/* Drawer Scrollable Body */}
@@ -1910,3 +2056,21 @@ const uploadTabStyle = (active) => ({
   cursor: "pointer",
   transition: "all 0.2s ease",
 });
+
+const navPillStyle = (active, c) => ({
+  padding: "4px 10px",
+  borderRadius: "999px",
+  fontSize: "11px",
+  fontWeight: "800",
+  cursor: "pointer",
+  border: `1px solid ${active ? c.accent : "rgba(255, 255, 255, 0.12)"}`,
+  backgroundColor: active
+    ? c.accent === "#F59E0B"
+      ? "rgba(245, 158, 11, 0.25)"
+      : "rgba(56, 189, 248, 0.25)"
+    : "rgba(255, 255, 255, 0.05)",
+  color: active ? (c.accent === "#F59E0B" ? "#F59E0B" : "#38BDF8") : c.subtext,
+  whiteSpace: "nowrap",
+  transition: "all 0.15s ease",
+});
+

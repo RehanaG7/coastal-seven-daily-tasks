@@ -6,6 +6,7 @@ import ProductCard from "../components/ProductCard";
 export default function ProductsPage() {
   const user = useAuthStore((s) => s.user);
   const openRightMenu = useUIStore((s) => s.openRightMenu);
+  const openRightMenuView = useUIStore((s) => s.openRightMenuView);
   const isAdmin = user?.role === "admin";
 
   // Search & Category Filters
@@ -83,7 +84,7 @@ export default function ProductsPage() {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: "24px",
+              marginBottom: "16px",
               boxShadow: "0 4px 20px rgba(245, 158, 11, 0.15)",
               flexWrap: "wrap",
               gap: "12px",
@@ -101,28 +102,49 @@ export default function ProductsPage() {
               </div>
             </div>
 
-            <button
-              onClick={openRightMenu}
-              style={{
-                backgroundColor: "#F59E0B",
-                color: "#030712",
-                border: "none",
-                borderRadius: "10px",
-                padding: "8px 16px",
-                fontSize: "12px",
-                fontWeight: "900",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-              }}
-            >
-              <span>☰ Open Admin Studio</span>
-              <span>→</span>
-            </button>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                onClick={() => openRightMenuView("queries")}
+                style={{
+                  backgroundColor: "rgba(239, 68, 68, 0.2)",
+                  color: "#EF4444",
+                  border: "1px solid rgba(239, 68, 68, 0.5)",
+                  borderRadius: "10px",
+                  padding: "8px 14px",
+                  fontSize: "12px",
+                  fontWeight: "900",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <span>🔔 Queries Alert</span>
+              </button>
+
+              <button
+                onClick={openRightMenu}
+                style={{
+                  backgroundColor: "#F59E0B",
+                  color: "#030712",
+                  border: "none",
+                  borderRadius: "10px",
+                  padding: "8px 16px",
+                  fontSize: "12px",
+                  fontWeight: "900",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <span>☰ Admin Studio</span>
+                <span>→</span>
+              </button>
+            </div>
           </div>
         ) : (
-          /* Subtle Customer Assurance Bar */
+          /* Subtle Customer Assurance Bar with Notification Alert */
           <div
             style={{
               backgroundColor: "#0B0F19",
@@ -132,7 +154,7 @@ export default function ProductsPage() {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: "20px",
+              marginBottom: "16px",
               flexWrap: "wrap",
               gap: "10px",
             }}
@@ -148,25 +170,47 @@ export default function ProductsPage() {
               </span>
             </div>
 
-            <button
-              onClick={openRightMenu}
-              style={{
-                backgroundColor: "#1E293B",
-                color: "#38BDF8",
-                border: "1px solid rgba(56, 189, 248, 0.3)",
-                padding: "6px 14px",
-                borderRadius: "8px",
-                fontSize: "12px",
-                fontWeight: "800",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-              }}
-            >
-              <span>☰ User Hub</span>
-              <span>→</span>
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <button
+                onClick={() => openRightMenuView("inbox")}
+                style={{
+                  backgroundColor: "rgba(56, 189, 248, 0.15)",
+                  color: "#38BDF8",
+                  border: "1px solid rgba(56, 189, 248, 0.4)",
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  fontWeight: "800",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+                title="View your live notifications"
+              >
+                <span>🔔 3 Notifications</span>
+              </button>
+
+              <button
+                onClick={openRightMenu}
+                style={{
+                  backgroundColor: "#1E293B",
+                  color: "#FFFFFF",
+                  border: "1px solid #334155",
+                  padding: "6px 14px",
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  fontWeight: "800",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <span>☰ User Hub</span>
+                <span>→</span>
+              </button>
+            </div>
           </div>
         )}
 

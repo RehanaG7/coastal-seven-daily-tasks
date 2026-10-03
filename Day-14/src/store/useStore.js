@@ -148,7 +148,9 @@ export const useUIStore = create(
 
       // Right Toggle Drawer (User & Admin Side)
       isRightMenuOpen: false,
-      openRightMenu: () => set({ isRightMenuOpen: true }),
+      rightMenuView: "menu",
+      openRightMenu: () => set({ isRightMenuOpen: true, rightMenuView: "menu" }),
+      openRightMenuView: (view) => set({ isRightMenuOpen: true, rightMenuView: view }),
       closeRightMenu: () => set({ isRightMenuOpen: false }),
       toggleRightMenu: () => set((state) => ({ isRightMenuOpen: !state.isRightMenuOpen })),
 

@@ -15,9 +15,28 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [autoFilled, setAutoFilled] = useState(false);
+
+  // Auto-enter details if once registered
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem("rmart_registered_user");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.email) setEmail(parsed.email);
+        if (parsed.password) setPassword(parsed.password);
+        if (parsed.name) setName(parsed.name);
+        if (parsed.role) setRole(parsed.role);
+        setIsRegister(false); // default to login mode
+        setAutoFilled(true);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   const handleSubmit = (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     setError("");
 
     if (!email.trim() || !password.trim()) {
@@ -38,6 +57,19 @@ export default function AuthPage() {
       email: cleanEmail,
       role: role,
     };
+
+    // Auto-save registered credentials to localStorage so user never has to retype
+    try {
+      localStorage.setItem(
+        "rmart_registered_user",
+        JSON.stringify({
+          name: finalName,
+          email: cleanEmail,
+          password: password,
+          role: role,
+        })
+      );
+    } catch (err) {}
 
     const token = `rmart_jwt_${role}_${Date.now()}`;
     setUser(authenticatedUser, token);
@@ -173,8 +205,80 @@ export default function AuthPage() {
           </div>
         )}
 
+        {/* Auto-Filled Registered Credentials Notice */}
+        {autoFilled && (
+          <div
+            style={{
+              backgroundColor: "rgba(16, 185, 129, 0.12)",
+              border: "1px solid #10B981",
+              borderRadius: "12px",
+              padding: "12px 14px",
+              marginBottom: "18px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <div>
+              <div style={{ color: "#10B981", fontSize: "12px", fontWeight: "900" }}>
+                ✨ Details Auto-Entered!
+              </div>
+              <div style={{ color: c.subtext, fontSize: "11px", marginTop: "2px" }}>
+                Welcome back, <strong>{name || email}</strong>. No need to type again.
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setName("");
+                setEmail("");
+                setPassword("");
+                setAutoFilled(false);
+                try {
+                  localStorage.removeItem("rmart_registered_user");
+                } catch (e) {}
+              }}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#94A3B8",
+                fontSize: "11px",
+                cursor: "pointer",
+                textDecoration: "underline",
+              }}
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
         {/* Auth Form */}
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          {autoFilled && (
+            <button
+              type="button"
+              onClick={handleSubmit}
+              style={{
+                backgroundColor: "#10B981",
+                color: "#FFFFFF",
+                border: "none",
+                padding: "12px",
+                borderRadius: "10px",
+                fontSize: "13px",
+                fontWeight: "900",
+                cursor: "pointer",
+                boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                marginBottom: "4px",
+              }}
+            >
+              <span>⚡</span>
+              <span>One-Click Sign In as {name || email.split("@")[0]}</span>
+            </button>
+          )}
           {/* Name Field (if registering) */}
           {isRegister && (
             <div>

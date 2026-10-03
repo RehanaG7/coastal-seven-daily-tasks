@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 
 // ============================================================================
-// ULTRA-FAST 5-SECOND SYNTH AUDIO ENGINE (Lightweight, Non-blocking)
+// ULTRA-FAST 5-SECOND SYNTH AUDIO ENGINE (Non-blocking, Web Audio API)
 // ============================================================================
-class FastAudioEngine {
+class CinematicAudioEngine {
   constructor() {
     this.ctx = null;
     this.isMuted = false;
@@ -19,27 +19,7 @@ class FastAudioEngine {
     }
   }
 
-  playLightHum() {
-    if (this.isMuted) return;
-    this.init();
-    if (!this.ctx) return;
-    try {
-      const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(120, now);
-      osc.frequency.exponentialRampToValueAtTime(320, now + 0.35);
-      gain.gain.setValueAtTime(0.08, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.4);
-    } catch (e) {}
-  }
-
-  playOrderTap() {
+  playAmbientSwell() {
     if (this.isMuted) return;
     this.init();
     if (!this.ctx) return;
@@ -48,9 +28,31 @@ class FastAudioEngine {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = "sine";
-      osc.frequency.setValueAtTime(659.25, now); // E5
+      osc.frequency.setValueAtTime(110, now);
+      osc.frequency.exponentialRampToValueAtTime(220, now + 0.8);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.08, now + 0.4);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.9);
+    } catch (e) {}
+  }
+
+  playOrderPulse() {
+    if (this.isMuted) return;
+    this.init();
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      // High-tech haptic tap sound
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(587.33, now); // D5
       osc.frequency.setValueAtTime(880, now + 0.08); // A5
-      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.setValueAtTime(0.15, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
@@ -67,10 +69,10 @@ class FastAudioEngine {
       const now = this.ctx.currentTime;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
-      osc.type = "sine";
+      osc.type = "triangle";
       osc.frequency.setValueAtTime(220, now);
-      osc.frequency.exponentialRampToValueAtTime(440, now + 0.25);
-      osc.frequency.exponentialRampToValueAtTime(180, now + 0.5);
+      osc.frequency.exponentialRampToValueAtTime(550, now + 0.2);
+      osc.frequency.exponentialRampToValueAtTime(130, now + 0.5);
       gain.gain.setValueAtTime(0.1, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
       osc.connect(gain);
@@ -80,42 +82,42 @@ class FastAudioEngine {
     } catch (e) {}
   }
 
-  playSuccessChime() {
+  playFinishChime() {
     if (this.isMuted) return;
     this.init();
     if (!this.ctx) return;
     try {
-      const notes = [523.25, 659.25, 783.99, 1046.5]; // C E G C
+      const notes = [440, 554.37, 659.25, 880]; // A Major Chord
       notes.forEach((freq, idx) => {
-        const now = this.ctx.currentTime + idx * 0.06;
+        const now = this.ctx.currentTime + idx * 0.05;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = "sine";
         osc.frequency.setValueAtTime(freq, now);
-        gain.gain.setValueAtTime(0.08, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+        gain.gain.setValueAtTime(0.07, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.6);
+        osc.stop(now + 0.7);
       });
     } catch (e) {}
   }
 }
 
-const audio = new FastAudioEngine();
+const audio = new CinematicAudioEngine();
 
 // ============================================================================
-// COMPONENT: FAST 5-SECOND CINEMATIC INTRO
+// COMPONENT: NEAT & PROFESSIONAL 3D CINEMATIC INTRO
 // ============================================================================
 export default function CinematicIntro({ onFinish }) {
-  // Stage flow over exactly 5.0 seconds:
-  // 0.0s - 1.2s: "entering"   (Person enters from left scrolling phone)
-  // 1.2s - 2.4s: "mart_open"  (R-Mart appears in front with beautiful neon lighting)
-  // 2.4s - 3.4s: "order"      (Person taps 'Place Order' on phone, ripple pulse)
-  // 3.4s - 4.6s: "delivery"   (Delivery boy zooms in and delivers boxes)
-  // 4.6s - 5.0s: "finished"   (Success badge & auto-enter store)
-  const [stage, setStage] = useState("entering");
+  // Phases over 5.0s:
+  // 0.0s - 1.2s: "device_browsing"  (Isometric 3D smartphone floats in, user scrolling items)
+  // 1.2s - 2.5s: "mart_emerge"      (Flagship R-MART pavilion illuminates in cosmic dark background)
+  // 2.5s - 3.5s: "order_pulse"      (One-tap order ripple shockwave in 3D perspective)
+  // 3.5s - 4.6s: "rapid_dispatch"   (High-tech aerodynamic courier pod delivers parcel)
+  // 4.6s - 5.0s: "zoom_enter"       (Camera accelerates smoothly into store)
+  const [phase, setPhase] = useState("device_browsing");
   const [progress, setProgress] = useState(0);
   const [soundOn, setSoundOn] = useState(true);
   const hasFinishedRef = useRef(false);
@@ -126,7 +128,8 @@ export default function CinematicIntro({ onFinish }) {
     if (onFinish) onFinish();
   };
 
-  const toggleSound = () => {
+  const toggleSound = (e) => {
+    e.stopPropagation();
     audio.init();
     audio.isMuted = soundOn;
     setSoundOn(!soundOn);
@@ -134,9 +137,9 @@ export default function CinematicIntro({ onFinish }) {
 
   useEffect(() => {
     const startTime = Date.now();
-    const DURATION = 5000; // Exact 5 seconds
+    const DURATION = 5000;
 
-    // Smooth progress bar update (every 50ms)
+    // Progress bar update
     const progressInterval = setInterval(() => {
       const elapsed = Date.now() - startTime;
       const pct = Math.min(100, Math.floor((elapsed / DURATION) * 100));
@@ -145,37 +148,32 @@ export default function CinematicIntro({ onFinish }) {
 
     // Timeline triggers
     const tMart = setTimeout(() => {
-      setStage("mart_open");
-      audio.playLightHum();
+      setPhase("mart_emerge");
+      audio.playAmbientSwell();
     }, 1200);
 
     const tOrder = setTimeout(() => {
-      setStage("order");
-      audio.playOrderTap();
-    }, 2400);
+      setPhase("order_pulse");
+      audio.playOrderPulse();
+    }, 2500);
 
-    const tDelivery = setTimeout(() => {
-      setStage("delivery");
+    const tDispatch = setTimeout(() => {
+      setPhase("rapid_dispatch");
       audio.playDeliveryWhoosh();
-    }, 3400);
+    }, 3500);
 
-    const tFinishSound = setTimeout(() => {
-      setStage("finished");
-      audio.playSuccessChime();
-    }, 4500);
-
-    // Auto-enter store at 5.0s
-    const tEnd = setTimeout(() => {
-      handleFinish();
-    }, DURATION);
+    const tFinish = setTimeout(() => {
+      setPhase("zoom_enter");
+      audio.playFinishChime();
+      setTimeout(handleFinish, 450);
+    }, 4550);
 
     return () => {
       clearInterval(progressInterval);
       clearTimeout(tMart);
       clearTimeout(tOrder);
-      clearTimeout(tDelivery);
-      clearTimeout(tFinishSound);
-      clearTimeout(tEnd);
+      clearTimeout(tDispatch);
+      clearTimeout(tFinish);
     };
   }, []);
 
@@ -185,648 +183,707 @@ export default function CinematicIntro({ onFinish }) {
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 999999,
-        backgroundColor: "#000000",
-        overflow: "hidden",
-        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+        zIndex: 100000,
+        backgroundColor: "#030712",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        userSelect: "none",
+        overflow: "hidden",
         cursor: "pointer",
+        fontFamily: "'Inter', -apple-system, system-ui, sans-serif",
+        userSelect: "none",
+        perspective: "1200px",
       }}
     >
-      {/* Dynamic Keyframe Styles */}
+      {/* ====================================================================
+          1. KEYFRAME ANIMATIONS
+          ==================================================================== */}
       <style>{`
-        @keyframes walkIn {
-          0% { transform: translateX(-180px); opacity: 0; }
-          100% { transform: translateX(0); opacity: 1; }
+        @keyframes floatDevice {
+          0% { transform: translateY(40px) rotateY(-20deg) rotateX(12deg) scale(0.92); opacity: 0; }
+          40% { transform: translateY(0px) rotateY(-14deg) rotateX(8deg) scale(1); opacity: 1; }
+          100% { transform: translateY(-8px) rotateY(-8deg) rotateX(4deg) scale(1); opacity: 1; }
         }
-        @keyframes phoneScrollThumb {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-5px); }
+
+        @keyframes phoneScrollTrack {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-70px); }
+          100% { transform: translateY(-140px); }
         }
-        @keyframes phoneScreenGlow {
-          0%, 100% { opacity: 0.8; filter: drop-shadow(0 0 10px #38BDF8); }
-          50% { opacity: 1; filter: drop-shadow(0 0 20px #38BDF8); }
+
+        @keyframes laserSweep {
+          0% { transform: scaleX(0); opacity: 0; }
+          50% { transform: scaleX(1); opacity: 0.9; }
+          100% { transform: scaleX(1); opacity: 0.4; }
         }
-        @keyframes martAppear {
-          0% { opacity: 0; transform: scale(0.92) translateY(20px); filter: brightness(0.2); }
-          50% { filter: brightness(1.4); }
-          100% { opacity: 1; transform: scale(1) translateY(0); filter: brightness(1); }
+
+        @keyframes rmartGlowPulse {
+          0%, 100% { filter: drop-shadow(0 0 15px rgba(245, 158, 11, 0.4)) drop-shadow(0 0 40px rgba(245, 158, 11, 0.2)); }
+          50% { filter: drop-shadow(0 0 25px rgba(245, 158, 11, 0.8)) drop-shadow(0 0 60px rgba(56, 189, 248, 0.35)); }
         }
-        @keyframes neonFlicker {
-          0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
-            filter: drop-shadow(0 0 8px #F59E0B) drop-shadow(0 0 25px rgba(245, 158, 11, 0.7));
-          }
-          20%, 24%, 55% {
-            filter: none;
-            opacity: 0.6;
-          }
+
+        @keyframes shockwave3D {
+          0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; border-width: 4px; }
+          100% { transform: translate(-50%, -50%) scale(2.8); opacity: 0; border-width: 1px; }
         }
-        @keyframes orderPulseRing {
-          0% { transform: scale(0.6); opacity: 1; }
-          100% { transform: scale(2.4); opacity: 0; }
+
+        @keyframes dispatchSwoop {
+          0% { transform: translateX(280px) translateY(-80px) scale(0.6); opacity: 0; }
+          60% { transform: translateX(-15px) translateY(10px) scale(1.05); opacity: 1; }
+          100% { transform: translateX(0px) translateY(0px) scale(1); opacity: 1; }
         }
-        @keyframes deliveryBoyZoom {
-          0% { transform: translateX(360px); opacity: 0; }
-          60% { transform: translateX(-20px); opacity: 1; }
-          100% { transform: translateX(0); opacity: 1; }
+
+        @keyframes parcelDropGently {
+          0% { transform: translateY(-50px) scale(0.7); opacity: 0; }
+          60% { transform: translateY(4px) scale(1.03); opacity: 1; }
+          100% { transform: translateY(0px) scale(1); opacity: 1; }
         }
-        @keyframes boxHandover {
-          0% { transform: translateY(-10px) scale(0.8); opacity: 0; }
-          100% { transform: translateY(0) scale(1); opacity: 1; }
+
+        @keyframes gridFlythrough {
+          0% { background-position: 0 0; }
+          100% { background-position: 0 80px; }
         }
-        @keyframes bounceGently {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-6px); }
+
+        @keyframes particleDrift {
+          0% { transform: translateY(0) scale(1); opacity: 0.2; }
+          50% { opacity: 0.7; }
+          100% { transform: translateY(-120px) scale(0.6); opacity: 0; }
+        }
+
+        @keyframes zoomIntoStore {
+          0% { transform: scale(1); opacity: 1; filter: blur(0px); }
+          100% { transform: scale(1.4); opacity: 0; filter: blur(10px); }
         }
       `}</style>
 
       {/* ====================================================================
-          TOP BAR: 5-SECOND COUNTDOWN & SKIP BUTTON
+          2. ATMOSPHERIC 3D COSMIC BACKGROUND
+          ==================================================================== */}
+      {/* Radial Nebula Glow */}
+      <div
+        style={{
+          position: "absolute",
+          top: "15%",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "800px",
+          height: "450px",
+          background:
+            "radial-gradient(ellipse at center, rgba(56, 189, 248, 0.18) 0%, rgba(245, 158, 11, 0.12) 40%, transparent 70%)",
+          filter: "blur(60px)",
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* 3D Perspective Receding Grid Floor */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "-5%",
+          left: "-20%",
+          right: "-20%",
+          height: "55%",
+          transform: "perspective(500px) rotateX(68deg)",
+          backgroundImage:
+            "linear-gradient(to right, rgba(56, 189, 248, 0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(56, 189, 248, 0.12) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+          maskImage: "linear-gradient(to top, rgba(0,0,0,1) 10%, transparent 95%)",
+          WebkitMaskImage: "linear-gradient(to top, rgba(0,0,0,1) 10%, transparent 95%)",
+          animation: "gridFlythrough 4s linear infinite",
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* Floating Ambient Starlight Particles */}
+      {[...Array(16)].map((_, i) => (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            left: `${(i * 6.2 + 8) % 94}%`,
+            top: `${(i * 11.3 + 12) % 85}%`,
+            width: `${(i % 3) + 2}px`,
+            height: `${(i % 3) + 2}px`,
+            borderRadius: "50%",
+            backgroundColor: i % 2 === 0 ? "#38BDF8" : "#F59E0B",
+            boxShadow: `0 0 8px ${i % 2 === 0 ? "#38BDF8" : "#F59E0B"}`,
+            animation: `particleDrift ${2.5 + (i % 3)}s ease-in-out infinite`,
+            animationDelay: `${(i * 0.25).toFixed(2)}s`,
+            pointerEvents: "none",
+          }}
+        />
+      ))}
+
+      {/* ====================================================================
+          3. TOP NAVIGATION CONTROLS (Sound & Minimalist Skip)
           ==================================================================== */}
       <div
         style={{
           position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          padding: "16px 24px",
+          top: "24px",
+          left: "24px",
+          right: "24px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          zIndex: 100,
+          zIndex: 50,
         }}
       >
-        {/* Audio Mute/Unmute */}
-        <button
-          onClick={toggleSound}
-          title={soundOn ? "Mute Audio" : "Unmute Audio"}
-          style={{
-            background: "rgba(15, 23, 42, 0.6)",
-            border: "1px solid rgba(56, 189, 248, 0.25)",
-            color: soundOn ? "#38BDF8" : "#64748B",
-            width: "36px",
-            height: "36px",
-            borderRadius: "50%",
-            fontSize: "16px",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backdropFilter: "blur(12px)",
-          }}
-        >
-          {soundOn ? "🔊" : "🔇"}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ fontSize: "18px", color: "#F59E0B" }}>⚡</span>
+          <span
+            style={{
+              fontSize: "13px",
+              fontWeight: "900",
+              letterSpacing: "2px",
+              color: "#FFFFFF",
+              opacity: 0.8,
+            }}
+          >
+            R-MART • 3D HYPERMARKET
+          </span>
+        </div>
 
-        {/* Minimal Skip Icon */}
-        <button
-          onClick={handleFinish}
-          title="Skip"
-          style={{
-            backgroundColor: "rgba(15, 23, 42, 0.6)",
-            border: "1px solid rgba(245, 158, 11, 0.4)",
-            color: "#F59E0B",
-            width: "36px",
-            height: "36px",
-            borderRadius: "50%",
-            fontSize: "16px",
-            fontWeight: "900",
-            cursor: "pointer",
-            backdropFilter: "blur(12px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          ✕
-        </button>
-      </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <button
+            onClick={toggleSound}
+            style={{
+              background: "rgba(15, 23, 42, 0.7)",
+              border: "1px solid rgba(255, 255, 255, 0.15)",
+              color: "#FFFFFF",
+              borderRadius: "20px",
+              padding: "6px 14px",
+              fontSize: "12px",
+              fontWeight: "700",
+              cursor: "pointer",
+              backdropFilter: "blur(8px)",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <span>{soundOn ? "🔊" : "🔇"}</span>
+            <span>{soundOn ? "Audio On" : "Muted"}</span>
+          </button>
 
-      {/* Top 5-Second Linear Progress Bar */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: "3px",
-          backgroundColor: "rgba(255, 255, 255, 0.1)",
-          zIndex: 101,
-        }}
-      >
-        <div
-          style={{
-            height: "100%",
-            width: `${progress}%`,
-            background: "linear-gradient(90deg, #38BDF8, #F59E0B, #10B981)",
-            boxShadow: "0 0 10px #F59E0B",
-            transition: "width 0.05s linear",
-          }}
-        />
+          <button
+            onClick={handleFinish}
+            style={{
+              background: "rgba(245, 158, 11, 0.15)",
+              border: "1px solid rgba(245, 158, 11, 0.4)",
+              color: "#F59E0B",
+              borderRadius: "20px",
+              padding: "6px 16px",
+              fontSize: "12px",
+              fontWeight: "900",
+              cursor: "pointer",
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            ✕ Skip
+          </button>
+        </div>
       </div>
 
       {/* ====================================================================
-          DARK BACKGROUND ENVIRONMENT WITH SLEEK REFLECTIVE FLOOR
+          4. MAIN 3D COMPOSITION STAGE
           ==================================================================== */}
       <div
         style={{
-          position: "absolute",
-          inset: 0,
-          background: "radial-gradient(ellipse at 50% 35%, #0B132B 0%, #030712 60%, #000000 100%)",
-          zIndex: 1,
-        }}
-      />
-
-      {/* Subtle Star Dust */}
-      <div
-        style={{
-          position: "absolute",
-          top: "10%",
-          left: "5%",
-          right: "5%",
-          height: "40%",
-          backgroundImage:
-            "radial-gradient(circle, rgba(255,255,255,0.2) 1px, transparent 1px), radial-gradient(circle, rgba(56,189,248,0.25) 1px, transparent 1px)",
-          backgroundSize: "80px 80px, 140px 140px",
-          backgroundPosition: "0 0, 40px 40px",
-          opacity: 0.4,
-          zIndex: 2,
-        }}
-      />
-
-      {/* Ground High-Gloss Perspective Floor */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: "38%",
-          background:
-            "linear-gradient(to top, rgba(15, 23, 42, 0.95) 0%, rgba(3, 7, 18, 0.98) 60%, rgba(0, 0, 0, 1) 100%)",
-          perspective: "600px",
-          borderTop: "1px solid rgba(56, 189, 248, 0.2)",
-          zIndex: 3,
+          position: "relative",
+          width: "100%",
+          maxWidth: "1000px",
+          height: "560px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          animation: phase === "zoom_enter" ? "zoomIntoStore 0.5s ease-in forwards" : "none",
         }}
       >
-        {/* Cyber Neon Floor Grid Lines */}
+        {/* ------------------------------------------------------------------
+            STAGE A: R-MART ARCHITECTURAL PAVILION (Luminous Horizon)
+            ------------------------------------------------------------------ */}
         <div
           style={{
             position: "absolute",
-            inset: 0,
-            backgroundImage:
-              "linear-gradient(rgba(56, 189, 248, 0.09) 1px, transparent 1px), linear-gradient(90deg, rgba(56, 189, 248, 0.09) 1px, transparent 1px)",
-            backgroundSize: "50px 30px",
-            transform: "rotateX(55deg)",
-            transformOrigin: "top center",
-          }}
-        />
-      </div>
-
-      {/* ====================================================================
-          STAGE 2: R-MART SUPERSTORE APPEARS WITH GORGEOUS LIGHTING (Right/Center)
-          ==================================================================== */}
-      {(stage === "mart_open" || stage === "order" || stage === "delivery" || stage === "finished") && (
-        <div
-          style={{
-            position: "absolute",
-            right: "8%",
-            bottom: "28%",
-            zIndex: 10,
-            animation: "martAppear 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+            top: "8%",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
+            opacity: phase === "device_browsing" ? 0.35 : 1,
+            transform: phase === "device_browsing" ? "scale(0.9) translateY(20px)" : "scale(1) translateY(0)",
+            transition: "all 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
           }}
         >
-          {/* MART BUILDING FACADE */}
+          {/* Laser Gateway Lines */}
           <div
             style={{
-              position: "relative",
               width: "480px",
-              height: "260px",
-              backgroundColor: "rgba(10, 15, 30, 0.85)",
-              border: "2px solid rgba(56, 189, 248, 0.4)",
-              borderRadius: "20px 20px 4px 4px",
-              boxShadow:
-                "0 0 50px rgba(56, 189, 248, 0.2), 0 20px 40px rgba(0, 0, 0, 0.9), inset 0 0 30px rgba(245, 158, 11, 0.15)",
-              backdropFilter: "blur(20px)",
-              padding: "20px",
+              height: "2px",
+              background:
+                "linear-gradient(90deg, transparent, #38BDF8 30%, #F59E0B 50%, #38BDF8 70%, transparent)",
+              marginBottom: "14px",
+              boxShadow: "0 0 16px #38BDF8",
+              animation: "laserSweep 1.2s ease-out forwards",
+            }}
+          />
+
+          {/* Majestic R-MART Brand Insignia */}
+          <div
+            style={{
               display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "14px",
+              animation: "rmartGlowPulse 2.5s ease-in-out infinite",
             }}
           >
-            {/* Architectural Roof Overhang with Warm Spotlights */}
-            <div
+            <span
               style={{
-                position: "absolute",
-                top: "-14px",
-                left: "-12px",
-                right: "-12px",
-                height: "18px",
-                backgroundColor: "#0F172A",
-                border: "1px solid #38BDF8",
-                borderRadius: "8px",
-                display: "flex",
-                justifyContent: "space-around",
-                alignItems: "center",
-                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.8)",
+                fontSize: "36px",
+                color: "#F59E0B",
+                filter: "drop-shadow(0 0 12px #F59E0B)",
               }}
             >
-              {[...Array(6)].map((_, i) => (
-                <div
-                  key={i}
-                  style={{
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "50%",
-                    backgroundColor: "#F59E0B",
-                    boxShadow: "0 0 8px #F59E0B",
-                  }}
-                />
-              ))}
-            </div>
+              ⚡
+            </span>
+            <span
+              style={{
+                fontSize: "44px",
+                fontWeight: "900",
+                letterSpacing: "6px",
+                color: "#FFFFFF",
+                textShadow:
+                  "0 0 20px rgba(245, 158, 11, 0.6), 0 0 40px rgba(56, 189, 248, 0.4)",
+              }}
+            >
+              R - M A R T
+            </span>
+          </div>
 
-            {/* Radiant Glowing Neon Mart Sign */}
+          {/* Futuristic Pavilion Glass Arch */}
+          <div
+            style={{
+              width: "280px",
+              height: "70px",
+              borderTop: "2px solid rgba(56, 189, 248, 0.6)",
+              borderLeft: "2px solid rgba(56, 189, 248, 0.3)",
+              borderRight: "2px solid rgba(56, 189, 248, 0.3)",
+              borderRadius: "140px 140px 0 0",
+              background: "linear-gradient(180deg, rgba(56, 189, 248, 0.08) 0%, transparent 100%)",
+              marginTop: "8px",
+              boxShadow: "0 0 30px rgba(56, 189, 248, 0.25)",
+            }}
+          />
+        </div>
+
+        {/* ------------------------------------------------------------------
+            STAGE B: FLOATING ISOMETRIC 3D SMARTPHONE (Person Browsing Store)
+            ------------------------------------------------------------------ */}
+        <div
+          style={{
+            position: "absolute",
+            left: phase === "rapid_dispatch" ? "20%" : "30%",
+            top: "24%",
+            width: "220px",
+            height: "360px",
+            animation: "floatDevice 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+            transition: "left 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
+            transformStyle: "preserve-3d",
+            zIndex: 20,
+          }}
+        >
+          {/* Smartphone Hardware Frame (Titanium Glassmorphism) */}
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              borderRadius: "32px",
+              backgroundColor: "rgba(15, 23, 42, 0.88)",
+              border: "3px solid rgba(255, 255, 255, 0.25)",
+              boxShadow:
+                "0 25px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(56, 189, 248, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.1)",
+              backdropFilter: "blur(20px)",
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+              position: "relative",
+            }}
+          >
+            {/* Dynamic Island Notch */}
             <div
               style={{
-                textAlign: "center",
-                marginTop: "10px",
-                padding: "8px 24px",
-                backgroundColor: "rgba(3, 7, 18, 0.9)",
-                border: "2px solid #F59E0B",
-                borderRadius: "14px",
-                boxShadow: "0 0 25px rgba(245, 158, 11, 0.45)",
-                display: "inline-flex",
+                width: "60px",
+                height: "12px",
+                backgroundColor: "#000",
+                borderRadius: "10px",
+                margin: "10px auto 6px auto",
+                boxShadow: "0 0 4px rgba(0,0,0,0.8)",
+              }}
+            />
+
+            {/* In-App Header */}
+            <div
+              style={{
+                padding: "4px 14px",
+                display: "flex",
+                justifyContent: "space-between",
                 alignItems: "center",
-                justifyContent: "center",
-                gap: "12px",
-                animation: "neonFlicker 3s infinite",
+                borderBottom: "1px solid rgba(255,255,255,0.08)",
               }}
             >
-              <span style={{ fontSize: "28px", color: "#F59E0B", filter: "drop-shadow(0 0 10px #F59E0B)" }}>
-                ⚡
+              <span style={{ fontSize: "10px", fontWeight: "900", color: "#F59E0B" }}>
+                ⚡ R-Mart App
               </span>
               <span
                 style={{
-                  fontSize: "30px",
-                  fontWeight: "900",
-                  color: "#FFFFFF",
-                  letterSpacing: "4px",
-                  textShadow:
-                    "0 0 10px #FFFFFF, 0 0 20px #F59E0B, 0 0 40px #F59E0B",
+                  fontSize: "8px",
+                  color: "#10B981",
+                  backgroundColor: "rgba(16, 185, 129, 0.2)",
+                  padding: "1px 6px",
+                  borderRadius: "999px",
+                  fontWeight: "800",
                 }}
               >
-                R - M A R T
+                ● 24h Express
               </span>
             </div>
 
-            {/* Illuminated Glass Storefront Windows with Warm Shelves Inside */}
+            {/* In-App Product Scrolling Viewport */}
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr 1fr",
-                gap: "12px",
-                height: "130px",
-                marginTop: "12px",
+                flex: 1,
+                overflow: "hidden",
+                padding: "8px",
+                position: "relative",
               }}
             >
-              {/* Window 1: Fresh & Grocery Aisles */}
               <div
                 style={{
-                  backgroundColor: "rgba(245, 158, 11, 0.08)",
-                  border: "1px solid rgba(245, 158, 11, 0.3)",
-                  borderRadius: "8px",
-                  padding: "10px",
                   display: "flex",
                   flexDirection: "column",
-                  justifyContent: "space-between",
-                  boxShadow: "inset 0 0 20px rgba(245, 158, 11, 0.2)",
+                  gap: "10px",
+                  animation: "phoneScrollTrack 3.5s ease-in-out infinite alternate",
                 }}
               >
-                {/* Lit Shelves */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px" }}>
-                  <div style={{ height: "4px", backgroundColor: "#F59E0B", opacity: 0.7, borderRadius: "2px" }} />
-                  <div style={{ height: "4px", backgroundColor: "#F59E0B", opacity: 0.5, borderRadius: "2px" }} />
-                  <div style={{ height: "4px", backgroundColor: "#F59E0B", opacity: 0.3, borderRadius: "2px" }} />
+                {/* Product Card 1: Smartphone */}
+                <div
+                  style={{
+                    backgroundColor: "rgba(30, 41, 59, 0.7)",
+                    border: "1px solid rgba(56, 189, 248, 0.3)",
+                    borderRadius: "14px",
+                    padding: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <img
+                    src="https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=150"
+                    alt="iPhone"
+                    style={{ width: "36px", height: "36px", borderRadius: "8px", objectFit: "cover" }}
+                  />
+                  <div>
+                    <div style={{ fontSize: "10px", fontWeight: "900", color: "#FFF" }}>
+                      iPhone 15 Titanium
+                    </div>
+                    <div style={{ fontSize: "9px", color: "#38BDF8", fontWeight: "800" }}>
+                      $1199.99
+                    </div>
+                  </div>
                 </div>
-                <div style={{ fontSize: "20px", textAlign: "center" }}>🛒</div>
-              </div>
 
-              {/* Window 2: Main Glass Sliding Entrance */}
+                {/* Product Card 2: Runner Sneakers */}
+                <div
+                  style={{
+                    backgroundColor: "rgba(30, 41, 59, 0.7)",
+                    border: "1px solid rgba(245, 158, 11, 0.3)",
+                    borderRadius: "14px",
+                    padding: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <img
+                    src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=150"
+                    alt="Nike"
+                    style={{ width: "36px", height: "36px", borderRadius: "8px", objectFit: "cover" }}
+                  />
+                  <div>
+                    <div style={{ fontSize: "10px", fontWeight: "900", color: "#FFF" }}>
+                      Nike Air Running
+                    </div>
+                    <div style={{ fontSize: "9px", color: "#F59E0B", fontWeight: "800" }}>
+                      $99.99
+                    </div>
+                  </div>
+                </div>
+
+                {/* Product Card 3: Espresso Maker */}
+                <div
+                  style={{
+                    backgroundColor: "rgba(30, 41, 59, 0.7)",
+                    border: "1px solid rgba(16, 185, 129, 0.3)",
+                    borderRadius: "14px",
+                    padding: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <img
+                    src="https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?w=150"
+                    alt="Espresso"
+                    style={{ width: "36px", height: "36px", borderRadius: "8px", objectFit: "cover" }}
+                  />
+                  <div>
+                    <div style={{ fontSize: "10px", fontWeight: "900", color: "#FFF" }}>
+                      Barista Espresso XL
+                    </div>
+                    <div style={{ fontSize: "9px", color: "#10B981", fontWeight: "800" }}>
+                      $349.99
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* In-App "Place Order" Haptic Button */}
+            <div style={{ padding: "10px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
               <div
                 style={{
-                  backgroundColor: "rgba(56, 189, 248, 0.12)",
-                  border: "1px solid rgba(56, 189, 248, 0.5)",
-                  borderRadius: "8px",
-                  padding: "10px",
+                  backgroundColor: phase === "order_pulse" || phase === "rapid_dispatch" || phase === "zoom_enter" ? "#10B981" : "#F59E0B",
+                  color: "#030712",
+                  padding: "8px",
+                  borderRadius: "10px",
+                  fontSize: "11px",
+                  fontWeight: "900",
+                  textAlign: "center",
+                  boxShadow:
+                    phase === "order_pulse"
+                      ? "0 0 20px #10B981, inset 0 0 10px #FFFFFF"
+                      : "0 4px 14px rgba(245, 158, 11, 0.4)",
+                  transform: phase === "order_pulse" ? "scale(0.96)" : "scale(1)",
+                  transition: "all 0.2s ease",
                   display: "flex",
-                  flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
-                  boxShadow: "inset 0 0 25px rgba(56, 189, 248, 0.3), 0 0 20px rgba(56, 189, 248, 0.2)",
+                  gap: "6px",
                 }}
               >
-                <div style={{ fontSize: "36px" }}>🏪</div>
-              </div>
-
-              {/* Window 3: Electronics & Deals */}
-              <div
-                style={{
-                  backgroundColor: "rgba(16, 185, 129, 0.08)",
-                  border: "1px solid rgba(16, 185, 129, 0.3)",
-                  borderRadius: "8px",
-                  padding: "10px",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  boxShadow: "inset 0 0 20px rgba(16, 185, 129, 0.2)",
-                }}
-              >
-                {/* Lit Shelves */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px" }}>
-                  <div style={{ height: "4px", backgroundColor: "#10B981", opacity: 0.7, borderRadius: "2px" }} />
-                  <div style={{ height: "4px", backgroundColor: "#10B981", opacity: 0.5, borderRadius: "2px" }} />
-                  <div style={{ height: "4px", backgroundColor: "#10B981", opacity: 0.3, borderRadius: "2px" }} />
-                </div>
-                <div style={{ fontSize: "20px", textAlign: "center" }}>📦</div>
+                <span>{phase === "order_pulse" || phase === "rapid_dispatch" || phase === "zoom_enter" ? "✔" : "⚡"}</span>
+                <span>
+                  {phase === "order_pulse" || phase === "rapid_dispatch" || phase === "zoom_enter"
+                    ? "ORDER CONFIRMED"
+                    : "PLACE ORDER"}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Golden Ambient Floor Light Pool coming out of Mart */}
+          {/* Perspective Shadow Beneath Phone */}
           <div
             style={{
-              width: "520px",
-              height: "40px",
-              background:
-                "radial-gradient(ellipse at center, rgba(245, 158, 11, 0.45) 0%, rgba(56, 189, 248, 0.2) 50%, transparent 80%)",
-              filter: "blur(12px)",
-              marginTop: "-15px",
+              width: "180px",
+              height: "20px",
+              backgroundColor: "rgba(0, 0, 0, 0.7)",
+              borderRadius: "50%",
+              filter: "blur(10px)",
+              margin: "-10px auto 0 auto",
             }}
           />
         </div>
-      )}
+
+        {/* ------------------------------------------------------------------
+            STAGE C: 3D SHOCKWAVE PULSE (Expands across floor upon Order Tap)
+            ------------------------------------------------------------------ */}
+        {(phase === "order_pulse" || phase === "rapid_dispatch" || phase === "zoom_enter") && (
+          <div
+            style={{
+              position: "absolute",
+              left: "40%",
+              top: "55%",
+              width: "350px",
+              height: "350px",
+              borderRadius: "50%",
+              border: "3px solid #38BDF8",
+              boxShadow: "0 0 40px rgba(56, 189, 248, 0.8), inset 0 0 20px rgba(245, 158, 11, 0.5)",
+              animation: "shockwave3D 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards",
+              pointerEvents: "none",
+            }}
+          />
+        )}
+
+        {/* ------------------------------------------------------------------
+            STAGE D: HIGH-TECH AUTOMATED DISPATCH POD & LUXURY PARCEL DELIVERY
+            ------------------------------------------------------------------ */}
+        {(phase === "rapid_dispatch" || phase === "zoom_enter") && (
+          <div
+            style={{
+              position: "absolute",
+              right: "22%",
+              top: "22%",
+              zIndex: 30,
+              animation: "dispatchSwoop 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            {/* Aerodynamic High-Tech Dispatch Carrier Drone / Pod */}
+            <div style={{ position: "relative", width: "160px", height: "70px", marginBottom: "12px" }}>
+              <svg width="160" height="70" viewBox="0 0 160 70">
+                {/* Thruster Cyan Glow */}
+                <ellipse cx="25" cy="35" rx="14" ry="6" fill="#38BDF8" opacity="0.6" filter="blur(4px)" />
+                <ellipse cx="135" cy="35" rx="14" ry="6" fill="#38BDF8" opacity="0.6" filter="blur(4px)" />
+
+                {/* Cybernetic Pod Wings */}
+                <path d="M 10,35 Q 40,15 80,18 Q 120,15 150,35 Q 110,48 80,45 Q 50,48 10,35 Z" fill="#0F172A" stroke="#38BDF8" strokeWidth="2" />
+
+                {/* Central Cockpit / Sensor Eye */}
+                <ellipse cx="80" cy="30" rx="20" ry="9" fill="#1E293B" stroke="#F59E0B" strokeWidth="1.5" />
+                <circle cx="80" cy="30" r="4" fill="#F59E0B" />
+
+                {/* Pulse Light */}
+                <line x1="40" y1="36" x2="120" y2="36" stroke="#38BDF8" strokeWidth="1.5" strokeDasharray="4 2" />
+              </svg>
+            </div>
+
+            {/* Luxury Gold-Embossed R-MART Parcel Box */}
+            <div
+              style={{
+                width: "120px",
+                height: "90px",
+                backgroundColor: "#F59E0B",
+                borderRadius: "14px",
+                border: "2px solid #B45309",
+                boxShadow:
+                  "0 20px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(245, 158, 11, 0.5), inset 0 2px 6px rgba(255, 255, 255, 0.4)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                animation: "parcelDropGently 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+                position: "relative",
+              }}
+            >
+              {/* Premium Ribbon */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  bottom: 0,
+                  width: "16px",
+                  backgroundColor: "#030712",
+                  opacity: 0.85,
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  right: 0,
+                  height: "14px",
+                  backgroundColor: "#030712",
+                  opacity: 0.85,
+                }}
+              />
+
+              {/* R-MART Gold Badge Emblem */}
+              <div
+                style={{
+                  position: "relative",
+                  zIndex: 2,
+                  backgroundColor: "#030712",
+                  border: "1px solid #F59E0B",
+                  borderRadius: "8px",
+                  padding: "4px 8px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  boxShadow: "0 0 10px rgba(245, 158, 11, 0.6)",
+                }}
+              >
+                <span style={{ color: "#F59E0B", fontSize: "11px" }}>⚡</span>
+                <span
+                  style={{
+                    color: "#FFFFFF",
+                    fontSize: "11px",
+                    fontWeight: "900",
+                    letterSpacing: "1px",
+                  }}
+                >
+                  R-MART
+                </span>
+              </div>
+            </div>
+
+            {/* Holographic Delivery Pedestal */}
+            <div
+              style={{
+                width: "160px",
+                height: "18px",
+                borderRadius: "50%",
+                background: "radial-gradient(circle, rgba(56, 189, 248, 0.5) 0%, transparent 75%)",
+                filter: "blur(6px)",
+                marginTop: "12px",
+              }}
+            />
+          </div>
+        )}
+      </div>
 
       {/* ====================================================================
-          STAGE 1 & 3: THE PERSON ENTERS SCROLLING PHONE & PLACES ORDER
+          5. BOTTOM STREAMLINED PROGRESS BAR & INSTRUCTION
           ==================================================================== */}
       <div
         style={{
           position: "absolute",
-          left: "22%",
-          bottom: "26%",
-          zIndex: 30,
-          animation: "walkIn 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+          bottom: "32px",
+          width: "100%",
+          maxWidth: "460px",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
+          gap: "10px",
+          zIndex: 50,
         }}
       >
-        {/* STYLIZED 2D VECTOR CHARACTER: PERSON SCROLLING PHONE */}
-        <div style={{ position: "relative", width: "120px", height: "230px" }}>
-          <svg width="120" height="230" viewBox="0 0 120 230">
-            <defs>
-              <linearGradient id="jacketGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#1E293B" />
-                <stop offset="100%" stopColor="#0F172A" />
-              </linearGradient>
-              <linearGradient id="phoneGlowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#38BDF8" />
-                <stop offset="100%" stopColor="#0284C7" />
-              </linearGradient>
-            </defs>
-
-            {/* Head & Hair */}
-            <circle cx="60" cy="38" r="18" fill="#F8FAFC" />
-            <path
-              d="M 44,32 Q 60,18 76,32 Q 78,42 74,40 Q 60,34 46,40 Z"
-              fill="#0F172A"
-            />
-
-            {/* Torso / Modern Jacket */}
-            <path
-              d="M 40,60 L 80,60 L 74,136 L 46,136 Z"
-              fill="url(#jacketGrad)"
-              stroke="#38BDF8"
-              strokeWidth="1.5"
-            />
-
-            {/* Legs */}
-            <line x1="50" y1="136" x2="44" y2="204" stroke="#0F172A" strokeWidth="12" strokeLinecap="round" />
-            <line x1="70" y1="136" x2="76" y2="204" stroke="#0F172A" strokeWidth="12" strokeLinecap="round" />
-            {/* Modern Sneakers */}
-            <ellipse cx="40" cy="208" rx="10" ry="5" fill="#38BDF8" />
-            <ellipse cx="80" cy="208" rx="10" ry="5" fill="#38BDF8" />
-
-            {/* Left Arm holding phone in front */}
-            <path
-              d="M 44,68 Q 30,102 54,106"
-              stroke="#1E293B"
-              strokeWidth="9"
-              strokeLinecap="round"
-              fill="none"
-            />
-            {/* Right Arm scrolling phone */}
-            <path
-              d="M 76,68 Q 88,102 68,106"
-              stroke="#1E293B"
-              strokeWidth="9"
-              strokeLinecap="round"
-              fill="none"
-            />
-
-            {/* THE GLOWING PHONE */}
-            <rect
-              x="54"
-              y="92"
-              width="18"
-              height="30"
-              rx="3"
-              fill="#030712"
-              stroke="#38BDF8"
-              strokeWidth="1.5"
-              style={{ animation: "phoneScreenGlow 1.5s infinite" }}
-            />
-            {/* Phone Screen display */}
-            <rect x="56" y="94" width="14" height="24" rx="2" fill="url(#phoneGlowGrad)" />
-            {/* Animated Scrolling Thumb */}
-            <circle
-              cx="64"
-              cy="106"
-              r="3"
-              fill="#F8FAFC"
-              style={{ animation: "phoneScrollThumb 0.8s infinite" }}
-            />
-          </svg>
-
-          {/* Ripple Pulse on Screen Tap when placing order */}
-          {stage === "order" && (
-            <div
-              style={{
-                position: "absolute",
-                left: "58px",
-                top: "100px",
-                width: "20px",
-                height: "20px",
-                borderRadius: "50%",
-                border: "2px solid #10B981",
-                animation: "orderPulseRing 0.8s cubic-bezier(0, 0.2, 0.8, 1) infinite",
-                pointerEvents: "none",
-              }}
-            />
-          )}
-
-          {/* Delivered Boxes in Person's Hand after Delivery */}
-          {(stage === "delivery" || stage === "finished") && (
-            <div
-              style={{
-                position: "absolute",
-                left: "30px",
-                top: "85px",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: "2px",
-                animation: "boxHandover 0.4s ease forwards",
-              }}
-            >
-              <div
-                style={{
-                  width: "48px",
-                  height: "22px",
-                  backgroundColor: "#F59E0B",
-                  border: "1px solid #B45309",
-                  borderRadius: "4px",
-                  boxShadow: "0 4px 10px rgba(0,0,0,0.8)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "10px",
-                  fontWeight: "900",
-                  color: "#030712",
-                }}
-              >
-                ⚡ R-MART
-              </div>
-              <div
-                style={{
-                  width: "56px",
-                  height: "24px",
-                  backgroundColor: "#D97706",
-                  border: "1px solid #78350F",
-                  borderRadius: "4px",
-                  boxShadow: "0 6px 15px rgba(0,0,0,0.8)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "11px",
-                  fontWeight: "900",
-                  color: "#030712",
-                }}
-              >
-                📦 PARCEL
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Character Floor Shadow */}
+        {/* Progress Track */}
         <div
           style={{
-            width: "90px",
-            height: "14px",
-            backgroundColor: "rgba(0, 0, 0, 0.7)",
-            borderRadius: "50%",
-            filter: "blur(5px)",
-            marginTop: "-8px",
-          }}
-        />
-      </div>
-
-      {/* ====================================================================
-          STAGE 4: FAST DELIVERY BOY DELIVERS BOXES (Zooms in from Right)
-          ==================================================================== */}
-      {(stage === "delivery" || stage === "finished") && (
-        <div
-          style={{
-            position: "absolute",
-            left: "35%",
-            bottom: "26%",
-            zIndex: 35,
-            animation: "deliveryBoyZoom 0.7s cubic-bezier(0.18, 0.9, 0.32, 1) forwards",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
+            width: "100%",
+            height: "3px",
+            backgroundColor: "rgba(255, 255, 255, 0.12)",
+            borderRadius: "999px",
+            overflow: "hidden",
           }}
         >
-          {/* DELIVERY BOY VECTOR FIGURE */}
-          <div style={{ position: "relative", width: "120px", height: "230px" }}>
-            <svg width="120" height="230" viewBox="0 0 120 230">
-              {/* Delivery Boy Cap */}
-              <path d="M 46,26 Q 60,14 74,26 L 86,28 L 84,34 L 46,34 Z" fill="#F59E0B" />
-              {/* Head */}
-              <circle cx="60" cy="38" r="16" fill="#F8FAFC" />
-
-              {/* Delivery Uniform Jacket with R-Mart Badge */}
-              <path
-                d="M 42,58 L 78,58 L 72,136 L 48,136 Z"
-                fill="#F59E0B"
-                stroke="#B45309"
-                strokeWidth="1.5"
-              />
-              <rect x="52" y="70" width="16" height="8" rx="2" fill="#030712" />
-              <text x="60" y="76" fontSize="5" fontWeight="900" fill="#F59E0B" textAnchor="middle">
-                R-MART
-              </text>
-
-              {/* Legs */}
-              <line x1="52" y1="136" x2="48" y2="204" stroke="#0F172A" strokeWidth="12" strokeLinecap="round" />
-              <line x1="68" y1="136" x2="72" y2="204" stroke="#0F172A" strokeWidth="12" strokeLinecap="round" />
-              <ellipse cx="46" cy="208" rx="10" ry="5" fill="#F59E0B" />
-              <ellipse cx="74" cy="208" rx="10" ry="5" fill="#F59E0B" />
-
-              {/* Forward Reaching Arms Delivering Box */}
-              <path
-                d="M 44,68 Q 24,96 14,94"
-                stroke="#F59E0B"
-                strokeWidth="9"
-                strokeLinecap="round"
-                fill="none"
-              />
-              <path
-                d="M 76,68 Q 44,98 16,94"
-                stroke="#F59E0B"
-                strokeWidth="9"
-                strokeLinecap="round"
-                fill="none"
-              />
-            </svg>
-          </div>
-
-          {/* Delivery Boy Floor Shadow */}
           <div
             style={{
-              width: "80px",
-              height: "12px",
-              backgroundColor: "rgba(0, 0, 0, 0.7)",
-              borderRadius: "50%",
-              filter: "blur(5px)",
-              marginTop: "-8px",
+              width: `${progress}%`,
+              height: "100%",
+              background: "linear-gradient(90deg, #38BDF8, #F59E0B)",
+              boxShadow: "0 0 8px #F59E0B",
+              transition: "width 0.05s linear",
             }}
           />
         </div>
-      )}
 
-      {/* ====================================================================
-          BOTTOM STATUS TOAST: CLEAR NARRATIVE & AUTO-TRANSITION
-          ==================================================================== */}
-      {/* Seamless Tap Anywhere to Enter Store */}
+        {/* Minimalist Hint */}
+        <div
+          style={{
+            fontSize: "11px",
+            fontWeight: "700",
+            letterSpacing: "1px",
+            color: "rgba(255, 255, 255, 0.5)",
+            textTransform: "uppercase",
+          }}
+        >
+          Tap anywhere to enter store
+        </div>
+      </div>
     </div>
   );
 }

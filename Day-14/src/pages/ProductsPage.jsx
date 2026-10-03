@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { useInfiniteProducts } from "../hooks/useProducts";
+import { useInfiniteProducts, ALL_CATEGORIES } from "../hooks/useProducts";
 import { useUIStore, useAuthStore } from "../store/useStore";
 import ProductCard from "../components/ProductCard";
 import Footer from "../components/Footer";
@@ -63,15 +63,7 @@ export default function ProductsPage() {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const categories = [
-    "All",
-    "Electronics",
-    "Groceries",
-    "Fashion",
-    "Home & Kitchen",
-    "Peripherals",
-    "Accessories",
-  ];
+  const categories = ALL_CATEGORIES;
 
   return (
     <div
@@ -288,8 +280,19 @@ export default function ProductsPage() {
               />
             </div>
 
-            {/* Category Filter Pills */}
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            {/* Category Filter Pills (Horizontal Scrollable Bar) */}
+            <div
+              style={{
+                width: "100%",
+                display: "flex",
+                gap: "8px",
+                overflowX: "auto",
+                scrollbarWidth: "none",
+                padding: "6px 2px 10px 2px",
+                whiteSpace: "nowrap",
+                WebkitOverflowScrolling: "touch",
+              }}
+            >
               {categories.map((cat) => (
                 <button
                   key={cat}
@@ -320,6 +323,7 @@ export default function ProductsPage() {
                     fontSize: "12px",
                     cursor: "pointer",
                     transition: "all 0.2s ease",
+                    flexShrink: 0,
                     boxShadow:
                       !isDark && category !== cat
                         ? "0 1px 3px rgba(0,0,0,0.05)"

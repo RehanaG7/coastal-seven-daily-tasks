@@ -67,7 +67,7 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
   // Add Product Studio State
   const [productForm, setProductForm] = useState({
     name: "",
-    category: "Peripherals",
+    category: "Mobiles and Electronics",
     price: "",
     stock: "15",
     description: "",
@@ -422,7 +422,7 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
     alert(`Product "${newProd.name}" uploaded successfully!`);
     setProductForm({
       name: "",
-      category: "Peripherals",
+      category: "Mobiles and Electronics",
       price: "",
       stock: "15",
       description: "",
@@ -1188,12 +1188,22 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
                         }
                         style={inputStyle(c)}
                       >
-                        <option value="Electronics">Electronics</option>
-                        <option value="Groceries">Groceries</option>
+                        <option value="Mobiles and Electronics">Mobiles and Electronics</option>
+                        <option value="Deals and Savings">Deals and Savings</option>
                         <option value="Fashion">Fashion</option>
-                        <option value="Home & Kitchen">Home & Kitchen</option>
-                        <option value="Peripherals">Peripherals</option>
-                        <option value="Accessories">Accessories</option>
+                        <option value="Home and Furniture">Home and Furniture</option>
+                        <option value="Groceries and Pet Supplies">Groceries and Pet Supplies</option>
+                        <option value="Books and Education">Books and Education</option>
+                        <option value="Games and Live Shopping">Games and Live Shopping</option>
+                        <option value="Pharmacy and Household">Pharmacy and Household</option>
+                        <option value="Travel and Auto">Travel and Auto</option>
+                        <option value="Toys and Kids">Toys and Kids</option>
+                        <option value="Sports and Fitness">Sports and Fitness</option>
+                        <option value="Beauty">Beauty</option>
+                        <option value="Gifting">Gifting</option>
+                        <option value="Business Purchases">Business Purchases</option>
+                        <option value="Everyday Needs">Everyday Needs</option>
+                        <option value="Bills and Recharges">Bills and Recharges</option>
                       </select>
                     </div>
 

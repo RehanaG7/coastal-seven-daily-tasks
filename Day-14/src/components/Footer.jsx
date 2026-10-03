@@ -94,7 +94,7 @@ export default function Footer() {
             TOP CATEGORIES
           </h4>
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px" }}>
-            {["Electronics & Hardware", "Groceries & Fresh Mart", "Fashion & Apparel", "Home & Kitchen", "Gaming Peripherals"].map((cat) => (
+            {["Mobiles and Electronics", "Deals and Savings", "Fashion", "Home and Furniture", "Groceries and Pet Supplies", "Games and Live Shopping"].map((cat) => (
               <li key={cat}>
                 <Link
                   to="/catalog"

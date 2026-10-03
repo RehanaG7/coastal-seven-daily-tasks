@@ -1,274 +1,649 @@
-﻿import React, { useState } from "react";
+﻿import React, { useState, useMemo, useRef } from "react";
 import { useStore } from "../context/StoreContext";
-import ProductFormStudio from "../components/ProductFormStudio";
-import { Button } from "../components/ui/Button";
-import { Table, TableHeader, TableRow, TableHead, TableCell } from "../components/ui/Table";
+import { useNavigate } from "react-router-dom";
 
 export default function AdminDashboard() {
-  const {
-    inventory,
-    deleteProduct,
-    updateProductStock,
-    restockRequests,
-    sendApologyRestockNotice,
-    orders,
-    modifyOrderStatus,
-    tickets,
-    resolveTicket,
-    user
-  } = useStore();
+  const { products, setProducts, theme } = useStore();
+  const navigate = useNavigate();
+  const isDark = theme === "dark";
 
-  const [activeTab, setActiveTab] = useState("inventory");
-  const stockoutItems = inventory.filter((item) => Number(item.stock) < 5);
+  const [activeTab, setActiveTab] = useState("catalog"); // "catalog" | "add_product" | "requested"
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [sortOption, setSortOption] = useState("default");
 
-  const handleDelete = (item) => {
-    if (window.confirm(`⚠️ Permanently delete "${item.title || item.name}"?`)) {
-      deleteProduct(item.id);
+  // Reviews modal state
+  const [reviewModalProduct, setReviewModalProduct] = useState(null);
+
+  // Add Product Studio state
+  const [newProduct, setNewProduct] = useState({
+    name: "",
+    price: "",
+    stock: "",
+    category: "Peripherals",
+    image: "",
+    description: "",
+  });
+  const [uploadMode, setUploadMode] = useState("link"); // "link" | "file"
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const safeProducts = Array.isArray(products) && products.length > 0 ? products : [];
+  const categories = ["All", "Electronics", "Peripherals", "Accessories"];
+
+  const filteredAndSorted = useMemo(() => {
+    let list = safeProducts.filter((p) => {
+      const matchSearch = (p.name || "").toLowerCase().includes(searchQuery.toLowerCase());
+      const matchCat = selectedCategory === "All" || p.category === selectedCategory;
+      return matchSearch && matchCat;
+    });
+
+    if (sortOption === "price_asc") list.sort((a, b) => a.price - b.price);
+    else if (sortOption === "price_desc") list.sort((a, b) => b.price - a.price);
+    else if (sortOption === "name_asc") list.sort((a, b) => a.name.localeCompare(b.name));
+
+    return list;
+  }, [safeProducts, searchQuery, selectedCategory, sortOption]);
+
+  // Stock Adjustment Handlers
+  const handleModifyStock = (id, delta) => {
+    setProducts(
+      safeProducts.map((p) => (p.id === id ? { ...p, stock: Math.max(0, (p.stock || 0) + delta) } : p))
+    );
+  };
+
+  // Delete Product Handler
+  const handleDeleteProduct = (id, name) => {
+    if (window.confirm(`Are you sure you want to permanently delete "${name}" from inventory?`)) {
+      setProducts(safeProducts.filter((p) => p.id !== id));
     }
   };
 
-  return (
-    <div className="min-h-[calc(100vh-64px)] bg-slate-950 text-slate-100 p-6 sm:p-8 font-sans">
-      <div className="max-w-7xl mx-auto space-y-6">
-        
-        {/* Top Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-5">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <span className="bg-amber-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                Admin Command Deck
-              </span>
-              <h1 className="text-2xl font-black tracking-tight text-white">
-                Welcome, {user?.name || "Humza"}
-              </h1>
-            </div>
-            <p className="text-xs text-slate-400 mt-1">
-              Signed in as <b>{user?.email || "admin@humza.com"}</b> • Full CRUD, Zod Product Studio, and Shadcn/ui Table Controls.
-            </p>
-          </div>
+  // Image Upload Handlers
+  const handleFiles = (files) => {
+    if (files && files[0]) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setNewProduct((prev) => ({ ...prev, image: e.target.result }));
+      };
+      reader.readAsDataURL(files[0]);
+    }
+  };
 
-          {/* Navigation Tabs */}
-          <div className="flex flex-wrap gap-2">
-            {[
-              { id: "inventory", label: `Stock & Products (${inventory.length})` },
-              { id: "requests", label: `🔔 Demands (${restockRequests.length})` },
-              { id: "add_product", label: "+ Add Product Studio" },
-              { id: "orders", label: `Orders Table (${orders.length})` },
-              { id: "tickets", label: `Complaints (${tickets.length})` },
-            ].map((tab) => (
-              <Button
-                key={tab.id}
-                variant={activeTab === tab.id ? "default" : "secondary"}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.label}
-              </Button>
-            ))}
-          </div>
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
+    else if (e.type === "dragleave") setDragActive(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFiles(e.dataTransfer.files);
+    }
+  };
+
+  const handlePublish = (e) => {
+    e.preventDefault();
+    if (!newProduct.name || !newProduct.price) {
+      alert("Please provide product name and price.");
+      return;
+    }
+    const created = {
+      id: Date.now(),
+      name: newProduct.name,
+      price: parseFloat(newProduct.price),
+      stock: parseInt(newProduct.stock || "0", 10),
+      category: newProduct.category,
+      image: newProduct.image || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400",
+      description: newProduct.description || "Admin catalog addition.",
+    };
+    setProducts([created, ...safeProducts]);
+    alert(`Product "${created.name}" published to catalog!`);
+    setNewProduct({ name: "", price: "", stock: "", category: "Peripherals", image: "", description: "" });
+    setActiveTab("catalog");
+  };
+
+  const c = {
+    bg: isDark ? "#080C14" : "#F8FAFC",
+    cardBg: isDark ? "#0F172A" : "#FFFFFF",
+    border: isDark ? "#1E293B" : "#E2E8F0",
+    text: isDark ? "#F8FAFB" : "#0F172A",
+    subtext: isDark ? "#94A3B8" : "#64748B",
+  };
+
+  return (
+    <div style={{ backgroundColor: c.bg, minHeight: "100vh", padding: "20px 24px", fontFamily: "system-ui, sans-serif" }}>
+      <div style={{ maxWidth: "1240px", margin: "0 auto" }}>
+        
+        {/* Admin Navigation Controls */}
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "22px" }}>
+          <button
+            onClick={() => setActiveTab("catalog")}
+            style={{
+              backgroundColor: activeTab === "catalog" ? "#3B82F6" : c.cardBg,
+              color: activeTab === "catalog" ? "#FFF" : c.text,
+              border: `1px solid ${activeTab === "catalog" ? "#3B82F6" : c.border}`,
+              padding: "9px 18px",
+              borderRadius: "8px",
+              fontWeight: "800",
+              fontSize: "13px",
+              cursor: "pointer",
+            }}
+          >
+            📦 Products & Stock ({safeProducts.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab("add_product")}
+            style={{
+              backgroundColor: activeTab === "add_product" ? "#3B82F6" : c.cardBg,
+              color: activeTab === "add_product" ? "#FFF" : c.text,
+              border: `1px solid ${activeTab === "add_product" ? "#3B82F6" : c.border}`,
+              padding: "9px 18px",
+              borderRadius: "8px",
+              fontWeight: "800",
+              fontSize: "13px",
+              cursor: "pointer",
+            }}
+          >
+            + Add Product Studio
+          </button>
+
+          <button
+            onClick={() => setActiveTab("requested")}
+            style={{
+              backgroundColor: activeTab === "requested" ? "#3B82F6" : c.cardBg,
+              color: activeTab === "requested" ? "#FFF" : c.text,
+              border: `1px solid ${activeTab === "requested" ? "#3B82F6" : c.border}`,
+              padding: "9px 18px",
+              borderRadius: "8px",
+              fontWeight: "800",
+              fontSize: "13px",
+              cursor: "pointer",
+            }}
+          >
+            ⚠ Products Requested (2)
+          </button>
         </div>
 
-        {/* Global Stockout Alert Bar */}
-        {stockoutItems.length > 0 && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">🔴</span>
-              <div>
-                <b className="text-red-400 text-xs font-black">Critical Stockout Warning:</b>
-                <span className="text-xs text-slate-300 ml-2">
-                  {stockoutItems.length} products have &lt; 5 units left in warehouse.
-                </span>
+        {/* TAB 1: EXACT MATCH CATALOG WITH ADMIN MANAGEMENT */}
+        {activeTab === "catalog" && (
+          <div>
+            {/* Search, Categories, Sort */}
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "16px", marginBottom: "20px" }}>
+              <div style={{ position: "relative", minWidth: "260px", flex: "1 1 280px", maxWidth: "400px" }}>
+                <span style={{ position: "absolute", left: "12px", top: "10px", color: c.subtext }}>🔍</span>
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px 10px 36px",
+                    borderRadius: "10px",
+                    backgroundColor: c.cardBg,
+                    border: `1px solid ${c.border}`,
+                    color: c.text,
+                    fontSize: "13px",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "12px", fontWeight: "800", color: c.subtext }}>Category:</span>
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    style={{
+                      backgroundColor: selectedCategory === cat ? "#3B82F6" : c.cardBg,
+                      color: selectedCategory === cat ? "#FFF" : c.text,
+                      border: `1px solid ${selectedCategory === cat ? "#3B82F6" : c.border}`,
+                      padding: "6px 14px",
+                      borderRadius: "20px",
+                      fontWeight: "700",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ fontSize: "12px", fontWeight: "800", color: c.subtext }}>Sort:</span>
+                <select
+                  value={sortOption}
+                  onChange={(e) => setSortOption(e.target.value)}
+                  style={{
+                    backgroundColor: c.cardBg,
+                    color: c.text,
+                    border: `1px solid ${c.border}`,
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    fontWeight: "700",
+                    cursor: "pointer",
+                    outline: "none",
+                  }}
+                >
+                  <option value="default">Default (Featured)</option>
+                  <option value="price_asc">Price: Low to High</option>
+                  <option value="price_desc">Price: High to Low</option>
+                  <option value="name_asc">Name: A to Z</option>
+                </select>
               </div>
             </div>
-            <Button variant="destructive" size="sm" onClick={() => setActiveTab("inventory")}>
-              Inspect Stockouts
-            </Button>
-          </div>
-        )}
 
-        {/* TAB 1: PRODUCT CATALOG WITH STOCK CONTROLS & DELETE */}
-        {activeTab === "inventory" && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-            {inventory.map((item) => {
-              const currentStock = Number(item.stock || 0);
-              const isStockout = currentStock < 5;
+            <div style={{ fontSize: "13px", fontWeight: "800", color: c.subtext, marginBottom: "18px" }}>
+              Showing {filteredAndSorted.length} of {safeProducts.length} items
+            </div>
 
-              return (
-                <div
-                  key={item.id}
-                  className={`bg-slate-900 border rounded-2xl p-4 flex flex-col justify-between relative shadow-xl ${
-                    isStockout ? "border-red-600/60 shadow-red-950/20" : "border-slate-800"
-                  }`}
-                >
-                  {isStockout && (
-                    <span className="absolute top-3 right-3 bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full tracking-wider">
-                      🔴 STOCKOUT ({currentStock})
-                    </span>
-                  )}
+            {/* Product Cards Mirroring User UI */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "22px" }}>
+              {filteredAndSorted.map((p) => {
+                const isStockout = (p.stock || 0) <= 0;
+                const isLowStock = (p.stock || 0) > 0 && (p.stock || 0) <= 3;
 
-                  <div>
-                    <div className="h-36 rounded-xl bg-slate-950 flex items-center justify-center overflow-hidden mb-3 border border-slate-800/80">
-                      <img src={item.image_url} alt="" className="max-h-full max-w-full object-contain" />
-                    </div>
-                    <h4 className="text-sm font-black text-white line-clamp-1">{item.title}</h4>
-                    <span className="text-amber-500 font-black text-sm">${Number(item.price).toFixed(2)}</span>
-                  </div>
-
-                  <div className="border-t border-slate-800 pt-3 mt-3 space-y-2.5">
-                    {/* Add/Subtract Stock */}
-                    <div className="bg-slate-950 rounded-lg p-2 flex justify-between items-center border border-slate-800">
-                      <span className="text-[10px] font-bold text-slate-400">STOCK:</span>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => updateProductStock(item.id, currentStock - 1)}
-                          className="h-6 w-6 rounded bg-slate-800 text-slate-200 font-bold hover:bg-slate-700"
+                return (
+                  <div
+                    key={p.id}
+                    style={{
+                      backgroundColor: c.cardBg,
+                      border: `1px solid ${c.border}`,
+                      borderRadius: "14px",
+                      overflow: "hidden",
+                      display: "flex",
+                      flexDirection: "column",
+                      position: "relative",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                    }}
+                  >
+                    <div style={{ height: "175px", backgroundColor: "#1E293B", position: "relative", overflow: "hidden" }}>
+                      <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      {(isStockout || isLowStock) && (
+                        <span
+                          style={{
+                            position: "absolute",
+                            top: "10px",
+                            left: "10px",
+                            backgroundColor: isStockout ? "#DC2626" : "#EA580C",
+                            color: "#FFFFFF",
+                            fontSize: "10px",
+                            fontWeight: "900",
+                            padding: "4px 8px",
+                            borderRadius: "6px",
+                          }}
                         >
-                          -
-                        </button>
-                        <span className={`font-black text-xs min-w-[20px] text-center ${isStockout ? "text-red-400" : "text-white"}`}>
-                          {currentStock}
+                          🔴 STOCKOUT ({p.stock} LEFT)
                         </span>
+                      )}
+                    </div>
+
+                    <div style={{ padding: "16px", display: "flex", flexDirection: "column", flex: 1 }}>
+                      <h3 style={{ fontSize: "15px", fontWeight: "800", color: c.text, margin: "0 0 6px 0", lineHeight: 1.3 }}>
+                        {p.name}
+                      </h3>
+                      <p style={{ fontSize: "12px", color: c.subtext, margin: "0 0 14px 0", lineHeight: 1.4, flex: 1 }}>
+                        {p.description}
+                      </p>
+
+                      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "14px" }}>
+                        <span style={{ fontSize: "18px", fontWeight: "900", color: "#10B981" }}>
+                          ${p.price.toFixed(2)}
+                        </span>
+                        <span style={{ fontSize: "12px", color: c.subtext, fontWeight: "700" }}>
+                          Stock: {p.stock} units
+                        </span>
+                      </div>
+
+                      {/* Stock Adjustment Controls */}
+                      <div
+                        style={{
+                          backgroundColor: isDark ? "#1E293B" : "#F1F5F9",
+                          borderRadius: "8px",
+                          padding: "8px 12px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          marginBottom: "10px",
+                        }}
+                      >
+                        <span style={{ fontSize: "11px", fontWeight: "800", color: c.subtext }}>Inventory:</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <button
+                            onClick={() => handleModifyStock(p.id, -1)}
+                            style={{ width: "24px", height: "24px", borderRadius: "4px", border: "none", background: "#EF4444", color: "#FFF", fontWeight: "900", cursor: "pointer" }}
+                            title="Decrease Stock"
+                          >
+                            -
+                          </button>
+                          <span style={{ fontWeight: "900", color: c.text, minWidth: "22px", textAlign: "center", fontSize: "13px" }}>
+                            {p.stock}
+                          </span>
+                          <button
+                            onClick={() => handleModifyStock(p.id, +1)}
+                            style={{ width: "24px", height: "24px", borderRadius: "4px", border: "none", background: "#10B981", color: "#FFF", fontWeight: "900", cursor: "pointer" }}
+                            title="Increase Stock"
+                          >
+                            +
+                          </button>
+                          <button
+                            onClick={() => handleModifyStock(p.id, +5)}
+                            style={{ padding: "3px 6px", borderRadius: "4px", border: "none", background: "#3B82F6", color: "#FFF", fontWeight: "800", fontSize: "10px", cursor: "pointer" }}
+                          >
+                            +5 Stock
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Actions: View Details, Reviews, Delete */}
+                      <div style={{ display: "flex", gap: "6px" }}>
                         <button
-                          onClick={() => updateProductStock(item.id, currentStock + 1)}
-                          className="h-6 w-6 rounded bg-slate-800 text-slate-200 font-bold hover:bg-slate-700"
+                          onClick={() => navigate(`/catalog/${p.id}`)}
+                          style={{
+                            flex: 1,
+                            backgroundColor: isDark ? "#1E293B" : "#E2E8F0",
+                            color: c.text,
+                            border: `1px solid ${c.border}`,
+                            padding: "7px",
+                            borderRadius: "6px",
+                            fontSize: "11px",
+                            fontWeight: "700",
+                            cursor: "pointer",
+                          }}
                         >
-                          +
+                          Details
                         </button>
-                        <Button
-                          size="sm"
-                          onClick={() => updateProductStock(item.id, currentStock + 5)}
-                          className="h-6 px-2 text-[10px]"
+
+                        <button
+                          onClick={() => setReviewModalProduct(p)}
+                          style={{
+                            flex: 1,
+                            backgroundColor: "#F59E0B",
+                            color: "#000",
+                            border: "none",
+                            padding: "7px",
+                            borderRadius: "6px",
+                            fontSize: "11px",
+                            fontWeight: "800",
+                            cursor: "pointer",
+                          }}
                         >
-                          +5 Stock
-                        </Button>
+                          ⭐ Reviews
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteProduct(p.id, p.name)}
+                          style={{
+                            backgroundColor: "rgba(239, 68, 68, 0.15)",
+                            color: "#EF4444",
+                            border: "1px solid rgba(239, 68, 68, 0.4)",
+                            padding: "7px 10px",
+                            borderRadius: "6px",
+                            fontSize: "11px",
+                            fontWeight: "800",
+                            cursor: "pointer",
+                          }}
+                          title="Delete Product"
+                        >
+                          🗑️
+                        </button>
                       </div>
                     </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-                    {/* Delete Product */}
-                    <Button
-                      variant="destructive"
-                      onClick={() => handleDelete(item)}
-                      className="w-full py-2 text-xs"
+        {/* TAB 2: ADD PRODUCT STUDIO (DRAG & DROP, BROWSE, LINK) */}
+        {activeTab === "add_product" && (
+          <div style={{ maxWidth: "620px", margin: "0 auto", backgroundColor: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "14px", padding: "28px" }}>
+            <h2 style={{ fontSize: "20px", fontWeight: "900", color: c.text, margin: "0 0 16px 0" }}>+ Add Product Studio</h2>
+            
+            <form onSubmit={handlePublish} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div>
+                <label style={{ fontSize: "12px", fontWeight: "800", color: c.subtext, display: "block", marginBottom: "6px" }}>Product Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Ergonomic Split Mechanical Keyboard"
+                  value={newProduct.name}
+                  onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: `1px solid ${c.border}`, background: c.bg, color: c.text, boxSizing: "border-box" }}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: "12px" }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: "12px", fontWeight: "800", color: c.subtext, display: "block", marginBottom: "6px" }}>Price ($) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    placeholder="89.99"
+                    value={newProduct.price}
+                    onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+                    style={{ width: "100%", padding: "10px", borderRadius: "8px", border: `1px solid ${c.border}`, background: c.bg, color: c.text, boxSizing: "border-box" }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: "12px", fontWeight: "800", color: c.subtext, display: "block", marginBottom: "6px" }}>Stock *</label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="15"
+                    value={newProduct.stock}
+                    onChange={(e) => setNewProduct({ ...newProduct, stock: e.target.value })}
+                    style={{ width: "100%", padding: "10px", borderRadius: "8px", border: `1px solid ${c.border}`, background: c.bg, color: c.text, boxSizing: "border-box" }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: "12px", fontWeight: "800", color: c.subtext, display: "block", marginBottom: "6px" }}>Category</label>
+                <select
+                  value={newProduct.category}
+                  onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: `1px solid ${c.border}`, background: c.bg, color: c.text, boxSizing: "border-box" }}
+                >
+                  <option value="Peripherals">Peripherals</option>
+                  <option value="Electronics">Electronics</option>
+                  <option value="Accessories">Accessories</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: "12px", fontWeight: "800", color: c.subtext, display: "block", marginBottom: "6px" }}>Description</label>
+                <textarea
+                  rows="3"
+                  placeholder="Detailed specifications and key features..."
+                  value={newProduct.description}
+                  onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: `1px solid ${c.border}`, background: c.bg, color: c.text, boxSizing: "border-box" }}
+                />
+              </div>
+
+              {/* Photo Upload: Link, Browse, Drag & Drop */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: "800", color: c.subtext }}>Product Photo</label>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button
+                      type="button"
+                      onClick={() => setUploadMode("link")}
+                      style={{ background: uploadMode === "link" ? "#3B82F6" : "none", color: uploadMode === "link" ? "#FFF" : c.subtext, border: "none", padding: "3px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "800", cursor: "pointer" }}
                     >
-                      🗑️ Delete Product
-                    </Button>
+                      🔗 Paste Link
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setUploadMode("file")}
+                      style={{ background: uploadMode === "file" ? "#3B82F6" : "none", color: uploadMode === "file" ? "#FFF" : c.subtext, border: "none", padding: "3px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "800", cursor: "pointer" }}
+                    >
+                      📁 Browse & Drag
+                    </button>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
 
-        {/* TAB 2: ZOD VALIDATED PRODUCT STUDIO WITH DROPZONE & PREVIEW */}
-        {activeTab === "add_product" && <ProductFormStudio />}
-
-        {/* TAB 3: RESTOCK REQUESTS */}
-        {activeTab === "requests" && (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-            <h3 className="text-base font-black text-white">Shopper Restock Demands</h3>
-            {restockRequests.length === 0 ? (
-              <p className="text-xs text-slate-500 py-6 text-center">No restock requests submitted yet.</p>
-            ) : (
-              restockRequests.map((req) => (
-                <div key={req.id} className="bg-slate-950 border border-slate-800 p-4 rounded-xl flex flex-wrap justify-between items-center gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-base">🔔</span>
-                      <b className="text-white text-xs">{req.productTitle}</b>
-                      <span className="bg-red-500/20 text-red-400 text-[10px] font-black px-2 py-0.5 rounded-full">
-                        Requested {req.count}x
-                      </span>
+                {uploadMode === "link" ? (
+                  <input
+                    type="text"
+                    placeholder="Paste image link (https://...)"
+                    value={newProduct.image}
+                    onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
+                    style={{ width: "100%", padding: "10px", borderRadius: "8px", border: `1px solid ${c.border}`, background: c.bg, color: c.text, boxSizing: "border-box" }}
+                  />
+                ) : (
+                  <div
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                    style={{
+                      border: `2px dashed ${dragActive ? "#3B82F6" : c.border}`,
+                      backgroundColor: dragActive ? "rgba(59, 130, 246, 0.08)" : c.bg,
+                      borderRadius: "10px",
+                      padding: "26px",
+                      textAlign: "center",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={(e) => handleFiles(e.target.files)}
+                      accept="image/*"
+                      style={{ display: "none" }}
+                    />
+                    <div style={{ fontSize: "32px", marginBottom: "6px" }}>☁️</div>
+                    <div style={{ fontSize: "13px", fontWeight: "800", color: c.text }}>
+                      Drag & drop your product image here, or browse
                     </div>
-                    <span className="text-[11px] text-slate-400 block mt-1">Requested by: {req.requestedBy}</span>
+                    <div style={{ fontSize: "11px", color: c.subtext, marginTop: "4px" }}>
+                      Supports PNG, JPG, WebP
+                    </div>
                   </div>
-
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => sendApologyRestockNotice(req.id, req.productTitle, req.requestedBy)}>
-                      📩 Send Apology (24-48h Notice)
-                    </Button>
-                    <Button size="sm" variant="secondary" onClick={() => updateProductStock(req.productId, 10)}>
-                      + Refill 10 Units
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* TAB 4: SHADCN/UI ORDERS TABLE */}
-        {activeTab === "orders" && (
-          <div className="space-y-3">
-            <h3 className="text-base font-black text-white">Orders Queue (Shadcn/ui Table Component)</h3>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Order #</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Items</TableHead>
-                  <TableHead>Payment</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Status & Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <tbody>
-                {orders.map((ord) => (
-                  <TableRow key={ord.id}>
-                    <TableCell className="font-black text-amber-500">#{ord.id}</TableCell>
-                    <TableCell>
-                      <span className="font-bold block text-white">{ord.customer}</span>
-                      <span className="text-[10px] text-slate-500">{ord.email}</span>
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {ord.items.map((i) => `${i.quantity || 1}x ${i.title || i.name}`).join(", ")}
-                    </TableCell>
-                    <TableCell>
-                      <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-black px-2 py-0.5 rounded">
-                        {ord.payment?.method || "UPI"} • Paid
-                      </span>
-                    </TableCell>
-                    <TableCell className="font-black text-white">${Number(ord.total).toFixed(2)}</TableCell>
-                    <TableCell>
-                      <select
-                        value={ord.status}
-                        onChange={(e) => modifyOrderStatus(ord.id, e.target.value)}
-                        className="bg-slate-950 border border-slate-800 text-xs font-bold rounded-lg px-2.5 py-1.5 text-white focus:outline-none"
-                      >
-                        <option>Processing (Queued in Redis)</option>
-                        <option>Dispatched from Hub</option>
-                        <option>Out for Delivery</option>
-                        <option>Delivered</option>
-                        <option>Cancelled</option>
-                      </select>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </tbody>
-            </Table>
-          </div>
-        )}
-
-        {/* TAB 5: COMPLAINTS DESK */}
-        {activeTab === "tickets" && (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-            <h3 className="text-base font-black text-white">Customer Complaints Desk</h3>
-            {tickets.map((t) => (
-              <div key={t.id} className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-2">
-                <div className="flex justify-between items-center">
-                  <b className="text-white text-xs">{t.subject}</b>
-                  <span className={`text-[10px] font-black px-2 py-0.5 rounded ${t.status === "Resolved" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"}`}>
-                    {t.status}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400">{t.message}</p>
-                {t.status !== "Resolved" && (
-                  <Button size="sm" onClick={() => resolveTicket(t.id, "Admin investigated and resolved your issue.")}>
-                    Resolve & Notify Customer
-                  </Button>
                 )}
+
+                {newProduct.image && (
+                  <div style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "10px", padding: "8px", borderRadius: "8px", backgroundColor: c.bg, border: `1px solid ${c.border}` }}>
+                    <img src={newProduct.image} alt="Preview" style={{ width: "48px", height: "48px", objectFit: "cover", borderRadius: "6px" }} />
+                    <span style={{ fontSize: "12px", color: "#10B981", fontWeight: "800" }}>✔ Image ready for catalog publish</span>
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                style={{ backgroundColor: "#3B82F6", color: "#FFF", border: "none", padding: "12px", borderRadius: "8px", fontWeight: "900", cursor: "pointer", marginTop: "6px" }}
+              >
+                Publish to Inventory
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* TAB 3: PRODUCTS REQUESTED */}
+        {activeTab === "requested" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxWidth: "800px", margin: "0 auto" }}>
+            {[
+              { id: 1, user: "Kavya R.", item: "Mechanical Number Pad (Numpad)", requests: 14, date: "Today" },
+              { id: 2, user: "Rahul S.", item: "Braided 100W Display Cable", requests: 9, date: "Yesterday" },
+            ].map((r) => (
+              <div
+                key={r.id}
+                style={{
+                  backgroundColor: c.cardBg,
+                  border: `1px solid ${c.border}`,
+                  borderRadius: "12px",
+                  padding: "16px 20px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: "800", color: c.text, fontSize: "15px" }}>{r.item}</div>
+                  <div style={{ fontSize: "12px", color: c.subtext, marginTop: "4px" }}>
+                    Requested by {r.user} and {r.requests - 1} other shoppers • {r.date}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setNewProduct({ ...newProduct, name: r.item });
+                    setActiveTab("add_product");
+                  }}
+                  style={{
+                    backgroundColor: "#F59E0B",
+                    color: "#000",
+                    border: "none",
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    fontWeight: "800",
+                    fontSize: "12px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Source & Add
+                </button>
               </div>
             ))}
           </div>
         )}
+
+        {/* REVIEWS MODAL */}
+        {reviewModalProduct && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 99999,
+              backgroundColor: "rgba(0,0,0,0.75)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "20px",
+              backdropFilter: "blur(4px)",
+            }}
+          >
+            <div style={{ width: "100%", maxWidth: "480px", backgroundColor: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "14px", padding: "24px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <h3 style={{ margin: 0, color: c.text, fontSize: "16px", fontWeight: "900" }}>
+                  Customer Reviews: {reviewModalProduct.name}
+                </h3>
+                <button onClick={() => setReviewModalProduct(null)} style={{ background: "none", border: "none", color: c.text, fontSize: "18px", cursor: "pointer" }}>✕</button>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "300px", overflowY: "auto" }}>
+                {[
+                  { user: "Kavya", rating: "⭐⭐⭐⭐⭐", comment: "Outstanding build quality and delivered in under 15 minutes." },
+                  { user: "Rahul S.", rating: "⭐⭐⭐⭐", comment: "Smooth switches, lighting presets are great." },
+                ].map((rev, i) => (
+                  <div key={i} style={{ padding: "10px", backgroundColor: c.bg, borderRadius: "8px", border: `1px solid ${c.border}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: "800", color: c.text }}>
+                      <span>{rev.user}</span>
+                      <span>{rev.rating}</span>
+                    </div>
+                    <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: c.subtext }}>{rev.comment}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

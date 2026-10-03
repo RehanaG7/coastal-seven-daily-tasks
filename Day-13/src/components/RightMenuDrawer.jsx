@@ -1,617 +1,642 @@
 ﻿import React, { useState, useEffect } from "react";
 import { useStore } from "../context/StoreContext";
-import { useNavigate } from "react-router-dom";
-import OrderTrackerModal from "./OrderTrackerModal";
+import { useNavigate, useLocation } from "react-router-dom";
 
-export default function RightMenuDrawer({ isOpen, onClose, initialTab = "profile" }) {
-  const {
-    theme,
-    toggleTheme,
-    user,
-    login,
-    logout,
-    orders,
-    updateOrderStatus,
-    adminNotifications,
-    userNotifications,
-    markAdminNotificationsRead,
-    markUserNotificationsRead,
-    tickets,
-    addTicket,
-    resolveTicket
-  } = useStore();
-
-  const [activeTab, setActiveTab] = useState(initialTab);
-  const isDark = theme === "dark";
+export default function RightMenuDrawer({ isOpen, onClose }) {
+  const { user, setUser, theme } = useStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isDark = theme === "dark";
 
-  let activeUser = user;
-  if (!activeUser) {
-    try {
-      activeUser = JSON.parse(localStorage.getItem("rmart_user") || "null");
-    } catch {}
-  }
+  const isAdmin = user?.role === "admin" || localStorage.getItem("user_role") === "admin" || location.pathname.startsWith("/admin");
 
-  const userEmail = (activeUser?.email || "").toLowerCase();
-  const isAdmin = Boolean(
-    activeUser?.is_admin === true ||
-    activeUser?.is_admin === "true" ||
-    activeUser?.is_admin === 1 ||
-    userEmail.includes("admin") ||
-    userEmail.includes("humza")
-  );
+  const [activeView, setActiveView] = useState("menu");
+  const [profileName, setProfileName] = useState(user?.name || (isAdmin ? "Admin" : "Customer"));
+  const [orders, setOrders] = useState([]);
+  const [wishlist, setWishlist] = useState([
+    { id: 101, name: "Mechanical RGB Gaming Keyboard", price: 89.99 },
+    { id: 102, name: "Nebula Pro Wireless Headset", price: 119.99 }
+  ]);
 
-  const [trackingOrder, setTrackingOrder] = useState(null);
+  // Support Tickets / Complaints State
+  const [tickets, setTickets] = useState([]);
+  const [activeTicketId, setActiveTicketId] = useState(null);
+  const [newTicketSubject, setNewTicketSubject] = useState("");
+  const [newTicketMsg, setNewTicketMsg] = useState("");
+  const [chatInput, setChatInput] = useState("");
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState(activeUser?.name || "");
-  const [email, setEmail] = useState(activeUser?.email || "");
-  const [phone, setPhone] = useState(activeUser?.phone || "+91 98765 43210");
-  const [address, setAddress] = useState(activeUser?.address || "Flat 402, Guntur Main Road, Andhra Pradesh");
-  const [msgSaved, setMsgSaved] = useState(false);
+  // Sync tickets and orders from localStorage
+  const reloadData = () => {
+    const storedOrders = JSON.parse(localStorage.getItem("rmart_admin_orders") || "[]");
+    setOrders(storedOrders);
 
-  const [tckSubject, setTckSubject] = useState("");
-  const [tckMsg, setTckMsg] = useState("");
-  const [ticketSubmitted, setTicketSubmitted] = useState(false);
-  const [adminReplies, setAdminReplies] = useState({});
-
-  useEffect(() => {
-    if (activeUser) {
-      setName(activeUser.name);
-      setEmail(activeUser.email);
-      setPhone(activeUser.phone || "+91 98765 43210");
-      setAddress(activeUser.address || "Flat 402, Guntur Main Road, Andhra Pradesh");
+    const storedTickets = JSON.parse(localStorage.getItem("rmart_support_tickets") || "[]");
+    if (storedTickets.length === 0) {
+      const defaultTicket = {
+        id: "TCK-1001",
+        user: "Kavya R.",
+        subject: "Late Dispatch Tracking Inquiry",
+        status: "open",
+        created: "Today at 11:45 AM",
+        messages: [
+          { sender: "user", text: "Hi, my order tracking has been stuck on automated dispatch for 30 minutes.", time: "11:45 AM" },
+          { sender: "admin", text: "Hello Kavya! Checking with our warehouse dispatch hub right now.", time: "11:47 AM" }
+        ]
+      };
+      localStorage.setItem("rmart_support_tickets", JSON.stringify([defaultTicket]));
+      setTickets([defaultTicket]);
+    } else {
+      setTickets(storedTickets);
     }
-  }, [activeUser]);
+  };
 
   useEffect(() => {
-    if (initialTab) setActiveTab(initialTab);
-  }, [initialTab, isOpen]);
+    if (isOpen) {
+      reloadData();
+      setActiveView("menu");
+      setActiveTicketId(null);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const c = {
-    panelBg: isDark ? "#0D111A" : "#FFFFFF",
-    cardBg: isDark ? "#07090F" : "#F8FAFC",
-    border: isDark ? "#1E2738" : "#E2E8F0",
-    text: isDark ? "#F8FAFC" : "#0F172A",
-    subtext: isDark ? "#94A3B8" : "#64748B",
-    accent: "#F59E0B",
+  const handleSignOut = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user_role");
+    if (setUser) setUser(null);
+    onClose();
+    navigate("/auth");
   };
 
   const handleSaveProfile = (e) => {
     e.preventDefault();
-    login({ ...activeUser, name, email, phone, address });
-    setIsEditing(false);
-    setMsgSaved(true);
-    setTimeout(() => setMsgSaved(false), 2000);
+    if (setUser) setUser({ ...user, name: profileName });
+    alert("Profile saved successfully!");
+    setActiveView("menu");
   };
 
-  const handleSupportSubmit = (e) => {
+  // User: Raise a new ticket
+  const handleCreateTicket = (e) => {
     e.preventDefault();
-    if (!tckSubject || !tckMsg) return;
-    addTicket(tckSubject, tckMsg);
-    setTckSubject("");
-    setTckMsg("");
-    setTicketSubmitted(true);
-    setTimeout(() => setTicketSubmitted(false), 3000);
+    if (!newTicketSubject.trim() || !newTicketMsg.trim()) return;
+
+    const newTicket = {
+      id: "TCK-" + Math.floor(1000 + Math.random() * 9000),
+      user: user?.name || "Customer",
+      subject: newTicketSubject,
+      status: "open",
+      created: "Just now",
+      messages: [
+        { sender: "user", text: newTicketMsg, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }
+      ]
+    };
+
+    const updated = [newTicket, ...tickets];
+    localStorage.setItem("rmart_support_tickets", JSON.stringify(updated));
+    setTickets(updated);
+    setNewTicketSubject("");
+    setNewTicketMsg("");
+    setActiveTicketId(newTicket.id);
   };
 
-  const handleAdminResolve = (ticketId) => {
-    const reply = adminReplies[ticketId] || "Your issue has been investigated and resolved by Admin.";
-    resolveTicket(ticketId, reply);
-    setAdminReplies((prev) => ({ ...prev, [ticketId]: "" }));
+  // Both: Send message in active chat thread
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    if (!chatInput.trim() || !activeTicketId) return;
+
+    const updated = tickets.map((t) => {
+      if (t.id === activeTicketId) {
+        return {
+          ...t,
+          messages: [
+            ...t.messages,
+            {
+              sender: isAdmin ? "admin" : "user",
+              text: chatInput,
+              time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+            }
+          ]
+        };
+      }
+      return t;
+    });
+
+    localStorage.setItem("rmart_support_tickets", JSON.stringify(updated));
+    setTickets(updated);
+    setChatInput("");
   };
 
-  // Split notification list based on role
-  const notificationsList = isAdmin ? adminNotifications : userNotifications;
-  const unreadCount = notificationsList.filter((n) => n.unread).length;
+  // User: Close ticket -> Notifies Admin
+  const handleCloseTicket = (ticketId) => {
+    const updated = tickets.map((t) => {
+      if (t.id === ticketId) {
+        return {
+          ...t,
+          status: "closed",
+          messages: [
+            ...t.messages,
+            { sender: "system", text: "✅ Ticket was marked as RESOLVED and CLOSED by customer.", time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }
+          ]
+        };
+      }
+      return t;
+    });
+
+    localStorage.setItem("rmart_support_tickets", JSON.stringify(updated));
+    setTickets(updated);
+    alert(`Ticket #${ticketId} closed! Admin has been notified.`);
+  };
+
+  const selectedTicket = tickets.find((t) => t.id === activeTicketId);
+  const openCount = tickets.filter((t) => t.status === "open").length;
+
+  const c = {
+    bg: isDark ? "#0A0E17" : "#FFFFFF",
+    cardBg: isDark ? "#131B2E" : "#F8FAFC",
+    border: isDark ? "#1E293B" : "#E2E8F0",
+    text: isDark ? "#F8FAFB" : "#0F172A",
+    subtext: isDark ? "#94A3B8" : "#64748B",
+    primary: "#3B82F6",
+  };
 
   return (
-    <>
-      <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", justifyContent: "flex-end" }}>
-        <div onClick={onClose} style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(2px)" }} />
-
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 99999,
+        backgroundColor: "rgba(0, 0, 0, 0.7)",
+        display: "flex",
+        justifyContent: "flex-end",
+        backdropFilter: "blur(4px)",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "440px",
+          height: "100%",
+          backgroundColor: c.bg,
+          borderLeft: `1px solid ${c.border}`,
+          display: "flex",
+          flexDirection: "column",
+          boxShadow: "-8px 0 28px rgba(0, 0, 0, 0.4)",
+        }}
+      >
+        {/* Header */}
         <div
           style={{
-            position: "relative",
-            width: "100%",
-            maxWidth: "480px",
-            height: "100%",
-            backgroundColor: c.panelBg,
-            borderLeft: `1px solid ${c.border}`,
-            boxShadow: "-10px 0 50px rgba(0,0,0,0.8)",
+            padding: "16px 20px",
+            borderBottom: `1px solid ${c.border}`,
             display: "flex",
-            flexDirection: "column",
-            padding: "24px",
-            boxSizing: "border-box",
-            fontFamily: "system-ui, sans-serif",
+            alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
-          {/* Header */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-            <div>
-              <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "900", color: c.text }}>
-                {activeUser?.name || "Account"}
-              </h2>
-              <span style={{ fontSize: "11px", color: c.subtext }}>
-                {activeUser?.email} {isAdmin && "• (Admin Command)"}
-              </span>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            {(activeView !== "menu" || activeTicketId) && (
               <button
-                onClick={toggleTheme}
-                style={{
-                  backgroundColor: isDark ? "#161F30" : "#E2E8F0",
-                  color: c.text,
-                  border: `1px solid ${c.border}`,
-                  padding: "6px 10px",
-                  borderRadius: "6px",
-                  fontSize: "11px",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                }}
-              >
-                {isDark ? "Light Mode" : "Dark Mode"}
-              </button>
-              <button
-                onClick={onClose}
-                style={{
-                  background: "none",
-                  border: `1px solid ${c.border}`,
-                  borderRadius: "6px",
-                  color: c.text,
-                  padding: "4px 8px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                }}
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-
-          {/* Navigation Tabs */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "18px" }}>
-            {[
-              { id: "profile", label: "Profile" },
-              { id: "inbox", label: `🔔 Inbox ${unreadCount > 0 ? `(${unreadCount})` : ""}` },
-              { id: "orders", label: `Orders (${orders.length})` },
-              { id: "support", label: isAdmin ? `Resolve Complaints (${tickets.length})` : "Complaints" },
-              ...(isAdmin ? [{ id: "admin", label: "Admin Deck" }] : []),
-            ].map((t) => (
-              <button
-                key={t.id}
                 onClick={() => {
-                  setActiveTab(t.id);
-                  if (t.id === "inbox") {
-                    if (isAdmin) markAdminNotificationsRead();
-                    else markUserNotificationsRead();
-                  }
+                  if (activeTicketId) setActiveTicketId(null);
+                  else setActiveView("menu");
                 }}
+                style={{ background: "none", border: "none", color: c.text, cursor: "pointer", fontSize: "16px", fontWeight: "900" }}
+              >
+                ←
+              </button>
+            )}
+            <span style={{ fontSize: "16px", fontWeight: "900", color: c.text }}>
+              {activeTicketId
+                ? `Chat: ${selectedTicket?.id}`
+                : activeView === "menu"
+                ? (isAdmin ? "Admin Controls" : "My Account")
+                : activeView === "profile"
+                ? "Edit Profile"
+                : activeView === "orders"
+                ? (isAdmin ? "Orders Placed" : "My Orders")
+                : activeView === "complaints"
+                ? "User Complaints & Tickets"
+                : activeView === "support"
+                ? "Customer Support"
+                : activeView === "wishlist"
+                ? "My Wishlist"
+                : "Live Alerts"}
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            style={{ background: "none", border: "none", fontSize: "18px", color: c.text, cursor: "pointer" }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "18px", display: "flex", flexDirection: "column" }}>
+          
+          {/* MENU VIEW */}
+          {activeView === "menu" && !activeTicketId && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {isAdmin ? (
+                <>
+                  <button
+                    onClick={() => setActiveView("profile")}
+                    style={{ padding: "14px", borderRadius: "10px", backgroundColor: c.cardBg, border: `1px solid ${c.border}`, color: c.text, textAlign: "left", fontSize: "14px", fontWeight: "800", cursor: "pointer", display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span>👤 Edit Profile</span>
+                    <span style={{ color: c.subtext }}>→</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveView("inbox")}
+                    style={{ padding: "14px", borderRadius: "10px", backgroundColor: c.cardBg, border: `1px solid ${c.border}`, color: c.text, textAlign: "left", fontSize: "14px", fontWeight: "800", cursor: "pointer", display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span>⚡ Inbox (WebSocket Notifications)</span>
+                    <span style={{ color: "#10B981", fontWeight: "900" }}>Live</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveView("orders")}
+                    style={{ padding: "14px", borderRadius: "10px", backgroundColor: c.cardBg, border: `1px solid ${c.border}`, color: c.text, textAlign: "left", fontSize: "14px", fontWeight: "800", cursor: "pointer", display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span>📦 Orders Placed</span>
+                    <span style={{ color: c.subtext }}>({orders.length}) →</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveView("complaints")}
+                    style={{ padding: "14px", borderRadius: "10px", backgroundColor: c.cardBg, border: `1px solid ${c.border}`, color: c.text, textAlign: "left", fontSize: "14px", fontWeight: "800", cursor: "pointer", display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span>📢 User Complaints</span>
+                    <span style={{ color: openCount > 0 ? "#EF4444" : "#10B981", fontWeight: "900" }}>
+                      {openCount > 0 ? `${openCount} Open` : "All Solved"} →
+                    </span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setActiveView("profile")}
+                    style={{ padding: "14px", borderRadius: "10px", backgroundColor: c.cardBg, border: `1px solid ${c.border}`, color: c.text, textAlign: "left", fontSize: "14px", fontWeight: "800", cursor: "pointer", display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span>👤 Edit Profile</span>
+                    <span style={{ color: c.subtext }}>→</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveView("inbox")}
+                    style={{ padding: "14px", borderRadius: "10px", backgroundColor: c.cardBg, border: `1px solid ${c.border}`, color: c.text, textAlign: "left", fontSize: "14px", fontWeight: "800", cursor: "pointer", display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span>🔔 Inbox</span>
+                    <span style={{ color: c.subtext }}>→</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveView("orders")}
+                    style={{ padding: "14px", borderRadius: "10px", backgroundColor: c.cardBg, border: `1px solid ${c.border}`, color: c.text, textAlign: "left", fontSize: "14px", fontWeight: "800", cursor: "pointer", display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span>📦 My Orders</span>
+                    <span style={{ color: c.subtext }}>({orders.length}) →</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveView("support")}
+                    style={{ padding: "14px", borderRadius: "10px", backgroundColor: c.cardBg, border: `1px solid ${c.border}`, color: c.text, textAlign: "left", fontSize: "14px", fontWeight: "800", cursor: "pointer", display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span>🎧 Customer Support & Live Tickets</span>
+                    <span style={{ color: "#3B82F6", fontWeight: "900" }}>Chat →</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveView("wishlist")}
+                    style={{ padding: "14px", borderRadius: "10px", backgroundColor: c.cardBg, border: `1px solid ${c.border}`, color: c.text, textAlign: "left", fontSize: "14px", fontWeight: "800", cursor: "pointer", display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span>❤️ Wishlist</span>
+                    <span style={{ color: c.subtext }}>({wishlist.length}) →</span>
+                  </button>
+                </>
+              )}
+
+              <button
+                onClick={handleSignOut}
                 style={{
-                  flex: "1 1 auto",
-                  backgroundColor: activeTab === t.id ? c.accent : (isDark ? "#161F30" : "#E2E8F0"),
-                  color: activeTab === t.id ? "#000" : c.text,
+                  marginTop: "20px",
+                  padding: "14px",
+                  borderRadius: "10px",
+                  backgroundColor: "rgba(239, 68, 68, 0.12)",
+                  border: "1px solid rgba(239, 68, 68, 0.3)",
+                  color: "#EF4444",
+                  fontSize: "14px",
                   fontWeight: "800",
-                  fontSize: "11px",
-                  padding: "8px 8px",
-                  borderRadius: "8px",
-                  border: "none",
                   cursor: "pointer",
-                  textAlign: "center",
                 }}
               >
-                {t.label}
+                🚪 Sign Out
               </button>
-            ))}
-          </div>
-
-          {msgSaved && (
-            <div style={{ padding: "8px 12px", backgroundColor: "#10B98125", color: "#10B981", borderRadius: "6px", fontSize: "12px", fontWeight: "bold", marginBottom: "12px" }}>
-              Profile details updated successfully!
             </div>
           )}
 
-          {/* Tab Contents */}
-          <div style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}>
-            {/* TAB 1: PROFILE */}
-            {activeTab === "profile" && (
+          {/* ACTIVE CHAT THREAD (ACCESSED BY BOTH ADMIN & USER) */}
+          {activeTicketId && selectedTicket && (
+            <div style={{ display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between" }}>
               <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-                  <span style={{ fontSize: "12px", fontWeight: "800", color: c.subtext }}>ACCOUNT INFORMATION</span>
-                  {!isEditing ? (
-                    <button
-                      onClick={() => setIsEditing(true)}
+                {/* Ticket Banner */}
+                <div style={{ backgroundColor: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "10px", padding: "12px", marginBottom: "14px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "13px", fontWeight: "900", color: "#F59E0B" }}>{selectedTicket.id}</span>
+                    <span
                       style={{
-                        backgroundColor: c.accent,
-                        color: "#000",
-                        border: "none",
-                        padding: "5px 12px",
-                        borderRadius: "6px",
-                        fontWeight: "900",
-                        fontSize: "11px",
-                        cursor: "pointer",
+                        padding: "3px 8px",
+                        borderRadius: "4px",
+                        fontSize: "10px",
+                        fontWeight: "800",
+                        backgroundColor: selectedTicket.status === "open" ? "rgba(16, 185, 129, 0.2)" : "rgba(148, 163, 184, 0.2)",
+                        color: selectedTicket.status === "open" ? "#10B981" : "#94A3B8"
                       }}
                     >
-                      ✏ Edit Profile
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setIsEditing(false)}
-                      style={{
-                        backgroundColor: "transparent",
-                        color: c.subtext,
-                        border: `1px solid ${c.border}`,
-                        padding: "4px 10px",
-                        borderRadius: "6px",
-                        fontSize: "11px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
-
-                {!isEditing ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                    <div style={{ backgroundColor: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "10px", padding: "14px" }}>
-                      <span style={{ fontSize: "10px", fontWeight: "800", color: c.subtext, textTransform: "uppercase" }}>Full Name</span>
-                      <div style={{ fontSize: "15px", fontWeight: "bold", color: c.text, marginTop: "2px" }}>{activeUser?.name || "Not Set"}</div>
-                    </div>
-
-                    <div style={{ backgroundColor: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "10px", padding: "14px" }}>
-                      <span style={{ fontSize: "10px", fontWeight: "800", color: c.subtext, textTransform: "uppercase" }}>Email Address</span>
-                      <div style={{ fontSize: "15px", fontWeight: "bold", color: c.text, marginTop: "2px" }}>{activeUser?.email || "Not Set"}</div>
-                    </div>
-
-                    <div style={{ backgroundColor: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "10px", padding: "14px" }}>
-                      <span style={{ fontSize: "10px", fontWeight: "800", color: c.subtext, textTransform: "uppercase" }}>Phone Number</span>
-                      <div style={{ fontSize: "15px", fontWeight: "bold", color: c.text, marginTop: "2px" }}>{activeUser?.phone || "+91 98765 43210"}</div>
-                    </div>
-
-                    <div style={{ backgroundColor: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "10px", padding: "14px" }}>
-                      <span style={{ fontSize: "10px", fontWeight: "800", color: c.subtext, textTransform: "uppercase" }}>Primary Shipping Destination</span>
-                      <div style={{ fontSize: "13px", color: c.text, marginTop: "4px", lineHeight: "1.4" }}>
-                        {activeUser?.address || "Flat 402, Guntur Main Road, Andhra Pradesh"}
-                      </div>
-                    </div>
+                      {selectedTicket.status.toUpperCase()}
+                    </span>
                   </div>
-                ) : (
-                  <form onSubmit={handleSaveProfile} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                    <div>
-                      <label style={{ fontSize: "11px", fontWeight: "800", color: c.subtext }}>FULL NAME</label>
-                      <input
-                        type="text"
-                        required
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        style={{ width: "100%", padding: "10px", borderRadius: "8px", border: `1px solid ${c.border}`, backgroundColor: c.cardBg, color: c.text, marginTop: "4px", boxSizing: "border-box" }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: "11px", fontWeight: "800", color: c.subtext }}>EMAIL ADDRESS</label>
-                      <input
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        style={{ width: "100%", padding: "10px", borderRadius: "8px", border: `1px solid ${c.border}`, backgroundColor: c.cardBg, color: c.text, marginTop: "4px", boxSizing: "border-box" }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: "11px", fontWeight: "800", color: c.subtext }}>PHONE NUMBER</label>
-                      <input
-                        type="text"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        style={{ width: "100%", padding: "10px", borderRadius: "8px", border: `1px solid ${c.border}`, backgroundColor: c.cardBg, color: c.text, marginTop: "4px", boxSizing: "border-box" }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: "11px", fontWeight: "800", color: c.subtext }}>SHIPPING DESTINATION</label>
-                      <textarea
-                        rows="3"
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
-                        style={{ width: "100%", padding: "10px", borderRadius: "8px", border: `1px solid ${c.border}`, backgroundColor: c.cardBg, color: c.text, marginTop: "4px", boxSizing: "border-box" }}
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      style={{ backgroundColor: c.accent, color: "#000", fontWeight: "900", padding: "12px", borderRadius: "8px", border: "none", cursor: "pointer", marginTop: "6px" }}
-                    >
-                      Save Changes
-                    </button>
-                  </form>
-                )}
-              </div>
-            )}
-
-            {/* TAB 2: ROLE-SPECIFIC NOTIFICATIONS INBOX */}
-            {activeTab === "inbox" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                  <span style={{ fontSize: "11px", fontWeight: "900", color: c.subtext, textTransform: "uppercase" }}>
-                    {isAdmin ? "⚡ Admin Real-Time Operations Feed" : "💬 Shopper Activity & Live Updates"}
-                  </span>
-                  <span style={{ fontSize: "11px", color: c.accent, fontWeight: "bold" }}>
-                    {notificationsList.length} updates
-                  </span>
+                  <div style={{ fontWeight: "800", color: c.text, fontSize: "13px", marginTop: "4px" }}>
+                    {selectedTicket.subject}
+                  </div>
+                  <div style={{ fontSize: "11px", color: c.subtext, marginTop: "2px" }}>
+                    User: {selectedTicket.user} • {selectedTicket.created}
+                  </div>
                 </div>
 
-                {notificationsList.length === 0 ? (
-                  <div style={{ textAlign: "center", color: c.subtext, padding: "30px 0" }}>No messages in inbox.</div>
-                ) : (
-                  notificationsList.map((n) => (
-                    <div key={n.id} style={{
-                      backgroundColor: c.cardBg,
-                      border: `1px solid ${n.unread ? c.accent : c.border}`,
-                      borderRadius: "10px",
-                      padding: "12px",
-                      position: "relative",
-                      boxShadow: n.unread ? "0 0 10px rgba(245, 158, 11, 0.2)" : "none",
-                    }}>
-                      {n.unread && (
-                        <span style={{ position: "absolute", top: "10px", right: "10px", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: c.accent }} />
-                      )}
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px", paddingRight: "16px" }}>
-                        <b style={{ color: c.text, fontSize: "13px" }}>{n.title}</b>
-                        <span style={{ fontSize: "10px", color: c.subtext }}>{n.timestamp}</span>
-                      </div>
-                      <p style={{ margin: 0, fontSize: "12px", color: c.subtext, lineHeight: "1.4" }}>{n.message}</p>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
+                {/* Message Log */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "14px" }}>
+                  {selectedTicket.messages.map((m, idx) => {
+                    const isSystem = m.sender === "system";
+                    const isMe = isAdmin ? m.sender === "admin" : m.sender === "user";
 
-            {/* TAB 3: ORDERS */}
-            {activeTab === "orders" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                {orders.length === 0 ? (
-                  <div style={{ textAlign: "center", color: c.subtext, padding: "30px 0" }}>No orders placed yet.</div>
-                ) : (
-                  orders.map((ord) => (
-                    <div key={ord.id} style={{ backgroundColor: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "10px", padding: "14px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-                        <span style={{ fontWeight: "900", color: c.accent }}>Order #{ord.id}</span>
-                        <span style={{
-                          backgroundColor: ord.status.includes("Dispatched") || ord.status.includes("Shipped") ? "#10B981" : ord.status === "Cancelled" ? "#EF4444" : "#F59E0B",
-                          color: "#000",
-                          fontWeight: "900",
-                          fontSize: "10px",
-                          padding: "3px 8px",
-                          borderRadius: "12px",
-                        }}>
-                          {ord.status}
-                        </span>
-                      </div>
-
-                      <div style={{ backgroundColor: isDark ? "#0A0E17" : "#FFFFFF", border: `1px solid ${c.border}`, borderRadius: "6px", padding: "6px 8px", fontSize: "11px", margin: "6px 0", display: "flex", justifyContent: "space-between" }}>
-                        <span>Payment: <b>{ord.payment?.method || "UPI"}</b> ({ord.payment?.status || "Paid"})</span>
-                        <span style={{ color: "#10B981", fontWeight: "bold" }}>{ord.payment?.transactionId || "TXN-VERIFIED"}</span>
-                      </div>
-
-                      <div style={{ fontSize: "12px", color: c.text, margin: "6px 0" }}>
-                        {ord.items.map((it, i) => (
-                          <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
-                            <span>{it.quantity || 1}x {it.name || it.title}</span>
-                            <span style={{ fontWeight: "bold" }}>${(Number(it.price) * (it.quantity || 1)).toFixed(2)}</span>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div style={{ fontSize: "10px", color: c.subtext, marginTop: "4px" }}>
-                        Celery Task: <code style={{ color: "#10B981" }}>{ord.celery_task_id}</code>
-                      </div>
-
-                      <div style={{ borderTop: `1px solid ${c.border}`, paddingTop: "10px", marginTop: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
-                        <button
-                          onClick={() => setTrackingOrder(ord)}
-                          style={{
-                            flex: 1,
-                            backgroundColor: c.accent,
-                            color: "#000",
-                            fontWeight: "900",
-                            border: "none",
-                            padding: "8px 12px",
-                            borderRadius: "6px",
-                            fontSize: "11px",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: "4px",
-                          }}
-                        >
-                          <span>📍</span>
-                          <span>Track Order Live</span>
-                        </button>
-
-                        {ord.status !== "Cancelled" && (
-                          <button
-                            onClick={() => updateOrderStatus(ord.id, "Cancelled")}
-                            style={{ backgroundColor: "transparent", border: "1px solid #EF4444", color: "#EF4444", padding: "7px 10px", borderRadius: "6px", fontSize: "11px", cursor: "pointer" }}
-                          >
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* TAB 4: COMPLAINTS */}
-            {activeTab === "support" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                {isAdmin ? (
-                  <div>
-                    <h4 style={{ margin: "0 0 10px 0", color: c.text, fontSize: "14px" }}>
-                      Customer Complaints Queue (Admin Desk)
-                    </h4>
-                    {tickets.length === 0 ? (
-                      <div style={{ textAlign: "center", color: c.subtext, padding: "20px 0" }}>No complaints registered.</div>
-                    ) : (
-                      tickets.map((t) => (
-                        <div key={t.id} style={{ backgroundColor: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "10px", padding: "14px", marginBottom: "10px" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                            <b style={{ color: c.text, fontSize: "13px" }}>{t.subject}</b>
-                            <span style={{
-                              backgroundColor: t.status === "Resolved" ? "#10B981" : c.accent,
-                              color: "#000",
-                              fontWeight: "900",
-                              fontSize: "10px",
-                              padding: "2px 6px",
-                              borderRadius: "6px"
-                            }}>
-                              {t.status}
-                            </span>
-                          </div>
-                          <div style={{ fontSize: "11px", color: c.accent, marginBottom: "4px" }}>From: {t.user}</div>
-                          <p style={{ margin: "0 0 8px 0", fontSize: "12px", color: c.subtext }}>{t.message}</p>
-
-                          {t.status !== "Resolved" ? (
-                            <div style={{ borderTop: `1px solid ${c.border}`, paddingTop: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
-                              <input
-                                type="text"
-                                placeholder="Write reply/resolution to user..."
-                                value={adminReplies[t.id] || ""}
-                                onChange={(e) => setAdminReplies({ ...adminReplies, [t.id]: e.target.value })}
-                                style={{ width: "100%", padding: "6px 8px", borderRadius: "6px", border: `1px solid ${c.border}`, backgroundColor: isDark ? "#0A0D15" : "#FFF", color: c.text, fontSize: "11px", boxSizing: "border-box" }}
-                              />
-                              <button
-                                onClick={() => handleAdminResolve(t.id)}
-                                style={{
-                                  alignSelf: "flex-end",
-                                  backgroundColor: c.accent,
-                                  color: "#000",
-                                  fontWeight: "900",
-                                  border: "none",
-                                  padding: "6px 12px",
-                                  borderRadius: "6px",
-                                  fontSize: "11px",
-                                  cursor: "pointer",
-                                }}
-                              >
-                                Resolve & Notify Customer
-                              </button>
-                            </div>
-                          ) : (
-                            <div style={{ fontSize: "11px", color: "#10B981", fontWeight: "bold" }}>
-                              ✓ Resolved • Reply sent: {t.reply}
-                            </div>
-                          )}
+                    if (isSystem) {
+                      return (
+                        <div key={idx} style={{ textAlign: "center", fontSize: "11px", color: "#10B981", fontWeight: "700", padding: "6px" }}>
+                          {m.text}
                         </div>
-                      ))
-                    )}
-                  </div>
-                ) : (
-                  <div>
-                    {ticketSubmitted && (
-                      <div style={{ padding: "8px 12px", backgroundColor: "#10B98125", color: "#10B981", borderRadius: "6px", fontSize: "12px", fontWeight: "bold", marginBottom: "10px" }}>
-                        Complaint registered! Admin support notified.
-                      </div>
-                    )}
+                      );
+                    }
 
-                    <form onSubmit={handleSupportSubmit} style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "14px" }}>
+                    return (
+                      <div
+                        key={idx}
+                        style={{
+                          alignSelf: isMe ? "flex-end" : "flex-start",
+                          maxWidth: "80%",
+                          padding: "10px 12px",
+                          borderRadius: "10px",
+                          backgroundColor: isMe ? "#3B82F6" : c.cardBg,
+                          border: isMe ? "none" : `1px solid ${c.border}`,
+                          color: isMe ? "#FFF" : c.text,
+                        }}
+                      >
+                        <div style={{ fontSize: "10px", opacity: 0.8, marginBottom: "2px" }}>
+                          {m.sender === "admin" ? "Admin Support" : selectedTicket.user} • {m.time}
+                        </div>
+                        <div style={{ fontSize: "13px", lineHeight: 1.4 }}>{m.text}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Chat Actions */}
+              <div>
+                {selectedTicket.status === "open" ? (
+                  <>
+                    <form onSubmit={handleSendMessage} style={{ display: "flex", gap: "8px", marginBottom: "10px" }}>
                       <input
                         type="text"
-                        required
-                        placeholder="Subject (e.g. Delivery delay, broken item)"
-                        value={tckSubject}
-                        onChange={(e) => setTckSubject(e.target.value)}
-                        style={{ width: "100%", padding: "10px", borderRadius: "8px", border: `1px solid ${c.border}`, backgroundColor: c.cardBg, color: c.text, boxSizing: "border-box" }}
-                      />
-                      <textarea
-                        required
-                        rows="3"
-                        placeholder="Detail your complaint for the admin desk..."
-                        value={tckMsg}
-                        onChange={(e) => setTckMsg(e.target.value)}
-                        style={{ width: "100%", padding: "10px", borderRadius: "8px", border: `1px solid ${c.border}`, backgroundColor: c.cardBg, color: c.text, boxSizing: "border-box" }}
+                        placeholder="Type reply..."
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        style={{ flex: 1, padding: "10px", borderRadius: "8px", border: `1px solid ${c.border}`, background: c.cardBg, color: c.text, outline: "none", fontSize: "13px" }}
                       />
                       <button
                         type="submit"
-                        style={{ backgroundColor: c.accent, color: "#000", fontWeight: "900", padding: "10px", borderRadius: "8px", border: "none", cursor: "pointer" }}
+                        style={{ backgroundColor: "#3B82F6", color: "#FFF", border: "none", padding: "10px 16px", borderRadius: "8px", fontWeight: "800", cursor: "pointer" }}
                       >
-                        Submit Complaint Ticket
+                        Send
                       </button>
                     </form>
 
-                    <div style={{ borderTop: `1px solid ${c.border}`, paddingTop: "12px" }}>
-                      <span style={{ fontSize: "12px", fontWeight: "800", color: c.subtext }}>My Complaint History:</span>
-                      {tickets.filter(t => t.user === activeUser?.email).map((t) => (
-                        <div key={t.id} style={{ backgroundColor: c.cardBg, padding: "10px", borderRadius: "8px", marginTop: "8px", border: `1px solid ${c.border}` }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px" }}>
-                            <span style={{ fontWeight: "bold", color: c.text }}>{t.subject}</span>
-                            <span style={{ color: t.status === "Resolved" ? "#10B981" : c.accent, fontWeight: "bold" }}>{t.status}</span>
-                          </div>
-                          <p style={{ margin: "4px 0 0", fontSize: "11px", color: c.subtext }}>{t.message}</p>
-                          {t.reply && (
-                            <div style={{ marginTop: "4px", fontSize: "11px", color: "#10B981" }}>
-                              ↳ Admin Reply: {t.reply}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                    {/* Customer-side Close Button */}
+                    {!isAdmin && (
+                      <button
+                        onClick={() => handleCloseTicket(selectedTicket.id)}
+                        style={{
+                          width: "100%",
+                          backgroundColor: "rgba(16, 185, 129, 0.15)",
+                          border: "1px solid #10B981",
+                          color: "#10B981",
+                          padding: "10px",
+                          borderRadius: "8px",
+                          fontWeight: "800",
+                          fontSize: "12px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        ✅ Problem Solved — Close Ticket
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ textAlign: "center", padding: "10px", color: c.subtext, fontSize: "12px", fontWeight: "700" }}>
+                    🔒 This ticket is resolved and closed.
                   </div>
                 )}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* TAB 5: ADMIN SHORTCUT */}
-            {activeTab === "admin" && (
-              <div style={{ textAlign: "center", padding: "20px 0" }}>
-                <p style={{ color: c.text, fontSize: "14px", margin: "0 0 14px 0" }}>
-                  Full access to catalog publishing, stock updating, and Celery dispatch.
-                </p>
-                <button
-                  onClick={() => { onClose(); navigate("/admin"); }}
-                  style={{ backgroundColor: c.accent, color: "#000", fontWeight: "900", padding: "12px 20px", borderRadius: "8px", border: "none", cursor: "pointer" }}
-                >
-                  Go to Admin Command Deck
-                </button>
+          {/* ADMIN: COMPLAINTS / TICKETS LIST */}
+          {activeView === "complaints" && !activeTicketId && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <div style={{ fontSize: "12px", fontWeight: "800", color: c.subtext, marginBottom: "4px" }}>
+                CUSTOMER TICKETS & ISSUES ({tickets.length}):
               </div>
-            )}
-          </div>
 
-          {/* Footer Logout */}
-          <div style={{ borderTop: `1px solid ${c.border}`, paddingTop: "14px", marginTop: "14px" }}>
-            {activeUser ? (
+              {tickets.map((t) => (
+                <div
+                  key={t.id}
+                  onClick={() => setActiveTicketId(t.id)}
+                  style={{
+                    padding: "14px",
+                    borderRadius: "10px",
+                    backgroundColor: c.cardBg,
+                    border: `1px solid ${c.border}`,
+                    cursor: "pointer",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: "800", color: t.status === "open" ? "#EF4444" : "#10B981" }}>
+                      {t.status === "open" ? "🔴 ACTION REQUIRED" : "🟢 RESOLVED"}
+                    </span>
+                    <span style={{ fontSize: "11px", color: c.subtext }}>{t.created}</span>
+                  </div>
+                  <div style={{ fontWeight: "800", color: c.text, fontSize: "14px" }}>{t.subject}</div>
+                  <div style={{ fontSize: "12px", color: c.subtext, marginTop: "2px" }}>
+                    From: {t.user} • {t.messages.length} messages
+                  </div>
+                  <div style={{ marginTop: "10px", color: "#3B82F6", fontSize: "12px", fontWeight: "800" }}>
+                    Open Live Chat →
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* USER: CUSTOMER SUPPORT (TICKETS LIST + RAISE FORM) */}
+          {activeView === "support" && !activeTicketId && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {/* Raise New Ticket Form */}
+              <form onSubmit={handleCreateTicket} style={{ backgroundColor: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "10px", padding: "14px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div style={{ fontSize: "13px", fontWeight: "900", color: c.text }}>Raise Support Ticket</div>
+                <input
+                  type="text"
+                  required
+                  placeholder="Subject (e.g. Delivery Delay / Payment Query)"
+                  value={newTicketSubject}
+                  onChange={(e) => setNewTicketSubject(e.target.value)}
+                  style={{ padding: "10px", borderRadius: "8px", border: `1px solid ${c.border}`, background: c.bg, color: c.text, fontSize: "13px" }}
+                />
+                <textarea
+                  rows="3"
+                  required
+                  placeholder="Describe your issue in detail..."
+                  value={newTicketMsg}
+                  onChange={(e) => setNewTicketMsg(e.target.value)}
+                  style={{ padding: "10px", borderRadius: "8px", border: `1px solid ${c.border}`, background: c.bg, color: c.text, fontSize: "13px" }}
+                />
+                <button
+                  type="submit"
+                  style={{ backgroundColor: "#F59E0B", color: "#000", border: "none", padding: "10px", borderRadius: "8px", fontWeight: "900", cursor: "pointer", fontSize: "13px" }}
+                >
+                  🚀 Submit Ticket & Start Chat
+                </button>
+              </form>
+
+              {/* Existing User Tickets */}
+              <div>
+                <div style={{ fontSize: "12px", fontWeight: "800", color: c.subtext, marginBottom: "8px" }}>YOUR ACTIVE TICKETS:</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {tickets.map((t) => (
+                    <div
+                      key={t.id}
+                      onClick={() => setActiveTicketId(t.id)}
+                      style={{
+                        padding: "12px",
+                        borderRadius: "10px",
+                        backgroundColor: c.cardBg,
+                        border: `1px solid ${c.border}`,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontWeight: "800", color: c.text, fontSize: "13px" }}>{t.subject}</span>
+                        <span style={{ fontSize: "10px", fontWeight: "800", color: t.status === "open" ? "#10B981" : c.subtext }}>
+                          {t.status.toUpperCase()}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: "11px", color: c.subtext, marginTop: "4px" }}>
+                        {t.id} • Click to continue chat →
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* EDIT PROFILE */}
+          {activeView === "profile" && !activeTicketId && (
+            <form onSubmit={handleSaveProfile} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              <div>
+                <label style={{ fontSize: "12px", fontWeight: "800", color: c.subtext, display: "block", marginBottom: "6px" }}>Display Name</label>
+                <input
+                  type="text"
+                  required
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: `1px solid ${c.border}`, background: c.cardBg, color: c.text, boxSizing: "border-box" }}
+                />
+              </div>
               <button
-                onClick={() => { logout(); onClose(); navigate("/auth"); }}
-                style={{ width: "100%", padding: "12px", backgroundColor: "#EF444420", border: "1px solid #EF4444", color: "#EF4444", fontWeight: "900", borderRadius: "8px", cursor: "pointer" }}
+                type="submit"
+                style={{ backgroundColor: "#3B82F6", color: "#FFF", border: "none", padding: "12px", borderRadius: "8px", fontWeight: "900", cursor: "pointer" }}
               >
-                Sign Out of R-Mart
+                Save Changes
               </button>
-            ) : (
-              <button
-                onClick={() => { onClose(); navigate("/auth"); }}
-                style={{ width: "100%", padding: "12px", backgroundColor: c.accent, color: "#000", fontWeight: "900", borderRadius: "8px", border: "none", cursor: "pointer" }}
-              >
-                Sign In / Register
-              </button>
-            )}
-          </div>
+            </form>
+          )}
+
+          {/* ORDERS VIEW */}
+          {activeView === "orders" && !activeTicketId && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {orders.length === 0 ? (
+                <div style={{ textAlign: "center", color: c.subtext, padding: "40px 0" }}>No orders recorded yet.</div>
+              ) : (
+                orders.map((ord, idx) => (
+                  <div key={idx} style={{ padding: "14px", borderRadius: "10px", backgroundColor: c.cardBg, border: `1px solid ${c.border}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                      <span style={{ fontWeight: "900", color: "#F59E0B", fontSize: "13px" }}>#{ord.orderId}</span>
+                      <span style={{ fontSize: "11px", color: c.subtext }}>{ord.timestamp}</span>
+                    </div>
+
+                    {isAdmin && (
+                      <div style={{ marginBottom: "8px" }}>
+                        <div style={{ fontSize: "13px", fontWeight: "800", color: c.text }}>👤 {ord.address?.name || "Customer"}</div>
+                        <div style={{ fontSize: "12px", color: c.subtext }}>📞 {ord.address?.phone || "No phone"}</div>
+                        <div style={{ fontSize: "12px", color: c.subtext }}>📍 {ord.address?.street}, {ord.address?.city} ({ord.address?.pincode})</div>
+                      </div>
+                    )}
+
+                    <div style={{ display: "flex", justifyContent: "space-between", borderTop: `1px solid ${c.border}`, paddingTop: "6px" }}>
+                      <span style={{ fontSize: "12px", color: c.subtext }}>Status: {ord.status || "Processing"}</span>
+                      <span style={{ fontSize: "14px", fontWeight: "900", color: "#10B981" }}>${ord.total}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* INBOX VIEW */}
+          {activeView === "inbox" && !activeTicketId && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <div style={{ padding: "12px", borderRadius: "8px", backgroundColor: c.cardBg, border: `1px solid ${c.border}` }}>
+                <div style={{ fontSize: "11px", fontWeight: "800", color: "#10B981" }}>CONNECTED TO WS://8000/WS/ALERTS</div>
+                <div style={{ fontSize: "13px", fontWeight: "800", color: c.text, marginTop: "4px" }}>
+                  {isAdmin ? "Automated Dispatch Channel Active" : "Order tracking & stock alerts subscribed."}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* WISHLIST VIEW */}
+          {activeView === "wishlist" && !activeTicketId && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {wishlist.map((item) => (
+                <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px", borderRadius: "8px", backgroundColor: c.cardBg, border: `1px solid ${c.border}` }}>
+                  <div>
+                    <div style={{ fontSize: "13px", fontWeight: "800", color: c.text }}>{item.name}</div>
+                    <div style={{ fontSize: "14px", fontWeight: "900", color: "#10B981" }}>${item.price}</div>
+                  </div>
+                  <button
+                    onClick={() => setWishlist(wishlist.filter((w) => w.id !== item.id))}
+                    style={{ background: "none", border: "none", color: "#EF4444", fontSize: "12px", fontWeight: "800", cursor: "pointer" }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
         </div>
       </div>
-
-      <OrderTrackerModal
-        order={trackingOrder}
-        isOpen={!!trackingOrder}
-        onClose={() => setTrackingOrder(null)}
-        theme={theme}
-      />
-    </>
+    </div>
   );
 }

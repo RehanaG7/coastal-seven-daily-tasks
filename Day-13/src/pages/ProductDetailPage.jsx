@@ -1,181 +1,343 @@
-﻿import React, { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import { productService } from "../api/productService";
-import { useStore } from "../context/StoreContext";
-import { useAuth } from "../context/AuthContext";
+﻿import React, { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useStore, INITIAL_PRODUCTS } from "../context/StoreContext";
 
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { inventory, addToCart, theme } = useStore();
-  const { isAuthenticated } = useAuth();
-
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
+  const { products, addToCart, theme, user } = useStore();
   const isDark = theme === "dark";
 
-  useEffect(() => {
-    const fetchProduct = async () => {
-      setLoading(true);
-      try {
-        const data = await productService.getById(id);
-        if (data) {
-          setProduct({
-            ...data,
-            title: data.title || data.name,
-            name: data.title || data.name,
-          });
-          setLoading(false);
-          return;
-        }
-      } catch (err) {
-        // Fallback to local inventory if API is offline or not synced
-      }
+  const [activeTab, setActiveTab] = useState("specs");
+  const [selectedQty, setSelectedQty] = useState(1);
 
-      // Fallback lookup from StoreContext inventory
-      const found = (inventory || []).find((item) => String(item.id) === String(id));
-      if (found) {
-        setProduct({
-          ...found,
-          title: found.title || found.name,
-          name: found.title || found.name,
-        });
-      }
-      setLoading(false);
-    };
-
-    fetchProduct();
-  }, [id, inventory]);
-
-  const handleAddToCart = () => {
-    if (!product) return;
-    addToCart(product);
-    setMessage(`Added "${product.title || product.name}" to cart! 🛒`);
-    setTimeout(() => setMessage(""), 3000);
-  };
+  // Parse ID as both number and string to avoid type-mismatch bugs
+  const targetId = Number(id);
+  const allProducts = Array.isArray(products) && products.length > 0 ? products : (INITIAL_PRODUCTS || []);
+  
+  const product = allProducts.find(
+    (p) => p.id === targetId || String(p.id) === String(id)
+  );
 
   const c = {
-    bg: isDark ? "#06080F" : "#F8FAFC",
-    cardBg: isDark ? "#0F1420" : "#FFFFFF",
-    border: isDark ? "#1E2738" : "#E2E8F0",
-    text: isDark ? "#FFFFFF" : "#0F172A",
+    bg: isDark ? "#080C14" : "#F8FAFC",
+    cardBg: isDark ? "#0F172A" : "#FFFFFF",
+    border: isDark ? "#1E293B" : "#E2E8F0",
+    text: isDark ? "#F8FAFB" : "#0F172A",
     subtext: isDark ? "#94A3B8" : "#64748B",
-    accent: "#F59E0B",
   };
-
-  if (loading) {
-    return (
-      <div style={{ backgroundColor: c.bg, minHeight: "80vh", padding: "40px", color: c.text, textAlign: "center" }}>
-        <p style={{ fontSize: "16px", fontWeight: "600" }}>Loading product details...</p>
-      </div>
-    );
-  }
 
   if (!product) {
     return (
-      <div style={{ backgroundColor: c.bg, minHeight: "80vh", padding: "40px", color: c.text, textAlign: "center" }}>
-        <h2 style={{ fontSize: "20px", fontWeight: "800", color: "#EF4444" }}>Product Not Found</h2>
-        <p style={{ color: c.subtext, marginTop: "8px" }}>Could not locate product with ID: {id}</p>
-        <Link to="/catalog" style={{ display: "inline-block", marginTop: "16px", color: "#3B82F6", textDecoration: "none", fontWeight: "700" }}>
-          &larr; Back to Catalog
-        </Link>
+      <div
+        style={{
+          minHeight: "80vh",
+          backgroundColor: c.bg,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "24px",
+          fontFamily: "system-ui, sans-serif",
+        }}
+      >
+        <div style={{ fontSize: "54px", marginBottom: "16px" }}>🔍</div>
+        <h2 style={{ color: c.text, fontSize: "22px", fontWeight: "900", margin: "0 0 8px 0" }}>
+          Product Not Found
+        </h2>
+        <p style={{ color: c.subtext, fontSize: "14px", margin: "0 0 20px 0" }}>
+          Could not locate product with ID: {id}
+        </p>
+        <button
+          onClick={() => navigate("/catalog")}
+          style={{
+            backgroundColor: "#3B82F6",
+            color: "#FFF",
+            border: "none",
+            padding: "10px 20px",
+            borderRadius: "8px",
+            fontWeight: "800",
+            cursor: "pointer",
+          }}
+        >
+          ← Back to Catalog
+        </button>
       </div>
     );
   }
 
-  const title = product.title || product.name;
-  const currentStock = Number(product.stock !== undefined ? product.stock : 0);
-  const isOutOfStock = currentStock === 0;
+  const isStockout = (product.stock || 0) <= 0;
+  const isLowStock = (product.stock || 0) > 0 && (product.stock || 0) <= 3;
+  const isAdmin = user?.role === "admin" || localStorage.getItem("user_role") === "admin";
+
+  const handleAddToCart = () => {
+    for (let i = 0; i < selectedQty; i++) {
+      addToCart(product);
+    }
+  };
 
   return (
-    <div style={{ backgroundColor: c.bg, minHeight: "calc(100vh - 64px)", padding: "32px 24px", color: c.text, fontFamily: "system-ui, sans-serif" }}>
-      <div style={{ maxWidth: "1050px", margin: "0 auto" }}>
+    <div style={{ backgroundColor: c.bg, minHeight: "100vh", padding: "32px 24px", fontFamily: "system-ui, sans-serif" }}>
+      <div style={{ maxWidth: "1140px", margin: "0 auto" }}>
         
-        {/* Breadcrumb / Back Link */}
-        <Link to="/catalog" style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "#3B82F6", textDecoration: "none", fontWeight: "700", fontSize: "14px", marginBottom: "20px" }}>
-          <span>&larr;</span> Back to Catalog
-        </Link>
+        {/* Navigation Breadcrumb */}
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            background: "none",
+            border: "none",
+            color: "#3B82F6",
+            fontSize: "13px",
+            fontWeight: "800",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            marginBottom: "24px",
+            padding: 0,
+          }}
+        >
+          ← Back
+        </button>
 
-        {message && (
-          <div style={{ marginBottom: "20px", padding: "12px 18px", backgroundColor: "#10B98120", border: "1px solid #10B98180", color: "#10B981", borderRadius: "10px", fontWeight: "700", fontSize: "14px" }}>
-            {message}
-          </div>
-        )}
-
-        <div style={{
-          backgroundColor: c.cardBg,
-          border: `1px solid ${c.border}`,
-          borderRadius: "16px",
-          padding: "32px",
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-          gap: "36px",
-          alignItems: "center"
-        }}>
-          {/* Product Image */}
-          <div style={{ textAlign: "center", backgroundColor: isDark ? "#070A10" : "#F1F5F9", borderRadius: "12px", padding: "20px", border: `1px solid ${c.border}` }}>
-            <img
-              src={product.image_url || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500"}
-              alt={title}
-              style={{ maxHeight: "360px", maxWidth: "100%", objectFit: "contain", borderRadius: "8px" }}
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500";
+        {/* Product Details Container */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: "36px",
+            backgroundColor: c.cardBg,
+            border: `1px solid ${c.border}`,
+            borderRadius: "16px",
+            padding: "32px",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.2)",
+          }}
+        >
+          {/* Left Column: Image */}
+          <div>
+            <div
+              style={{
+                width: "100%",
+                height: "380px",
+                backgroundColor: "#1E293B",
+                borderRadius: "12px",
+                overflow: "hidden",
+                position: "relative",
               }}
-            />
-          </div>
-
-          {/* Details Section */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <span style={{ fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px", backgroundColor: "#3B82F620", color: "#3B82F6", padding: "4px 10px", borderRadius: "6px" }}>
-                {product.category || "General"}
-              </span>
-              <span style={{ fontSize: "12px", color: c.subtext, fontWeight: "600" }}>
-                ID: {product.id}
-              </span>
+            >
+              <img
+                src={product.image}
+                alt={product.name}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+              {(isStockout || isLowStock) && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "14px",
+                    left: "14px",
+                    backgroundColor: isStockout ? "#DC2626" : "#EA580C",
+                    color: "#FFFFFF",
+                    fontSize: "11px",
+                    fontWeight: "900",
+                    padding: "5px 10px",
+                    borderRadius: "6px",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  🔴 {isStockout ? "STOCKOUT (0 LEFT)" : `LOW STOCK (${product.stock} LEFT)`}
+                </span>
+              )}
             </div>
 
-            <h1 style={{ fontSize: "28px", fontWeight: "900", margin: "0", color: c.text, lineHeight: 1.2 }}>
-              {title}
-            </h1>
-
-            <div style={{ display: "flex", alignItems: "baseline", gap: "12px" }}>
-              <span style={{ fontSize: "32px", fontWeight: "900", color: "#10B981" }}>
-                ${Number(product.price || 0).toFixed(2)}
-              </span>
-              <span style={{ fontSize: "13px", fontWeight: "700", color: isOutOfStock ? "#EF4444" : "#10B981" }}>
-                {isOutOfStock ? "🔴 Out of Stock" : `🟢 In Stock (${currentStock} available)`}
-              </span>
-            </div>
-
-            <p style={{ fontSize: "14px", lineHeight: "1.6", color: c.subtext, margin: "0" }}>
-              {product.description || "High-performance item engineered for exceptional quality and reliability."}
-            </p>
-
-            <div style={{ display: "flex", gap: "14px", marginTop: "12px" }}>
-              <button
-                onClick={handleAddToCart}
-                disabled={isOutOfStock}
+            {/* Badges bar */}
+            <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+              <div
                 style={{
                   flex: 1,
-                  backgroundColor: isOutOfStock ? "#6B7280" : "#10B981",
-                  color: "#FFFFFF",
-                  border: "none",
-                  padding: "14px 20px",
-                  borderRadius: "10px",
+                  backgroundColor: isDark ? "#1E293B" : "#F1F5F9",
+                  padding: "10px",
+                  borderRadius: "8px",
+                  textAlign: "center",
+                  fontSize: "11px",
                   fontWeight: "800",
-                  fontSize: "14px",
-                  cursor: isOutOfStock ? "not-allowed" : "pointer",
-                  transition: "opacity 0.2s",
+                  color: c.text,
                 }}
               >
-                {isOutOfStock ? "Out of Stock" : "Add to Cart 🛒"}
-              </button>
+                ⚡ 15-Min Express Dispatch
+              </div>
+              <div
+                style={{
+                  flex: 1,
+                  backgroundColor: isDark ? "#1E293B" : "#F1F5F9",
+                  padding: "10px",
+                  borderRadius: "8px",
+                  textAlign: "center",
+                  fontSize: "11px",
+                  fontWeight: "800",
+                  color: "#10B981",
+                }}
+              >
+                ✔ 100% Genuine Verified
+              </div>
             </div>
           </div>
+
+          {/* Right Column: Info & Actions */}
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ fontSize: "12px", fontWeight: "800", color: "#3B82F6", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>
+              {product.category || "General"}
+            </div>
+
+            <h1 style={{ fontSize: "26px", fontWeight: "900", color: c.text, margin: "0 0 12px 0", lineHeight: 1.3 }}>
+              {product.name}
+            </h1>
+
+            {/* Ratings */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+              <span style={{ color: "#F59E0B", fontSize: "14px" }}>⭐⭐⭐⭐⭐</span>
+              <span style={{ fontSize: "12px", fontWeight: "800", color: c.text }}>4.9</span>
+              <span style={{ fontSize: "12px", color: c.subtext }}>(128 customer ratings)</span>
+            </div>
+
+            {/* Price */}
+            <div style={{ display: "flex", alignItems: "baseline", gap: "12px", marginBottom: "20px" }}>
+              <span style={{ fontSize: "32px", fontWeight: "900", color: "#10B981" }}>
+                ${product.price.toFixed(2)}
+              </span>
+              <span style={{ fontSize: "14px", color: c.subtext }}>
+                (Inclusive of all automated fulfillment taxes)
+              </span>
+            </div>
+
+            {/* Description */}
+            <p style={{ fontSize: "14px", color: c.subtext, lineHeight: 1.6, margin: "0 0 24px 0" }}>
+              {product.description}
+            </p>
+
+            {/* Tab switch for details/specs */}
+            <div style={{ display: "flex", gap: "10px", borderBottom: `1px solid ${c.border}`, marginBottom: "16px" }}>
+              <button
+                onClick={() => setActiveTab("specs")}
+                style={{
+                  background: "none",
+                  border: "none",
+                  borderBottom: activeTab === "specs" ? "2px solid #3B82F6" : "none",
+                  color: activeTab === "specs" ? "#3B82F6" : c.subtext,
+                  fontWeight: "800",
+                  fontSize: "13px",
+                  padding: "8px 12px",
+                  cursor: "pointer",
+                }}
+              >
+                Specifications
+              </button>
+              <button
+                onClick={() => setActiveTab("reviews")}
+                style={{
+                  background: "none",
+                  border: "none",
+                  borderBottom: activeTab === "reviews" ? "2px solid #3B82F6" : "none",
+                  color: activeTab === "reviews" ? "#3B82F6" : c.subtext,
+                  fontWeight: "800",
+                  fontSize: "13px",
+                  padding: "8px 12px",
+                  cursor: "pointer",
+                }}
+              >
+                Verified Reviews (4)
+              </button>
+            </div>
+
+            {/* Tab Content */}
+            {activeTab === "specs" && (
+              <div style={{ fontSize: "13px", color: c.subtext, display: "flex", flexDirection: "column", gap: "6px", marginBottom: "24px" }}>
+                <div>• <strong>Warranty:</strong> 1 Year Comprehensive Replacement</div>
+                <div>• <strong>Dispatch Hub:</strong> Automated Local Micro-Warehouse</div>
+                <div>• <strong>Available Stock:</strong> {product.stock} units ready in bin</div>
+              </div>
+            )}
+
+            {activeTab === "reviews" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "24px", maxHeight: "140px", overflowY: "auto" }}>
+                <div style={{ fontSize: "12px", padding: "8px", borderRadius: "6px", backgroundColor: isDark ? "#1E293B" : "#F1F5F9" }}>
+                  <span style={{ fontWeight: "800", color: c.text }}>Kavya R. (⭐⭐⭐⭐⭐):</span> Arrived in 14 mins flat! Premium build.
+                </div>
+                <div style={{ fontSize: "12px", padding: "8px", borderRadius: "6px", backgroundColor: isDark ? "#1E293B" : "#F1F5F9" }}>
+                  <span style={{ fontWeight: "800", color: c.text }}>Rahul S. (⭐⭐⭐⭐):</span> Seamless connection, exact specs as advertised.
+                </div>
+              </div>
+            )}
+
+            {/* Action Bar */}
+            <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+              {!isAdmin && !isStockout && (
+                <div style={{ display: "flex", alignItems: "center", border: `1px solid ${c.border}`, borderRadius: "8px", overflow: "hidden" }}>
+                  <button
+                    onClick={() => setSelectedQty(Math.max(1, selectedQty - 1))}
+                    style={{ width: "36px", height: "42px", background: "none", border: "none", color: c.text, fontWeight: "900", cursor: "pointer" }}
+                  >
+                    -
+                  </button>
+                  <span style={{ width: "36px", textAlign: "center", fontWeight: "900", color: c.text, fontSize: "14px" }}>
+                    {selectedQty}
+                  </span>
+                  <button
+                    onClick={() => setSelectedQty(Math.min(product.stock || 10, selectedQty + 1))}
+                    style={{ width: "36px", height: "42px", background: "none", border: "none", color: c.text, fontWeight: "900", cursor: "pointer" }}
+                  >
+                    +
+                  </button>
+                </div>
+              )}
+
+              {!isAdmin ? (
+                isStockout ? (
+                  <button
+                    onClick={() => alert(`Restock request registered for "${product.name}". You will receive an alert!`)}
+                    style={{
+                      flex: 1,
+                      backgroundColor: "#DC2626",
+                      color: "#FFFFFF",
+                      border: "none",
+                      padding: "12px 24px",
+                      borderRadius: "8px",
+                      fontWeight: "900",
+                      fontSize: "14px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    🔔 Request Restock Notification
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleAddToCart}
+                    style={{
+                      flex: 1,
+                      backgroundColor: "#F59E0B",
+                      color: "#000000",
+                      border: "none",
+                      padding: "12px 24px",
+                      borderRadius: "8px",
+                      fontWeight: "900",
+                      fontSize: "14px",
+                      cursor: "pointer",
+                      boxShadow: "0 4px 15px rgba(245, 158, 11, 0.35)",
+                    }}
+                  >
+                    🛒 Add {selectedQty > 1 ? `${selectedQty} Items` : ""} to Cart
+                  </button>
+                )
+              ) : (
+                <div style={{ fontSize: "13px", fontWeight: "800", color: "#3B82F6" }}>
+                  🔒 Admin Mode: Inventory and orders managed via Admin Console.
+                </div>
+              )}
+            </div>
+
+          </div>
         </div>
+
       </div>
     </div>
   );

@@ -417,7 +417,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                           }}
                         >
                           <button
-                            onClick={() => updateQuantity(item.id, (item.quantity || 1) - 1)}
+                            onClick={() => updateQuantity(item.id, -1)}
                             style={{
                               width: "28px",
                               height: "28px",
@@ -436,7 +436,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                             {item.quantity || 1}
                           </span>
                           <button
-                            onClick={() => updateQuantity(item.id, (item.quantity || 1) + 1)}
+                            onClick={() => updateQuantity(item.id, 1)}
                             style={{
                               width: "28px",
                               height: "28px",

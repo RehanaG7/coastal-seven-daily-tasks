@@ -108,7 +108,7 @@ function AppContent() {
             <Route path="/catalog/:id" element={<ProductDetailPage />} />
             <Route path="/products/:id" element={<ProductDetailPage />} />
 
-            <Route path="/admin" element={<Navigate to="/catalog" replace />} />
+            <Route path="/admin" element={<AdminDashboard />} />
 
             <Route path="*" element={<Navigate to="/catalog" replace />} />
           </Routes>

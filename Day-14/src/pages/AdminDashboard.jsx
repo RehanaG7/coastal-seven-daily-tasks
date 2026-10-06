@@ -1,9 +1,12 @@
-﻿import React, { useState, useMemo, useRef } from "react";
-import { useStore } from "../context/StoreContext";
+import React, { useState, useMemo, useRef } from "react";
+import { useUIStore, useAuthStore } from "../store/useStore";
+import { MOCK_CATALOG, ALL_CATEGORIES, productKeys } from "../hooks/useProducts";
+import { queryClient } from "../lib/queryClient";
 import { useNavigate } from "react-router-dom";
 
 export default function AdminDashboard() {
-  const { products, setProducts, theme } = useStore();
+  const theme = useUIStore((s) => s.theme);
+  const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const isDark = theme === "dark";
 
@@ -19,8 +22,8 @@ export default function AdminDashboard() {
   const [newProduct, setNewProduct] = useState({
     name: "",
     price: "",
-    stock: "",
-    category: "Peripherals",
+    stock: "15",
+    category: "Mobiles and Electronics",
     image: "",
     description: "",
   });
@@ -28,8 +31,30 @@ export default function AdminDashboard() {
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Products state backed by localStorage + MOCK_CATALOG
+  const [products, setProductsState] = useState(() => {
+    try {
+      const custom = JSON.parse(localStorage.getItem("rmart_custom_products") || "[]");
+      return [...custom, ...MOCK_CATALOG];
+    } catch (e) {
+      return MOCK_CATALOG;
+    }
+  });
+
+  const setProducts = (newProductsOrUpdater) => {
+    setProductsState((prev) => {
+      const next = typeof newProductsOrUpdater === "function" ? newProductsOrUpdater(prev) : newProductsOrUpdater;
+      try {
+        const customOnly = next.filter((p) => !MOCK_CATALOG.some((m) => m.id === p.id));
+        localStorage.setItem("rmart_custom_products", JSON.stringify(customOnly));
+      } catch (err) {}
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+      return next;
+    });
+  };
+
   const safeProducts = Array.isArray(products) && products.length > 0 ? products : [];
-  const categories = ["All", "Electronics", "Peripherals", "Accessories"];
+  const categories = ALL_CATEGORIES;
 
   const filteredAndSorted = useMemo(() => {
     let list = safeProducts.filter((p) => {
@@ -119,6 +144,69 @@ export default function AdminDashboard() {
     <div style={{ backgroundColor: c.bg, minHeight: "100vh", padding: "20px 24px", fontFamily: "system-ui, sans-serif" }}>
       <div style={{ maxWidth: "1240px", margin: "0 auto" }}>
         
+        {/* Admin Header Bar */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "12px",
+            backgroundColor: c.cardBg,
+            border: `1px solid ${c.border}`,
+            borderRadius: "14px",
+            padding: "16px 20px",
+            marginBottom: "20px",
+          }}
+        >
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "20px" }}>🛡️</span>
+              <h1 style={{ fontSize: "20px", fontWeight: "900", color: c.text, margin: 0 }}>
+                R-Mart Admin Portal
+              </h1>
+              <span
+                style={{
+                  fontSize: "11px",
+                  fontWeight: "900",
+                  backgroundColor: "rgba(245, 158, 11, 0.15)",
+                  color: "#F59E0B",
+                  padding: "3px 8px",
+                  borderRadius: "6px",
+                  border: "1px solid rgba(245, 158, 11, 0.4)",
+                }}
+              >
+                PASSCODE VERIFIED (ADMIN-2026)
+              </span>
+            </div>
+            <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: c.subtext }}>
+              Manage inventory, add products, adjust live stock, and monitor customer requests.
+            </p>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <button
+              onClick={() => navigate("/catalog")}
+              style={{
+                backgroundColor: "rgba(56, 189, 248, 0.15)",
+                color: "#38BDF8",
+                border: "1px solid #38BDF8",
+                padding: "8px 16px",
+                borderRadius: "8px",
+                fontWeight: "800",
+                fontSize: "12px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+            >
+              <span>🏪</span>
+              <span>View Store Catalog</span>
+            </button>
+          </div>
+        </div>
+
         {/* Admin Navigation Controls */}
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "22px" }}>
           <button

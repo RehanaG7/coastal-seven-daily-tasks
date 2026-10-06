@@ -14,6 +14,7 @@ export default function AuthPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [adminPasscode, setAdminPasscode] = useState("");
   const [error, setError] = useState("");
   const [autoFilled, setAutoFilled] = useState(false);
   const [saveCredentials, setSaveCredentials] = useState(true);
@@ -27,7 +28,10 @@ export default function AuthPage() {
         if (parsed.email) setEmail(parsed.email);
         if (parsed.password) setPassword(parsed.password);
         if (parsed.name) setName(parsed.name);
-        if (parsed.role) setRole(parsed.role);
+        if (parsed.role) {
+          setRole(parsed.role);
+          if (parsed.role === "admin") setAdminPasscode("ADMIN-2026");
+        }
         setIsRegister(false); // default to login mode
         setAutoFilled(true);
       }
@@ -47,6 +51,11 @@ export default function AuthPage() {
 
     if (isRegister && !name.trim()) {
       setError("Please provide your name to register.");
+      return;
+    }
+
+    if (role === "admin" && adminPasscode.trim() !== "ADMIN-2026") {
+      setError("Invalid Admin Passcode! Passcode must be 'ADMIN-2026' to access the Admin portal.");
       return;
     }
 
@@ -78,11 +87,13 @@ export default function AuthPage() {
     setUser(authenticatedUser, token);
 
     // Flow Routing:
-    // If Admin -> Enters Products Page directly ("welcome admin - as usual products page same like users but no cart option")
-    // If User -> Launch Full-Screen Cinematic Animation and go to Products page!
+    // If Admin -> Redirection to /admin
+    // If User -> Launch Full-Screen Cinematic Animation and go to /catalog!
     if (role === "admin") {
-      navigate("/catalog");
+      localStorage.setItem("user_role", "admin");
+      navigate("/admin");
     } else {
+      localStorage.setItem("user_role", "customer");
       triggerIntro();
       navigate("/catalog");
     }
@@ -432,13 +443,85 @@ export default function AuthPage() {
                   name="role"
                   value="admin"
                   checked={role === "admin"}
-                  onChange={() => setRole("admin")}
+                  onChange={() => {
+                    setRole("admin");
+                    if (!adminPasscode) setAdminPasscode("ADMIN-2026");
+                  }}
                   style={{ display: "none" }}
                 />
                 <span>🛡️ Admin</span>
               </label>
             </div>
           </div>
+
+          {/* Admin Passcode Input Field */}
+          {role === "admin" && (
+            <div
+              style={{
+                backgroundColor: isDark ? "rgba(245, 158, 11, 0.08)" : "#FFFBEB",
+                border: "1px dashed #F59E0B",
+                borderRadius: "12px",
+                padding: "14px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "8px",
+                }}
+              >
+                <label
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: "900",
+                    color: "#F59E0B",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <span>🔑</span>
+                  <span>Admin Passcode (Required)</span>
+                </label>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: "800",
+                    color: "#F59E0B",
+                    backgroundColor: "rgba(245, 158, 11, 0.15)",
+                    padding: "2px 6px",
+                    borderRadius: "4px",
+                  }}
+                >
+                  ADMIN-2026
+                </span>
+              </div>
+              <input
+                type="text"
+                placeholder="Enter ADMIN-2026"
+                value={adminPasscode}
+                onChange={(e) => setAdminPasscode(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "11px 13px",
+                  borderRadius: "8px",
+                  border: `2px solid ${adminPasscode === "ADMIN-2026" ? "#10B981" : "#F59E0B"}`,
+                  backgroundColor: c.inputBg,
+                  color: c.text,
+                  fontSize: "13px",
+                  fontWeight: "800",
+                  outline: "none",
+                  boxSizing: "border-box",
+                  letterSpacing: "1px",
+                }}
+              />
+              <div style={{ fontSize: "11px", color: c.subtext, marginTop: "6px" }}>
+                Enter passcode <strong>ADMIN-2026</strong> to unlock the Admin control dashboard and management suite.
+              </div>
+            </div>
+          )}
 
           {/* Submit Action */}
           <button
@@ -459,7 +542,13 @@ export default function AuthPage() {
             onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.02)")}
             onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
           >
-            {isRegister ? "Register & Continue →" : "Sign In →"}
+            {isRegister
+              ? role === "admin"
+                ? "Register Admin & Launch Dashboard →"
+                : "Register & Continue →"
+              : role === "admin"
+              ? "Sign In to Admin Portal (/admin) →"
+              : "Sign In →"}
           </button>
         </form>
 
@@ -473,6 +562,7 @@ export default function AuthPage() {
               setPassword("pass123");
               setName("Rehana Shaik");
               setRole("user");
+              setAdminPasscode("");
             }}
             style={{
               background: "none",
@@ -494,6 +584,7 @@ export default function AuthPage() {
               setPassword("admin123");
               setName("Store Manager");
               setRole("admin");
+              setAdminPasscode("ADMIN-2026");
             }}
             style={{
               background: "none",
@@ -505,7 +596,7 @@ export default function AuthPage() {
               textDecoration: "underline",
             }}
           >
-            Fill Admin
+            Fill Admin (ADMIN-2026)
           </button>
         </div>
       </div>

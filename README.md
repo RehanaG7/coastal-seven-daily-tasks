@@ -21,6 +21,15 @@
   <img src="https://img.shields.io/badge/TANSTACK_QUERY-v5-FF4154?style=for-the-badge&logo=reactquery&logoColor=white" />
   <img src="https://img.shields.io/badge/3D_MOTION_GRAPHICS-10B981?style=for-the-badge&logo=webgl&logoColor=white" />
 </p>
+<p align="left">
+  <img src="https://img.shields.io/badge/REACT_ROUTER_DOM-CA4245?style=for-the-badge&logo=reactrouter&logoColor=white" />
+  <img src="https://img.shields.io/badge/CONTEXT_API-61DAFB?style=for-the-badge&logo=react&logoColor=black" />
+  <img src="https://img.shields.io/badge/LOCAL_STORAGE-F59E0B?style=for-the-badge&logo=html5&logoColor=white" />
+  <img src="https://img.shields.io/badge/HTML5_DRAG_&_DROP-E34F26?style=for-the-badge&logo=html5&logoColor=white" />
+  <img src="https://img.shields.io/badge/FILEREADER_API-339933?style=for-the-badge&logo=javascript&logoColor=white" />
+  <img src="https://img.shields.io/badge/CSS_KEYFRAME_ANIMATION-1572B6?style=for-the-badge&logo=css3&logoColor=white" />
+</p>
+
 
 ---
 
@@ -52,17 +61,4 @@
   <img src="https://img.shields.io/badge/FILEREADER_API-339933?style=for-the-badge&logo=javascript&logoColor=white" />
   <img src="https://img.shields.io/badge/CSS_KEYFRAME_ANIMATION-1572B6?style=for-the-badge&logo=css3&logoColor=white" />
 </p>
-
-| :--- | :--- | :--- |
-| **Build & Tooling** | **Vite (v8)** | High-speed frontend bundling, HMR, and production rollouts |
-| **Routing** | **React Router DOM (v6)** | Dynamic client-side routing (/catalog, /catalog/:id, /admin, /auth) & protected route enforcement |
-| **State Management** | **Zustand & Context API** | Selective atomic subscriptions, optimistic cart actions, persistent client storage, and Context adapter |
-| **Server Cache & Sync** | **TanStack Query v5** | Infinite query streaming, background revalidation, 5-minute stale-time cache, and optimistic rollback mutations |
-| **3D Motion & Audio** | **3D Canvas & Web Audio API** | Hardware-accelerated 3D starfield warp, isometric rotating holographic cube, shockwave drop physics, procedural sound synthesizer |
-| **Styling & Animatics** | **Tailwind CSS & CSS 3D Transforms** | 3D card tilt with dynamic holographic sheen, dark/light theme styling, and perspective parallax tracking |
-| **File & Image Uploads** | **HTML5 Drag & Drop + FileReader API** | Admin Add Product Studio supporting image URLs, computer disk browsing, and drag-and-drop file encoding |
-| **Client Storage** | **Browser LocalStorage** | User role caching, JWT bearer token persistence, saved customer delivery addresses, and shared support ticket logs |
-| **Backend Communication** | **Axios & Native Fetch API** | Communicating with local FastAPI backend (http://127.0.0.1:8000) for login validation, catalog sync, and offline fallback |
-| **Real-Time Simulation** | **WebSocket Support Channel** | Bidirectional ticket lifecycle and complaints alerting between shopper and administrative consoles |
-
 

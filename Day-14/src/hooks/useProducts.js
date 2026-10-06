@@ -438,14 +438,18 @@ export const productKeys = {
 };
 
 const fetchProductsPage = async ({ pageParam = 0, query = "", category = "All" }) => {
-  try {
-    const res = await fetch(`http://127.0.0.1:8000/products?page=${pageParam}&limit=8`);
-    if (res.ok) {
-      const data = await res.json();
-      return { items: data.items || data, nextPage: data.hasMore ? pageParam + 1 : undefined };
+  // If a remote backend API is explicitly configured via VITE_API_URL:
+  if (import.meta.env?.VITE_API_URL) {
+    try {
+      const base = import.meta.env.VITE_API_URL.replace(/\/$/, "");
+      const res = await fetch(`${base}/products?page=${pageParam}&limit=8`);
+      if (res.ok) {
+        const data = await res.json();
+        return { items: data.items || data, nextPage: data.hasMore ? pageParam + 1 : undefined };
+      }
+    } catch (err) {
+      // Backend offline fallback to local catalog
     }
-  } catch (err) {
-    // Backend offline fallback
   }
 
   await new Promise((r) => setTimeout(r, 200));

@@ -1,4 +1,4 @@
-﻿<p align="left">
+<p align="left">
   <img src="https://img.shields.io/badge/PYTHON-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" />
   <img src="https://img.shields.io/badge/FASTAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
   <img src="https://img.shields.io/badge/SWAGGER-85EA2D?style=for-the-badge&logo=swagger&logoColor=black" />
@@ -17,6 +17,9 @@
   <img src="https://img.shields.io/badge/PILLOW-8993BE?style=for-the-badge&logo=python&logoColor=white" />
   <img src="https://img.shields.io/badge/GIT-F05032?style=for-the-badge&logo=git&logoColor=white" />
   <img src="https://img.shields.io/badge/GITHUB-181717?style=for-the-badge&logo=github&logoColor=white" />
+  <img src="https://img.shields.io/badge/ZUSTAND-5.0+-443E38?style=for-the-badge&logo=zustand&logoColor=white" />
+  <img src="https://img.shields.io/badge/TANSTACK_QUERY-v5-FF4154?style=for-the-badge&logo=reactquery&logoColor=white" />
+  <img src="https://img.shields.io/badge/3D_MOTION_GRAPHICS-10B981?style=for-the-badge&logo=webgl&logoColor=white" />
 </p>
 
 ---
@@ -37,3 +40,29 @@
 | **Day 10** | **E-Commerce Backend & Celery Tasks** | E-commerce schema architecture, product catalog APIs, Amazon-style cart quantity stacking, multi-stage order tracking, customer issue tickets, Celery worker notifications | ![Status Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
 | **Day 11** | **React Frontend Integration & Admin Ops** | Vite + React SPA, React Router v6, Context API auth state, protected routes, interactive shopping cart, package tracking stepper, admin metrics dashboard | ![Status Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
 | **Day 12** | **Tailwind CSS, Shadcn/ui, Forms & Validation** | Tailwind CSS utility system & dark mode, Shadcn/ui components (`Button`, `Table`, `Toast`), `react-hook-form` + `Zod` validation schemas, dynamic multi-step checkout wizard, accessible form controls, `react-dropzone` file uploads with live preview | ![Status Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
+| **Day 13** | **E-Commerce Frontend (Part 1)** | React (Vite) setup, unified catalog browsing with search/filters/sorting, dedicated /catalog/:id view, dual-mode auth hub (Login/Register) with quick-fill profiles, Amazon/Flipkart order drawer with address memory, Admin Add Product Studio (drag-and-drop, browse, link), inline stock controls & delete options, live support ticket chat | ![Status Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
+| **Day 14** | **State Management, React Query & 3D Motion** | Zustand micro-stores, TanStack React Query v5 infinite caching, optimistic stock mutations, 3D Canvas space-warp cinematic intro, Web Audio API sound synthesizer, interactive mouse-tilt 3D cards, State Architecture benchmark (Context vs Zustand vs Redux), React performance memoization | ![Status Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
+
+
+<p align="left">
+  <img src="https://img.shields.io/badge/REACT_ROUTER_DOM-CA4245?style=for-the-badge&logo=reactrouter&logoColor=white" />
+  <img src="https://img.shields.io/badge/CONTEXT_API-61DAFB?style=for-the-badge&logo=react&logoColor=black" />
+  <img src="https://img.shields.io/badge/LOCAL_STORAGE-F59E0B?style=for-the-badge&logo=html5&logoColor=white" />
+  <img src="https://img.shields.io/badge/HTML5_DRAG_&_DROP-E34F26?style=for-the-badge&logo=html5&logoColor=white" />
+  <img src="https://img.shields.io/badge/FILEREADER_API-339933?style=for-the-badge&logo=javascript&logoColor=white" />
+  <img src="https://img.shields.io/badge/CSS_KEYFRAME_ANIMATION-1572B6?style=for-the-badge&logo=css3&logoColor=white" />
+</p>
+
+| :--- | :--- | :--- |
+| **Build & Tooling** | **Vite (v8)** | High-speed frontend bundling, HMR, and production rollouts |
+| **Routing** | **React Router DOM (v6)** | Dynamic client-side routing (/catalog, /catalog/:id, /admin, /auth) & protected route enforcement |
+| **State Management** | **Zustand & Context API** | Selective atomic subscriptions, optimistic cart actions, persistent client storage, and Context adapter |
+| **Server Cache & Sync** | **TanStack Query v5** | Infinite query streaming, background revalidation, 5-minute stale-time cache, and optimistic rollback mutations |
+| **3D Motion & Audio** | **3D Canvas & Web Audio API** | Hardware-accelerated 3D starfield warp, isometric rotating holographic cube, shockwave drop physics, procedural sound synthesizer |
+| **Styling & Animatics** | **Tailwind CSS & CSS 3D Transforms** | 3D card tilt with dynamic holographic sheen, dark/light theme styling, and perspective parallax tracking |
+| **File & Image Uploads** | **HTML5 Drag & Drop + FileReader API** | Admin Add Product Studio supporting image URLs, computer disk browsing, and drag-and-drop file encoding |
+| **Client Storage** | **Browser LocalStorage** | User role caching, JWT bearer token persistence, saved customer delivery addresses, and shared support ticket logs |
+| **Backend Communication** | **Axios & Native Fetch API** | Communicating with local FastAPI backend (http://127.0.0.1:8000) for login validation, catalog sync, and offline fallback |
+| **Real-Time Simulation** | **WebSocket Support Channel** | Bidirectional ticket lifecycle and complaints alerting between shopper and administrative consoles |
+
+

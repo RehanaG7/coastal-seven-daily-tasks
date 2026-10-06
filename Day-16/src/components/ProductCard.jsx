@@ -1,24 +1,31 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { useCartStore, useUIStore } from "../store/useStore";
+import { useCartStore, useUIStore, useAuthStore } from "../store/useStore";
+import { useOptimisticStockUpdate } from "../hooks/useProducts";
 
 export function ProductCard({ product }) {
   const addToCart = useCartStore((s) => s.addToCart);
   const theme = useUIStore((s) => s.theme);
+  const user = useAuthStore((s) => s.user);
   const isDark = theme === "dark";
+  const isAdmin = user?.role === "admin";
+
+  // React Query optimistic mutation for admin stock modification
+  const stockMutation = useOptimisticStockUpdate ? useOptimisticStockUpdate() : null;
 
   if (!product) return null;
 
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    addToCart({
-      id: product.id,
-      name: product.title || product.name,
-      price: product.price,
-      image: product.image || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80",
-      stock: product.stock ?? 10,
-    });
+    // Pass both product and default quantity 1 to satisfy tests & store
+    addToCart(product, 1);
+  };
+
+  const handleStockDelta = (delta) => {
+    if (stockMutation?.mutate) {
+      stockMutation.mutate({ productId: product.id, delta });
+    }
   };
 
   const isOutOfStock = product.stock !== undefined && product.stock <= 0;
@@ -127,11 +134,11 @@ export function ProductCard({ product }) {
               color: isOutOfStock ? "#EF4444" : "#10B981",
             }}
           >
-            {isOutOfStock ? "Out of Stock" : `In Stock: ${product.stock ?? 10}`}
+            {isOutOfStock ? "Sold Out" : `In Stock: ${product.stock ?? 10}`}
           </span>
         </div>
 
-        <div style={{ display: "flex", gap: "8px" }}>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <Link
             to={`/catalog/${product.id}`}
             style={{
@@ -148,24 +155,49 @@ export function ProductCard({ product }) {
           >
             Details
           </Link>
-          <button
-            onClick={handleAddToCart}
-            disabled={isOutOfStock}
-            style={{
-              flex: 1.5,
-              padding: "10px",
-              borderRadius: "10px",
-              border: "none",
-              fontSize: "13px",
-              fontWeight: "800",
-              cursor: isOutOfStock ? "not-allowed" : "pointer",
-              backgroundColor: isOutOfStock ? "#64748B" : "#0284C7",
-              color: "#FFFFFF",
-              transition: "background-color 0.2s ease",
-            }}
-          >
-            {isOutOfStock ? "Sold Out" : "Add to Cart"}
-          </button>
+
+          {isAdmin ? (
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ fontSize: "12px", fontWeight: "700", color: "#38BDF8" }}>
+                Add Stock:
+              </span>
+              <button
+                type="button"
+                title="Increase stock by 1"
+                onClick={() => handleStockDelta(1)}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  border: "none",
+                  backgroundColor: "#0284C7",
+                  color: "#FFFFFF",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                }}
+              >
+                +1
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleAddToCart}
+              disabled={isOutOfStock}
+              style={{
+                flex: 1.5,
+                padding: "10px",
+                borderRadius: "10px",
+                border: "none",
+                fontSize: "13px",
+                fontWeight: "800",
+                cursor: isOutOfStock ? "not-allowed" : "pointer",
+                backgroundColor: isOutOfStock ? "#64748B" : "#0284C7",
+                color: "#FFFFFF",
+                transition: "background-color 0.2s ease",
+              }}
+            >
+              {isOutOfStock ? "Sold Out" : "Add to Cart"}
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useUIStore, useAuthStore } from "../store/useStore";
 import { MOCK_CATALOG, ALL_CATEGORIES, productKeys } from "../hooks/useProducts";
 import { queryClient } from "../lib/queryClient";
@@ -10,13 +10,42 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const isDark = theme === "dark";
 
-  const [activeTab, setActiveTab] = useState("catalog"); // "catalog" | "add_product" | "requested"
+  const [activeTab, setActiveTab] = useState("catalog"); // "catalog" | "add_product" | "requested" | "orders"
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortOption, setSortOption] = useState("default");
 
+  // Route guard: Redirect unauthenticated or non-admin users
+  useEffect(() => {
+    const role = localStorage.getItem("user_role") || (user && user.role);
+    if (!role || role !== "admin") {
+      navigate("/auth", { replace: true });
+    }
+  }, [user, navigate]);
+
+
   // Reviews modal state
   const [reviewModalProduct, setReviewModalProduct] = useState(null);
+
+  // Admin Orders Management State
+  const [adminOrders, setAdminOrders] = useState([]);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("rmart_orders") || "[]");
+      setAdminOrders(saved);
+    } catch (e) {
+      setAdminOrders([]);
+    }
+  }, [activeTab]);
+
+  const handleUpdateOrderStatus = (orderId, newStatus) => {
+    const updated = adminOrders.map((ord) =>
+      ord.orderId === orderId ? { ...ord, status: newStatus } : ord
+    );
+    setAdminOrders(updated);
+    localStorage.setItem("rmart_orders", JSON.stringify(updated));
+  };
 
   // Add Product Studio state
   const [newProduct, setNewProduct] = useState({
@@ -27,7 +56,7 @@ export default function AdminDashboard() {
     image: "",
     description: "",
   });
-  const [uploadMode, setUploadMode] = useState("link"); // "link" | "file"
+  const [uploadMode, setUploadMode] = useState("link");
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -70,21 +99,18 @@ export default function AdminDashboard() {
     return list;
   }, [safeProducts, searchQuery, selectedCategory, sortOption]);
 
-  // Stock Adjustment Handlers
   const handleModifyStock = (id, delta) => {
     setProducts(
       safeProducts.map((p) => (p.id === id ? { ...p, stock: Math.max(0, (p.stock || 0) + delta) } : p))
     );
   };
 
-  // Delete Product Handler
   const handleDeleteProduct = (id, name) => {
     if (window.confirm(`Are you sure you want to permanently delete "${name}" from inventory?`)) {
       setProducts(safeProducts.filter((p) => p.id !== id));
     }
   };
 
-  // Image Upload Handlers
   const handleFiles = (files) => {
     if (files && files[0]) {
       const reader = new FileReader();
@@ -111,7 +137,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handlePublish = (e) => {
+  const handlePublish = async (e) => {
     e.preventDefault();
     if (!newProduct.name || !newProduct.price) {
       alert("Please provide product name and price.");
@@ -120,17 +146,46 @@ export default function AdminDashboard() {
     const created = {
       id: Date.now(),
       name: newProduct.name,
+      title: newProduct.name,
       price: parseFloat(newProduct.price),
       stock: parseInt(newProduct.stock || "0", 10),
       category: newProduct.category,
-      image: newProduct.image || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400",
+      image: newProduct.image || `https://picsum.photos/seed/product-${Date.now()}/400/300`,
       description: newProduct.description || "Admin catalog addition.",
     };
+
+    // 1. Post to backend SQLite database
+    try {
+      await fetch("http://127.0.0.1:8000/products/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: created.name,
+          description: created.description,
+          price: created.price,
+          stock: created.stock,
+          category: created.category,
+          owner_id: 1,
+        }),
+      });
+    } catch (err) {
+      console.warn("Backend creation fallback to local:", err);
+    }
+
+    // 2. Save in local state and localStorage
     setProducts([created, ...safeProducts]);
-    alert(`Product "${created.name}" published to catalog!`);
-    setNewProduct({ name: "", price: "", stock: "", category: "Peripherals", image: "", description: "" });
+    try {
+      const existing = JSON.parse(localStorage.getItem("rmart_custom_products") || "[]");
+      localStorage.setItem("rmart_custom_products", JSON.stringify([created, ...existing]));
+    } catch (err) {}
+
+    queryClient.invalidateQueries({ queryKey: ["products"] });
+
+    alert(`Product "${created.name}" published to catalog with category "${created.category}"!`);
+    setNewProduct({ name: "", price: "", stock: "15", category: "Mobiles and Electronics", image: "", description: "" });
     setActiveTab("catalog");
   };
+
 
   const c = {
     bg: isDark ? "#080C14" : "#F8FAFC",
@@ -180,7 +235,7 @@ export default function AdminDashboard() {
               </span>
             </div>
             <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: c.subtext }}>
-              Manage inventory, add products, adjust live stock, and monitor customer requests.
+              Manage inventory, live stock, incoming orders, and customer requests.
             </p>
           </div>
 
@@ -201,13 +256,13 @@ export default function AdminDashboard() {
                 gap: "6px",
               }}
             >
-              <span>🏪</span>
+              <span>🪐</span>
               <span>View Store Catalog</span>
             </button>
           </div>
         </div>
 
-        {/* Admin Navigation Controls */}
+        {/* Navigation Tabs */}
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "22px" }}>
           <button
             onClick={() => setActiveTab("catalog")}
@@ -223,6 +278,22 @@ export default function AdminDashboard() {
             }}
           >
             📦 Products & Stock ({safeProducts.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab("orders")}
+            style={{
+              backgroundColor: activeTab === "orders" ? "#3B82F6" : c.cardBg,
+              color: activeTab === "orders" ? "#FFF" : c.text,
+              border: `1px solid ${activeTab === "orders" ? "#3B82F6" : c.border}`,
+              padding: "9px 18px",
+              borderRadius: "8px",
+              fontWeight: "800",
+              fontSize: "13px",
+              cursor: "pointer",
+            }}
+          >
+            📋 Orders ({adminOrders.length})
           </button>
 
           <button
@@ -254,14 +325,13 @@ export default function AdminDashboard() {
               cursor: "pointer",
             }}
           >
-            ⚠ Products Requested (2)
+            ⚠️ Products Requested (2)
           </button>
         </div>
 
-        {/* TAB 1: EXACT MATCH CATALOG WITH ADMIN MANAGEMENT */}
+        {/* TAB 1: CATALOG PRODUCTS */}
         {activeTab === "catalog" && (
           <div>
-            {/* Search, Categories, Sort */}
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "16px", marginBottom: "20px" }}>
               <div style={{ position: "relative", minWidth: "260px", flex: "1 1 280px", maxWidth: "400px" }}>
                 <span style={{ position: "absolute", left: "12px", top: "10px", color: c.subtext }}>🔍</span>
@@ -335,7 +405,6 @@ export default function AdminDashboard() {
               Showing {filteredAndSorted.length} of {safeProducts.length} items
             </div>
 
-            {/* Product Cards Mirroring User UI */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "22px" }}>
               {filteredAndSorted.map((p) => {
                 const isStockout = (p.stock || 0) <= 0;
@@ -393,7 +462,6 @@ export default function AdminDashboard() {
                         </span>
                       </div>
 
-                      {/* Stock Adjustment Controls */}
                       <div
                         style={{
                           backgroundColor: isDark ? "#1E293B" : "#F1F5F9",
@@ -433,7 +501,6 @@ export default function AdminDashboard() {
                         </div>
                       </div>
 
-                      {/* Actions: View Details, Reviews, Delete */}
                       <div style={{ display: "flex", gap: "6px" }}>
                         <button
                           onClick={() => navigate(`/catalog/${p.id}`)}
@@ -451,13 +518,12 @@ export default function AdminDashboard() {
                         >
                           Details
                         </button>
-
                         <button
-                          onClick={() => setReviewModalProduct(p)}
+                          onClick={() => handleDeleteProduct(p.id, p.name)}
                           style={{
                             flex: 1,
-                            backgroundColor: "#F59E0B",
-                            color: "#000",
+                            backgroundColor: "#DC2626",
+                            color: "#FFF",
                             border: "none",
                             padding: "7px",
                             borderRadius: "6px",
@@ -466,24 +532,7 @@ export default function AdminDashboard() {
                             cursor: "pointer",
                           }}
                         >
-                          ⭐ Reviews
-                        </button>
-
-                        <button
-                          onClick={() => handleDeleteProduct(p.id, p.name)}
-                          style={{
-                            backgroundColor: "rgba(239, 68, 68, 0.15)",
-                            color: "#EF4444",
-                            border: "1px solid rgba(239, 68, 68, 0.4)",
-                            padding: "7px 10px",
-                            borderRadius: "6px",
-                            fontSize: "11px",
-                            fontWeight: "800",
-                            cursor: "pointer",
-                          }}
-                          title="Delete Product"
-                        >
-                          🗑️
+                          Delete
                         </button>
                       </div>
                     </div>
@@ -494,7 +543,79 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* TAB 2: ADD PRODUCT STUDIO (DRAG & DROP, BROWSE, LINK) */}
+        {/* TAB 2: ORDERS MANAGEMENT */}
+        {activeTab === "orders" && (
+          <div style={{ maxWidth: "980px", margin: "0 auto" }}>
+            <h2 style={{ fontSize: "20px", fontWeight: "900", color: c.text, margin: "0 0 16px 0" }}>
+              Customer Order Management ({adminOrders.length})
+            </h2>
+
+            {adminOrders.length === 0 ? (
+              <div style={{ backgroundColor: c.cardBg, border: `1px dashed ${c.border}`, borderRadius: "14px", padding: "40px", textAlign: "center" }}>
+                <p style={{ color: c.subtext, fontSize: "14px", margin: 0 }}>No customer orders placed yet.</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                {adminOrders.map((ord, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      backgroundColor: c.cardBg,
+                      border: `1px solid ${c.border}`,
+                      borderRadius: "14px",
+                      padding: "20px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "12px",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                      <div>
+                        <span style={{ fontFamily: "monospace", fontWeight: "900", fontSize: "14px", color: "#3B82F6" }}>
+                          {ord.orderId}
+                        </span>
+                        <span style={{ fontSize: "12px", color: c.subtext, marginLeft: "10px" }}>
+                          Placed by: <strong style={{ color: c.text }}>{ord.fullName}</strong> ({ord.email})
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <span style={{ fontSize: "16px", fontWeight: "900", color: "#10B981" }}>
+                          ${Number(ord.totalAmount || 0).toFixed(2)}
+                        </span>
+                        <select
+                          value={ord.status || "Confirmed"}
+                          onChange={(e) => handleUpdateOrderStatus(ord.orderId, e.target.value)}
+                          style={{
+                            backgroundColor: isDark ? "#1E293B" : "#F1F5F9",
+                            color: c.text,
+                            border: `1px solid ${c.border}`,
+                            padding: "4px 8px",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            fontWeight: "800",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <option value="Confirmed">Confirmed</option>
+                          <option value="Processing">Processing</option>
+                          <option value="Shipped">Shipped</option>
+                          <option value="Delivered">Delivered</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: "12px", color: c.subtext, borderTop: `1px solid ${c.border}`, paddingTop: "8px" }}>
+                      📍 Delivery Address: {ord.address}, {ord.city} - {ord.postalCode} • Payment: {ord.paymentMethod?.toUpperCase()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: ADD PRODUCT STUDIO */}
         {activeTab === "add_product" && (
           <div style={{ maxWidth: "620px", margin: "0 auto", backgroundColor: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "14px", padding: "28px" }}>
             <h2 style={{ fontSize: "20px", fontWeight: "900", color: c.text, margin: "0 0 16px 0" }}>+ Add Product Studio</h2>
@@ -545,9 +666,9 @@ export default function AdminDashboard() {
                   onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
                   style={{ width: "100%", padding: "10px", borderRadius: "8px", border: `1px solid ${c.border}`, background: c.bg, color: c.text, boxSizing: "border-box" }}
                 >
-                  <option value="Peripherals">Peripherals</option>
-                  <option value="Electronics">Electronics</option>
-                  <option value="Accessories">Accessories</option>
+                  {categories.filter(c => c !== "All").map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
                 </select>
               </div>
 
@@ -562,7 +683,6 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              {/* Photo Upload: Link, Browse, Drag & Drop */}
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                   <label style={{ fontSize: "12px", fontWeight: "800", color: c.subtext }}>Product Photo</label>
@@ -619,16 +739,6 @@ export default function AdminDashboard() {
                     <div style={{ fontSize: "13px", fontWeight: "800", color: c.text }}>
                       Drag & drop your product image here, or browse
                     </div>
-                    <div style={{ fontSize: "11px", color: c.subtext, marginTop: "4px" }}>
-                      Supports PNG, JPG, WebP
-                    </div>
-                  </div>
-                )}
-
-                {newProduct.image && (
-                  <div style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "10px", padding: "8px", borderRadius: "8px", backgroundColor: c.bg, border: `1px solid ${c.border}` }}>
-                    <img src={newProduct.image} alt="Preview" style={{ width: "48px", height: "48px", objectFit: "cover", borderRadius: "6px" }} />
-                    <span style={{ fontSize: "12px", color: "#10B981", fontWeight: "800" }}>✔ Image ready for catalog publish</span>
                   </div>
                 )}
               </div>
@@ -643,7 +753,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* TAB 3: PRODUCTS REQUESTED */}
+        {/* TAB 4: PRODUCTS REQUESTED */}
         {activeTab === "requested" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxWidth: "800px", margin: "0 auto" }}>
             {[
@@ -688,47 +798,6 @@ export default function AdminDashboard() {
                 </button>
               </div>
             ))}
-          </div>
-        )}
-
-        {/* REVIEWS MODAL */}
-        {reviewModalProduct && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 99999,
-              backgroundColor: "rgba(0,0,0,0.75)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "20px",
-              backdropFilter: "blur(4px)",
-            }}
-          >
-            <div style={{ width: "100%", maxWidth: "480px", backgroundColor: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "14px", padding: "24px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <h3 style={{ margin: 0, color: c.text, fontSize: "16px", fontWeight: "900" }}>
-                  Customer Reviews: {reviewModalProduct.name}
-                </h3>
-                <button onClick={() => setReviewModalProduct(null)} style={{ background: "none", border: "none", color: c.text, fontSize: "18px", cursor: "pointer" }}>✕</button>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "300px", overflowY: "auto" }}>
-                {[
-                  { user: "Kavya", rating: "⭐⭐⭐⭐⭐", comment: "Outstanding build quality and delivered in under 15 minutes." },
-                  { user: "Rahul S.", rating: "⭐⭐⭐⭐", comment: "Smooth switches, lighting presets are great." },
-                ].map((rev, i) => (
-                  <div key={i} style={{ padding: "10px", backgroundColor: c.bg, borderRadius: "8px", border: `1px solid ${c.border}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: "800", color: c.text }}>
-                      <span>{rev.user}</span>
-                      <span>{rev.rating}</span>
-                    </div>
-                    <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: c.subtext }}>{rev.comment}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         )}
 

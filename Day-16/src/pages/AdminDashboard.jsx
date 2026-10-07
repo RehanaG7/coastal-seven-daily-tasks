@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useUIStore, useAuthStore } from "../store/useStore";
 import { MOCK_CATALOG, ALL_CATEGORIES, productKeys } from "../hooks/useProducts";
 import { queryClient } from "../lib/queryClient";
@@ -14,6 +14,15 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortOption, setSortOption] = useState("default");
+
+  // Route guard: Redirect unauthenticated or non-admin users
+  useEffect(() => {
+    const role = localStorage.getItem("user_role") || (user && user.role);
+    if (!role || role !== "admin") {
+      navigate("/auth", { replace: true });
+    }
+  }, [user, navigate]);
+
 
   // Reviews modal state
   const [reviewModalProduct, setReviewModalProduct] = useState(null);
@@ -128,7 +137,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handlePublish = (e) => {
+  const handlePublish = async (e) => {
     e.preventDefault();
     if (!newProduct.name || !newProduct.price) {
       alert("Please provide product name and price.");
@@ -137,17 +146,46 @@ export default function AdminDashboard() {
     const created = {
       id: Date.now(),
       name: newProduct.name,
+      title: newProduct.name,
       price: parseFloat(newProduct.price),
       stock: parseInt(newProduct.stock || "0", 10),
       category: newProduct.category,
-      image: newProduct.image || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400",
+      image: newProduct.image || `https://picsum.photos/seed/product-${Date.now()}/400/300`,
       description: newProduct.description || "Admin catalog addition.",
     };
+
+    // 1. Post to backend SQLite database
+    try {
+      await fetch("http://127.0.0.1:8000/products/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: created.name,
+          description: created.description,
+          price: created.price,
+          stock: created.stock,
+          category: created.category,
+          owner_id: 1,
+        }),
+      });
+    } catch (err) {
+      console.warn("Backend creation fallback to local:", err);
+    }
+
+    // 2. Save in local state and localStorage
     setProducts([created, ...safeProducts]);
-    alert(`Product "${created.name}" published to catalog!`);
+    try {
+      const existing = JSON.parse(localStorage.getItem("rmart_custom_products") || "[]");
+      localStorage.setItem("rmart_custom_products", JSON.stringify([created, ...existing]));
+    } catch (err) {}
+
+    queryClient.invalidateQueries({ queryKey: ["products"] });
+
+    alert(`Product "${created.name}" published to catalog with category "${created.category}"!`);
     setNewProduct({ name: "", price: "", stock: "15", category: "Mobiles and Electronics", image: "", description: "" });
     setActiveTab("catalog");
   };
+
 
   const c = {
     bg: isDark ? "#080C14" : "#F8FAFC",

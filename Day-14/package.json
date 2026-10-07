@@ -5,6 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "backend": "uvicorn backend.main:app --reload --port 8000",
+    "seed": "python backend/seed_db.py",
+    "test": "pytest backend/tests",
+    "test:backend": "pytest backend/tests",
+    "test:lighthouse": "node scripts/run-lighthouse.mjs",
+    "audit": "node scripts/run-lighthouse.mjs",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

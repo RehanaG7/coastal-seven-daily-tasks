@@ -17,6 +17,8 @@ const ProductsPage = lazy(() => import("./pages/ProductsPage"));
 const ProductDetailPage = lazy(() => import("./pages/ProductDetailPage"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
+const CheckoutPage = lazy(() => import("./pages/CheckoutPage"));
+const OrdersPage = lazy(() => import("./pages/OrdersPage"));
 
 function PageLoader() {
   return (
@@ -109,6 +111,8 @@ function AppContent() {
             <Route path="/products/:id" element={<ProductDetailPage />} />
 
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/orders" element={<OrdersPage />} />
 
             <Route path="*" element={<Navigate to="/catalog" replace />} />
           </Routes>
@@ -122,7 +126,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppContent />
-      <ReactQueryDevtools initialIsOpen={false} />
+      {/* <ReactQueryDevtools initialIsOpen={false} /> */}
     </QueryClientProvider>
   );
 }

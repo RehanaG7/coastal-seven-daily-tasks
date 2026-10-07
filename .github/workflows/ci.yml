@@ -1,4 +1,4 @@
-﻿name: Day 15 CI Automated Test Suite
+name: E-Commerce CI Automated Test Matrix (Days 10-16)
 
 on:
   push:
@@ -7,7 +7,31 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  backend-test:
+    name: FastAPI Backend Pytest Suite (Day-10)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Backend Dependencies
+        working-directory: ./Day-10
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest httpx
+
+      - name: Run Backend Pytest Suite (21 Tests)
+        working-directory: ./Day-10
+        run: pytest -v tests
+
+  day15-frontend-test:
+    name: Day-15 TypeScript & Vitest Suite
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -28,6 +52,40 @@ jobs:
         working-directory: ./Day-15
         run: npx tsc --noEmit
 
-      - name: Run Vitest Unit & Integration Tests (with MSW)
+      - name: Run Vitest Component & MSW Tests
         working-directory: ./Day-15
         run: npx vitest run
+
+      - name: Build Production Frontend
+        working-directory: ./Day-15
+        run: npm run build
+
+  day16-frontend-test:
+    name: Day-16 Zustand, React Query & Component Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: Day-16/package.json
+
+      - name: Install Dependencies
+        working-directory: ./Day-16
+        run: npm ci || npm install
+
+      - name: Run TypeScript Type Check
+        working-directory: ./Day-16
+        run: npx tsc --noEmit
+
+      - name: Run 25 Vitest Tests
+        working-directory: ./Day-16
+        run: npx vitest run
+
+      - name: Build Production Frontend
+        working-directory: ./Day-16
+        run: npm run build

@@ -52,12 +52,12 @@ export const useCartStore = create(
                   ? { ...item, quantity: item.quantity + qty }
                   : item
               ),
-              isOpen: true,
+              isOpen: state.isOpen,
             };
           }
           return {
             cart: [...state.cart, { ...product, quantity: qty }],
-            isOpen: true,
+            isOpen: state.isOpen,
           };
         }),
 

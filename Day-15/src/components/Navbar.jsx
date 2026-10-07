@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useCartStore, useAuthStore, useUIStore } from "../store/useStore";
 
 export default function Navbar() {
-  // reactive cart count
+  const cart = useCartStore((state) => state.cart);
   const openCart = useCartStore((state) => state.openCart);
 
   const user = useAuthStore((state) => state.user);
@@ -15,7 +15,7 @@ export default function Navbar() {
   const isDark = theme === "dark";
 
   const isAdmin = user?.role === "admin";
-  const cartCount = useCartStore((state) => (state.cart || []).reduce((sum, item) => sum + (item.quantity || 1), 0));
+  const cartCount = (cart || []).reduce((acc, item) => acc + (item.quantity || 1), 0);
 
   // Notification counts
   const userNotifCount = 3; // Celery workers, Redis cache, Order confirmation

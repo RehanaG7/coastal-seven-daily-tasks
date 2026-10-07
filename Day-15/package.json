@@ -3,16 +3,20 @@
     "private":  true,
     "version":  "1.0.0",
     "type":  "module",
-    "scripts":  {
-                    "dev":  "vite",
-                    "build":  "vite build",
-                    "test":  "vitest run",
-                    "typecheck":  "tsc --noEmit",
-                    "lint":  "eslint .",
-                    "preview":  "vite preview",
-                    "test:e2e":  "playwright test",
-                    "test:ci":  "npm run typecheck \u0026\u0026 npm run test \u0026\u0026 npm run test:e2e"
-                },
+    "scripts": {
+        "dev": "vite",
+        "backend": "uvicorn backend.main:app --reload --port 8000",
+        "seed": "python backend/seed_db.py",
+        "db:show": "python show_database.py",
+        "test:backend": "pytest backend/tests",
+        "build": "vite build",
+        "test": "vitest run",
+        "typecheck": "tsc --noEmit",
+        "lint": "eslint .",
+        "preview": "vite preview",
+        "test:e2e": "playwright test",
+        "test:ci": "npm run typecheck && npm run test && npm run test:backend && npm run test:e2e"
+    },
     "dependencies":  {
                          "@hookform/resolvers":  "^5.9.1",
                          "@tailwindcss/postcss":  "^4.3.3",

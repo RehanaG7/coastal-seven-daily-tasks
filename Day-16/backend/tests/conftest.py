@@ -40,9 +40,25 @@ app.dependency_overrides[get_redis_client] = override_get_redis
 def setup_db():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+    try:
+        import redis
+        from core.config import settings
+        r = redis.Redis.from_url(settings.REDIS_URL)
+        r.flushdb()
+    except Exception:
+        pass
+    test_redis.store.clear()
+    test_redis.hashes.clear()
     yield
     Base.metadata.drop_all(bind=engine)
     engine.dispose()
+    try:
+        import redis
+        from core.config import settings
+        r = redis.Redis.from_url(settings.REDIS_URL)
+        r.flushdb()
+    except Exception:
+        pass
     if os.path.exists("./test_ecommerce.db"):
         try:
             os.remove("./test_ecommerce.db")

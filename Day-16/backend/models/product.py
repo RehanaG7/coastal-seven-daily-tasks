@@ -12,3 +12,4 @@ class Product(Base):
     price: Any = Column(Float, nullable=False)
     stock: Any = Column(Integer, nullable=False, default=0)
     image_url: Any = Column(String, nullable=True)
+    category: Any = Column(String, nullable=True, default="General")

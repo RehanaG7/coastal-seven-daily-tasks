@@ -1,7 +1,6 @@
-﻿import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { queryClient } from "./lib/queryClient";
 
 import Navbar from "./components/Navbar";
@@ -35,7 +34,7 @@ function PageLoader() {
         fontSize: "14px",
       }}
     >
-      <div style={{ fontSize: "28px" }}>⚡</div>
+      <div style={{ fontSize: "28px" }}>?</div>
       <div>Loading R-Mart...</div>
     </div>
   );
@@ -125,7 +124,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppContent />
-      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 }
+

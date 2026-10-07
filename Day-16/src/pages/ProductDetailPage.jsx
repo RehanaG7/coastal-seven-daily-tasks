@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useCartStore, useAuthStore, useUIStore } from "../store/useStore";
-import { MOCK_CATALOG } from "../hooks/useProducts";
 import Footer from "../components/Footer";
+
+const API_BASE_URL = "http://127.0.0.1:8000";
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -11,14 +12,17 @@ export default function ProductDetailPage() {
   const addToCart = useCartStore((s) => s.addToCart);
   const openCart = useCartStore((s) => s.openCart);
   const toggleWishlist = useCartStore((s) => s.toggleWishlist);
-  const isWishlisted = useCartStore((s) => s.isWishlisted(Number(id)));
+  const isWishlisted = useCartStore((s) => s.isWishlisted ? s.isWishlisted(Number(id)) : false);
 
   const user = useAuthStore((s) => s.user);
   const theme = useUIStore((s) => s.theme);
   const isDark = theme === "dark";
 
   const [qty, setQty] = useState(1);
-  const [activeTab, setActiveTab] = useState("reviews"); // default to reviews as requested
+  const [activeTab, setActiveTab] = useState("reviews"); // "reviews" | "specs"
+
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   // Customer Reviews State
   const [reviews, setReviews] = useState([
@@ -29,10 +33,53 @@ export default function ProductDetailPage() {
   const [newReviewText, setNewReviewText] = useState("");
   const [newReviewAuthor, setNewReviewAuthor] = useState("");
 
-  const targetId = Number(id);
-  const customProducts = JSON.parse(localStorage.getItem("rmart_custom_products") || "[]");
-  const fullCatalog = [...customProducts, ...MOCK_CATALOG];
-  const product = fullCatalog.find((p) => p.id === targetId || String(p.id) === String(id));
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchProduct() {
+      setLoading(true);
+
+      // 1. Check local manually added products
+      try {
+        const localList = JSON.parse(localStorage.getItem("rmart_custom_products") || "[]");
+        const foundLocal = localList.find((p) => String(p.id) === String(id));
+        if (foundLocal && isMounted) {
+          setProduct(foundLocal);
+          setLoading(false);
+          return;
+        }
+      } catch (e) {}
+
+      // 2. Fetch from backend API
+      try {
+        const res = await fetch(`${API_BASE_URL}/products/${id}`);
+        if (res.ok) {
+          const item = await res.json();
+          if (isMounted) {
+            setProduct({
+              id: item.id,
+              name: item.name || item.title,
+              title: item.name || item.title,
+              price: Number(item.price),
+              stock: item.stock ?? 10,
+              category: item.category || "General",
+              description: item.description || "High-quality premium item available on R-Mart.",
+              image: item.image_url || item.image || `https://picsum.photos/seed/product-${item.id}/400/300`,
+            });
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Could not load from backend:", e);
+      }
+
+      if (isMounted) setLoading(false);
+    }
+
+    fetchProduct();
+    return () => { isMounted = false; };
+  }, [id]);
 
   const c = {
     bg: isDark ? "#000000" : "#F8FAFC",
@@ -43,6 +90,15 @@ export default function ProductDetailPage() {
     btnBg: isDark ? "#0B0F19" : "#FFFFFF",
     btnText: isDark ? "#FFFFFF" : "#0F172A",
   };
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "80vh", backgroundColor: c.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ fontSize: "28px", color: "#38BDF8", marginBottom: "12px" }}>⚡</div>
+        <p style={{ color: c.text, fontWeight: "800", fontSize: "16px" }}>Loading Product Details...</p>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -65,13 +121,12 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     addToCart(product, qty);
-    openCart();
+    if (openCart) openCart();
   };
 
-  // Immediate "PLACE ORDER" (Buy Now)
   const handlePlaceOrderNow = () => {
     addToCart(product, qty);
-    openCart();
+    navigate("/checkout");
   };
 
   const handleAddReview = (e) => {
@@ -129,7 +184,14 @@ export default function ProductDetailPage() {
           {/* Left: Product Image & Badges */}
           <div>
             <div style={{ width: "100%", height: "400px", backgroundColor: "#1E293B", borderRadius: "16px", overflow: "hidden", position: "relative" }}>
-              <img src={product.image} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img
+                src={product.image || `https://picsum.photos/seed/product-${product.id}/500/400`}
+                alt={product.name}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                onError={(e) => {
+                  e.currentTarget.src = `https://picsum.photos/seed/product-${product.id}/500/400`;
+                }}
+              />
               
               {(isStockout || isLowStock) && (
                 <span
@@ -150,27 +212,29 @@ export default function ProductDetailPage() {
               )}
 
               {/* Wishlist Heart Icon */}
-              <button
-                onClick={() => toggleWishlist(product)}
-                style={{
-                  position: "absolute",
-                  top: "14px",
-                  right: "14px",
-                  width: "42px",
-                  height: "42px",
-                  borderRadius: "50%",
-                  backgroundColor: isWishlisted ? "#DC2626" : "rgba(15, 23, 42, 0.75)",
-                  border: `1px solid ${isWishlisted ? "#EF4444" : "rgba(255,255,255,0.2)"}`,
-                  color: "#FFF",
-                  fontSize: "18px",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {isWishlisted ? "❤️" : "🤍"}
-              </button>
+              {!isAdmin && (
+                <button
+                  onClick={() => toggleWishlist && toggleWishlist(product)}
+                  style={{
+                    position: "absolute",
+                    top: "14px",
+                    right: "14px",
+                    width: "42px",
+                    height: "42px",
+                    borderRadius: "50%",
+                    backgroundColor: isWishlisted ? "#DC2626" : "rgba(15, 23, 42, 0.75)",
+                    border: `1px solid ${isWishlisted ? "#EF4444" : "rgba(255,255,255,0.2)"}`,
+                    color: "#FFF",
+                    fontSize: "18px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {isWishlisted ? "❤️" : "🤍"}
+                </button>
+              )}
             </div>
 
             {/* Trust Callouts */}
@@ -216,6 +280,7 @@ export default function ProductDetailPage() {
             {/* TAB SELECTOR: REVIEWS & SPECS */}
             <div style={{ display: "flex", gap: "12px", borderBottom: `1px solid ${c.border}`, marginBottom: "16px" }}>
               <button
+                type="button"
                 onClick={() => setActiveTab("reviews")}
                 style={{
                   background: "none",
@@ -231,6 +296,7 @@ export default function ProductDetailPage() {
                 Customer Reviews ({reviews.length})
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab("specs")}
                 style={{
                   background: "none",
@@ -249,26 +315,63 @@ export default function ProductDetailPage() {
 
             {/* TAB CONTENT: REVIEWS */}
             {activeTab === "reviews" ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "24px", maxHeight: "200px", overflowY: "auto" }}>
-                {reviews.map((r) => (
-                  <div key={r.id} style={{ fontSize: "12px", padding: "10px 14px", borderRadius: "10px", backgroundColor: isDark ? "#1E293B" : "#F1F5F9" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                      <span style={{ fontWeight: "900", color: c.text }}>{r.author} (⭐⭐⭐⭐⭐)</span>
-                      <span style={{ color: c.sub, fontSize: "11px" }}>{r.date}</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "24px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "180px", overflowY: "auto" }}>
+                  {reviews.map((r) => (
+                    <div key={r.id} style={{ fontSize: "12px", padding: "10px 14px", borderRadius: "10px", backgroundColor: isDark ? "#1E293B" : "#F1F5F9" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                        <span style={{ fontWeight: "900", color: c.text }}>{r.author} (⭐⭐⭐⭐⭐)</span>
+                        <span style={{ color: c.sub, fontSize: "11px" }}>{r.date}</span>
+                      </div>
+                      <div style={{ color: c.sub }}>{r.text}</div>
                     </div>
-                    <div style={{ color: c.sub }}>{r.text}</div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+
+                {/* Add Review Input Form */}
+                <form onSubmit={handleAddReview} style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                  <input
+                    type="text"
+                    placeholder="Write a quick review..."
+                    value={newReviewText}
+                    onChange={(e) => setNewReviewText(e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      border: `1px solid ${c.border}`,
+                      backgroundColor: isDark ? "#1E293B" : "#F1F5F9",
+                      color: c.text,
+                      fontSize: "12px",
+                      outline: "none",
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    style={{
+                      backgroundColor: "#38BDF8",
+                      color: "#030712",
+                      border: "none",
+                      padding: "8px 14px",
+                      borderRadius: "8px",
+                      fontWeight: "800",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Post Review
+                  </button>
+                </form>
               </div>
             ) : (
               <div style={{ fontSize: "13px", color: c.sub, display: "flex", flexDirection: "column", gap: "8px", marginBottom: "24px" }}>
                 <div>• <strong>Warranty:</strong> 1 Year Brand Replacement Warranty</div>
-                <div>• <strong>Dispatch:</strong> Automated Micro-Warehouse Rapid Logistics</div>
-                <div>• <strong>Returns:</strong> 7-Day Hassle-Free Return Policy</div>
+                <div>• <strong>Dispatch:</strong> Automated Rapid Micro-Warehouse Logistics</div>
+                <div>• <strong>Returns:</strong> 7-Day Hassle-Free Instant Replacement / Return</div>
               </div>
             )}
 
-            {/* ACTION ROW: ROLE BASED (USERS: CART & BUY NOW, ADMIN: INVENTORY CONTROLS) */}
+            {/* ACTION ROW: ROLE BASED */}
             <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: "12px" }}>
               {isAdmin ? (
                 <div
@@ -284,14 +387,14 @@ export default function ProductDetailPage() {
                 >
                   <div>
                     <div style={{ fontSize: "14px", fontWeight: "900", color: "#F59E0B" }}>
-                      🛡️ Admin Mode (No Cart Option)
+                      🛡️ Admin Mode (Inventory View)
                     </div>
                     <div style={{ fontSize: "12px", color: "#94A3B8", marginTop: "2px" }}>
                       Current Stock: <strong style={{ color: "#FFF" }}>{product.stock}</strong> units
                     </div>
                   </div>
                   <button
-                    onClick={() => navigate("/catalog")}
+                    onClick={() => navigate("/admin")}
                     style={{
                       backgroundColor: "#0B0F19",
                       color: "#FFFFFF",
@@ -303,7 +406,7 @@ export default function ProductDetailPage() {
                       cursor: "pointer",
                     }}
                   >
-                    ← Back to Catalog
+                    Admin Dashboard →
                   </button>
                 </div>
               ) : (
@@ -312,6 +415,7 @@ export default function ProductDetailPage() {
                   {!isStockout && (
                     <div style={{ display: "flex", alignItems: "center", border: `1px solid ${c.border}`, borderRadius: "10px", overflow: "hidden" }}>
                       <button
+                        type="button"
                         onClick={() => setQty(Math.max(1, qty - 1))}
                         style={{ width: "40px", height: "46px", background: "none", border: "none", color: c.text, fontWeight: "900", cursor: "pointer", fontSize: "16px" }}
                       >
@@ -321,7 +425,8 @@ export default function ProductDetailPage() {
                         {qty}
                       </span>
                       <button
-                        onClick={() => setQty(Math.min(product.stock, qty + 1))}
+                        type="button"
+                        onClick={() => setQty(Math.min(product.stock || 99, qty + 1))}
                         style={{ width: "40px", height: "46px", background: "none", border: "none", color: c.text, fontWeight: "900", cursor: "pointer", fontSize: "16px" }}
                       >
                         +
@@ -331,6 +436,7 @@ export default function ProductDetailPage() {
 
                   {/* ADD TO CART */}
                   <button
+                    type="button"
                     onClick={handleAddToCart}
                     disabled={isStockout}
                     style={{
@@ -356,6 +462,7 @@ export default function ProductDetailPage() {
 
                   {/* PLACE ORDER (BUY NOW) */}
                   <button
+                    type="button"
                     onClick={handlePlaceOrderNow}
                     disabled={isStockout}
                     style={{
@@ -387,7 +494,7 @@ export default function ProductDetailPage() {
 
       </div>
 
-      {/* Footer with Copyrights & Guarantees */}
+      {/* Footer */}
       <div style={{ marginTop: "60px", marginInline: "-24px", marginBottom: "-80px" }}>
         <Footer />
       </div>

@@ -2,17 +2,8 @@
 
 test.describe("R-MART Complete End-to-End User Experience", () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-      window.localStorage.setItem("rmart_skip_intro", "true");
-    });
-
-    await page.goto("http://localhost:5173/catalog");
-    await page.waitForLoadState("networkidle");
-
-    const loadingElem = page.locator("text=Loading R-Mart...");
-    if (await loadingElem.isVisible().catch(() => false)) {
-      await loadingElem.waitFor({ state: "detached", timeout: 5000 }).catch(() => {});
-    }
+    await page.goto("/catalog");
+    await page.waitForLoadState("domcontentloaded");
   });
 
   test("Critical User Journey 1: Catalog browsing & real-time search filtering", async ({ page }) => {
@@ -20,53 +11,45 @@ test.describe("R-MART Complete End-to-End User Experience", () => {
 
     const productCards = page.locator("[data-testid^='product-card-']");
     await expect(productCards.first()).toBeVisible({ timeout: 10000 });
-    const initialCount = await productCards.count();
-    expect(initialCount).toBeGreaterThan(0);
 
-    const searchInput = page.locator("input[placeholder*='Search']").first();
-    if (await searchInput.isVisible().catch(() => false)) {
+    const searchInput = page.locator("input[placeholder*='Search']");
+    if (await searchInput.isVisible()) {
       await searchInput.fill("Gaming");
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(300);
       const filteredCards = page.locator("[data-testid^='product-card-']");
-      expect(await filteredCards.count()).toBeLessThanOrEqual(initialCount);
+      const count = await filteredCards.count();
+      expect(count).toBeGreaterThanOrEqual(1);
     }
   });
 
   test("Critical User Journey 2: Add to cart, reactive badge, and cart drawer interaction", async ({ page }) => {
-    const firstCard = page.locator("[data-testid^='product-card-']").first();
-    await expect(firstCard).toBeVisible({ timeout: 10000 });
-
-    const addBtn = firstCard.locator("button:has-text('Add to Cart')");
-    await expect(addBtn).toBeVisible();
+    const addBtn = page.locator("button:has-text('Add to Cart')").first();
+    await expect(addBtn).toBeVisible({ timeout: 15000 });
     await addBtn.click({ force: true });
 
-    const cartBadge = page.locator("header button:has-text('Cart') span:has-text('1')");
-    await expect(cartBadge).toBeVisible({ timeout: 7000 });
+    const cartBadge = page.locator("header button:has-text('Cart')");
+    await expect(cartBadge).toBeVisible();
+    await expect(cartBadge).toContainText(/1/);
 
-    const cartButton = page.locator("header button:has-text('Cart')");
-    await cartButton.click({ force: true });
-
-    const drawerIndicator = page.locator("text=Your Cart").or(page.locator("text=Cart")).or(page.locator("text=Checkout"));
-    await expect(drawerIndicator.first()).toBeVisible({ timeout: 7000 });
+    await cartBadge.click();
+    const cartDrawer = page.locator("aside, [role='dialog'], [data-testid='cart-drawer']").first();
+    await expect(cartDrawer).toBeVisible({ timeout: 5000 });
   });
 
   test("Critical User Journey 3: Full checkout transition & order placement preview", async ({ page }) => {
-    const firstCard = page.locator("[data-testid^='product-card-']").first();
-    await expect(firstCard).toBeVisible({ timeout: 10000 });
-    await firstCard.locator("button:has-text('Add to Cart')").click({ force: true });
+    const addBtn = page.locator("button:has-text('Add to Cart')").first();
+    await expect(addBtn).toBeVisible({ timeout: 15000 });
+    await addBtn.click({ force: true });
 
     const cartButton = page.locator("header button:has-text('Cart')");
-    await cartButton.click({ force: true });
+    await cartButton.click();
 
-    const checkoutBtn = page.locator("button:has-text('Checkout')").or(page.locator("a:has-text('Checkout')")).first();
-    if (await checkoutBtn.isVisible().catch(() => false)) {
-      await checkoutBtn.click({ force: true });
-      await page.waitForLoadState("domcontentloaded");
+    const checkoutBtn = page.locator("button:has-text('Proceed to Checkout'), a:has-text('Checkout'), button:has-text('Checkout')").first();
+    await expect(checkoutBtn).toBeVisible();
+    await checkoutBtn.click();
 
-      // Target the specific Order Summary heading
-      const summaryHeading = page.getByRole("heading", { name: "Order Summary" });
-      await expect(summaryHeading).toBeVisible({ timeout: 7000 });
-    }
+    await page.waitForURL(/\/checkout/, { timeout: 7000 });
+    await expect(page.getByRole("heading", { name: "Order Summary" })).toBeVisible({ timeout: 5000 });
   });
 
   test("Critical User Journey 4: UI personalization & dark/light theme switching", async ({ page }) => {
@@ -75,6 +58,9 @@ test.describe("R-MART Complete End-to-End User Experience", () => {
 
     const initialText = await themeBtn.innerText();
     await themeBtn.click({ force: true });
-    await expect(themeBtn).not.toHaveText(initialText);
+    await page.waitForTimeout(300);
+
+    const updatedText = await themeBtn.innerText();
+    expect(initialText).not.toBe(updatedText);
   });
 });

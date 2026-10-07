@@ -30,7 +30,7 @@ export default function AuthPage() {
         if (parsed.name) setName(parsed.name);
         if (parsed.role) {
           setRole(parsed.role);
-          if (parsed.role === "admin") setAdminPasscode("ADMIN-2026");
+          
         }
         setIsRegister(false); // default to login mode
         setAutoFilled(true);
@@ -61,11 +61,12 @@ export default function AuthPage() {
 
     const cleanEmail = email.trim().toLowerCase();
     const finalName = name.trim() || cleanEmail.split("@")[0];
+    const finalRole = (role === "admin" || adminPasscode.trim() === "ADMIN-2026") ? "admin" : "customer";
 
     const authenticatedUser = {
       name: finalName,
       email: cleanEmail,
-      role: role,
+      role: finalRole,
     };
 
     // Save credentials to localStorage if checked
@@ -77,19 +78,19 @@ export default function AuthPage() {
             name: finalName,
             email: cleanEmail,
             password: password,
-            role: role,
+            role: finalRole,
           })
         );
       } catch (err) {}
     }
 
-    const token = `rmart_jwt_${role}_${Date.now()}`;
+    const token = `rmart_jwt_${finalRole}_${Date.now()}`;
     setUser(authenticatedUser, token);
 
     // Flow Routing:
     // If Admin -> Redirection to /admin
     // If User -> Launch Full-Screen Cinematic Animation and go to /catalog!
-    if (role === "admin") {
+    if (finalRole === "admin") {
       localStorage.setItem("user_role", "admin");
       navigate("/admin");
     } else {
@@ -396,6 +397,7 @@ export default function AuthPage() {
             </label>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
               <label
+                onClick={() => setRole("user")}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -423,6 +425,7 @@ export default function AuthPage() {
               </label>
 
               <label
+                onClick={() => setRole("admin")}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -443,10 +446,7 @@ export default function AuthPage() {
                   name="role"
                   value="admin"
                   checked={role === "admin"}
-                  onChange={() => {
-                    setRole("admin");
-                    if (!adminPasscode) setAdminPasscode("ADMIN-2026");
-                  }}
+                  onChange={() => setRole("admin")}
                   style={{ display: "none" }}
                 />
                 <span>🛡️ Admin</span>
@@ -500,7 +500,7 @@ export default function AuthPage() {
               </div>
               <input
                 type="text"
-                placeholder="Enter ADMIN-2026"
+                placeholder="Enter admin passcode"
                 value={adminPasscode}
                 onChange={(e) => setAdminPasscode(e.target.value)}
                 style={{
@@ -518,7 +518,7 @@ export default function AuthPage() {
                 }}
               />
               <div style={{ fontSize: "11px", color: c.subtext, marginTop: "6px" }}>
-                Enter passcode <strong>ADMIN-2026</strong> to unlock the Admin control dashboard and management suite.
+                Enter your admin passcode to unlock the Admin control dashboard.
               </div>
             </div>
           )}
@@ -552,54 +552,7 @@ export default function AuthPage() {
           </button>
         </form>
 
-        {/* Quick Demo Pre-fill */}
-        <div style={{ marginTop: "24px", paddingTop: "18px", borderTop: `1px solid ${c.border}`, textAlign: "center" }}>
-          <span style={{ fontSize: "11px", color: c.subtext, fontWeight: "700" }}>Quick Demo Test: </span>
-          <button
-            type="button"
-            onClick={() => {
-              setEmail("shopper@rmart.com");
-              setPassword("pass123");
-              setName("Rehana Shaik");
-              setRole("user");
-              setAdminPasscode("");
-            }}
-            style={{
-              background: "none",
-              border: "none",
-              color: "#38BDF8",
-              fontSize: "11px",
-              fontWeight: "800",
-              cursor: "pointer",
-              textDecoration: "underline",
-              marginRight: "10px",
-            }}
-          >
-            Fill Customer
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setEmail("admin@rmart.com");
-              setPassword("admin123");
-              setName("Store Manager");
-              setRole("admin");
-              setAdminPasscode("ADMIN-2026");
-            }}
-            style={{
-              background: "none",
-              border: "none",
-              color: "#F59E0B",
-              fontSize: "11px",
-              fontWeight: "800",
-              cursor: "pointer",
-              textDecoration: "underline",
-            }}
-          >
-            Fill Admin (ADMIN-2026)
-          </button>
-        </div>
-      </div>
-    </div>
+        </div></div>
   );
 }
+

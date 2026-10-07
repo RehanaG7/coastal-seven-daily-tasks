@@ -139,6 +139,9 @@ export default function CartDrawer({ isOpen, onClose }) {
 
   return (
     <div
+      data-testid="cart-drawer"
+      role="dialog"
+      aria-modal="true"
       style={{
         position: "fixed",
         inset: 0,
@@ -953,7 +956,7 @@ export default function CartDrawer({ isOpen, onClose }) {
               {step === "cart" && (
                 <button
                   disabled={cart.length === 0}
-                  onClick={handleProceedToAddress}
+                  onClick={() => { handleClose(); navigate("/checkout"); }}
                   style={{
                     backgroundColor: cart.length === 0 ? "#64748B" : c.primary,
                     color: "#030712",

@@ -114,7 +114,6 @@ async def get_async_redis() -> Any:
         r = aioredis.from_url(
             settings.REDIS_URL,
             decode_responses=True,
-            protocol=2,
             socket_connect_timeout=1,
         )
         await r.ping()

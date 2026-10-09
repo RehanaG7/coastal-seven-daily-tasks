@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from core.config import settings
 from core.database import get_db, engine
+from core.redis import get_async_redis
 from models.user import User
 from models.product import Product
 from models.order import Order, OrderItem
@@ -229,7 +230,7 @@ def admin_websocket_page():
 async def websocket_client_order_tracking(websocket: WebSocket, order_id: int):
     """Client WebSocket: Listens to Celery fulfillment progress for a specific order."""
     await websocket.accept()
-    r = aioredis.from_url(settings.REDIS_URL, protocol=2)
+    r = await get_async_redis()
     pubsub = r.pubsub()
     channel = f"order_updates_{order_id}"
     await pubsub.subscribe(channel)
@@ -243,24 +244,39 @@ async def websocket_client_order_tracking(websocket: WebSocket, order_id: int):
         while True:
             msg = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
             if msg and msg.get("type") == "message":
-                payload = json.loads(msg["data"].decode("utf-8"))
+                raw_data = msg["data"]
+                if isinstance(raw_data, bytes):
+                    raw_data = raw_data.decode("utf-8")
+                payload = json.loads(raw_data) if isinstance(raw_data, str) else raw_data
                 await websocket.send_json(payload)
-                if payload.get("status") == "DELIVERED":
+                if isinstance(payload, dict) and payload.get("status") == "DELIVERED":
                     break
             await asyncio.sleep(0.1)
     except WebSocketDisconnect:
         pass
     finally:
-        await pubsub.unsubscribe(channel)
-        await r.close()
-        await websocket.close()
+        try:
+            await pubsub.unsubscribe(channel)
+        except Exception:
+            pass
+        try:
+            if hasattr(r, "aclose"):
+                await r.aclose()
+            elif hasattr(r, "close"):
+                await r.close()
+        except Exception:
+            pass
+        try:
+            await websocket.close()
+        except Exception:
+            pass
 
 
 @app.websocket("/ws/admin/products")
 async def websocket_admin_product_feed(websocket: WebSocket):
     """Admin WebSocket: Broadcasts real-time events whenever products are created, updated, or images uploaded."""
     await websocket.accept()
-    r = aioredis.from_url(settings.REDIS_URL, protocol=2)
+    r = await get_async_redis()
     pubsub = r.pubsub()
     channel = "admin_product_updates"
     await pubsub.subscribe(channel)
@@ -274,12 +290,27 @@ async def websocket_admin_product_feed(websocket: WebSocket):
         while True:
             msg = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
             if msg and msg.get("type") == "message":
-                payload = json.loads(msg["data"].decode("utf-8"))
+                raw_data = msg["data"]
+                if isinstance(raw_data, bytes):
+                    raw_data = raw_data.decode("utf-8")
+                payload = json.loads(raw_data) if isinstance(raw_data, str) else raw_data
                 await websocket.send_json(payload)
             await asyncio.sleep(0.1)
     except WebSocketDisconnect:
         pass
     finally:
-        await pubsub.unsubscribe(channel)
-        await r.close()
-        await websocket.close()
+        try:
+            await pubsub.unsubscribe(channel)
+        except Exception:
+            pass
+        try:
+            if hasattr(r, "aclose"):
+                await r.aclose()
+            elif hasattr(r, "close"):
+                await r.close()
+        except Exception:
+            pass
+        try:
+            await websocket.close()
+        except Exception:
+            pass

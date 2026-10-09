@@ -7,6 +7,7 @@
     "dev": "vite",
     "backend": "uvicorn backend.main:app --reload --port 8000",
     "seed": "python backend/seed_db.py",
+    "db:show": "python show_database.py",
     "test": "pytest backend/tests",
     "test:backend": "pytest backend/tests",
     "test:lighthouse": "node scripts/run-lighthouse.mjs",

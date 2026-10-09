@@ -71,7 +71,7 @@ export default function LiveChatModal({ isOpen, onClose, roomId = "general", ini
   const { status, isConnected, sendMessage, reconnectAttempts } = useWebSocket(
     wsUrl,
     {
-      autoConnect: true,
+      autoConnect: Boolean(isOpen && user),
       reconnect: true,
       maxReconnectAttempts: 5,
       baseDelay: 1000,

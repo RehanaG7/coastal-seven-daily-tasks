@@ -23,7 +23,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   const { status, lastMessage, isConnected, reconnectAttempts } = useWebSocket(
     wsUrl,
     {
-      autoConnect: true,
+      autoConnect: Boolean(user),
       reconnect: true,
       maxReconnectAttempts: 5,
       baseDelay: 1000,

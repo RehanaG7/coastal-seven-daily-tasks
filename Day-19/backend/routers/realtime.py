@@ -296,6 +296,7 @@ async def ws_live_support_chat(
     websocket: WebSocket,
     room_id: str,
     role: str = Query("customer"),
+    token: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
     """
@@ -426,7 +427,7 @@ async def ws_live_support_chat(
             await manager.broadcast_admin_status(room_id)
 
 @router.websocket("/ws/notifications")
-async def ws_global_notifications(websocket: WebSocket):
+async def ws_global_notifications(websocket: WebSocket, token: Optional[str] = Query(None)):
     """
     Real-Time Notifications: Broadcasts live system events, order changes & announcements.
     """

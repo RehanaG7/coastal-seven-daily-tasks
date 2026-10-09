@@ -48,8 +48,21 @@ export default function AuthPage() {
     setError("");
     setFieldErrors({});
 
-    // Validate required fields
-    if (!isRegister && (!email.trim() || !password)) {
+    const now = Date.now();
+
+    // 1. Check Rate Limiter on Login attempts (Blocked on 4th attempt)
+    if (!isRegister) {
+      const attemptData = JSON.parse(localStorage.getItem("rmart_login_attempts") || '{"count": 0, "lastTime": 0}');
+      const currentAttempts = (now - attemptData.lastTime < 60000) ? attemptData.count : 0;
+      if (currentAttempts >= 3) {
+        setError("Rate limit exceeded: 3 attempts per 1 minute. Please slow down and wait 60 seconds.");
+        setFieldErrors({ general: "Rate limit exceeded: 3 per 1 minute. Please slow down." });
+        return;
+      }
+    }
+
+    // 2. Validate required fields
+    if (!email.trim() || !password) {
       setError("Please fill in both email and password.");
       setFieldErrors({
         email: "Please fill in both email and password.",
@@ -58,23 +71,20 @@ export default function AuthPage() {
       return;
     }
 
-    if (isRegister) {
-      if (!name.trim()) {
-        setError("Please provide your name to register.");
-        setFieldErrors({ name: "Please provide your name to register." });
-        return;
-      }
-      if (!email.trim() || !password) {
-        setError("Please fill in both email and password.");
-        setFieldErrors({
-          email: "Please fill in both email and password.",
-          password: "Please fill in both email and password.",
-        });
-        return;
-      }
+    // 3. Strict 8-character password requirement
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long.");
+      setFieldErrors({ password: "Password must be at least 8 characters long." });
+      return;
     }
 
-    // Zod Schema Validation
+    if (isRegister && !name.trim()) {
+      setError("Please provide your name to register.");
+      setFieldErrors({ name: "Please provide your name to register." });
+      return;
+    }
+
+    // 4. Zod Schema Validation
     const formData = isRegister
       ? { name, email, password, role, adminPasscode }
       : { email, password, role, adminPasscode };
@@ -96,7 +106,36 @@ export default function AuthPage() {
 
     const cleanEmail = email.trim().toLowerCase();
     const finalName = name.trim() || cleanEmail.split("@")[0];
-    const finalRole = (role === "admin" || adminPasscode.trim() === "ADMIN-2026") ? "admin" : "customer";
+    const finalRole = (role === "admin" || (adminPasscode && adminPasscode.trim() === "ADMIN-2026")) ? "admin" : "customer";
+
+    // 5. Verification on Login: Password must match registered password!
+    if (!isRegister) {
+      const usersRegistry = JSON.parse(localStorage.getItem("rmart_registered_users") || "[]");
+      const singleUser = JSON.parse(localStorage.getItem("rmart_registered_user") || "null");
+      if (singleUser && !usersRegistry.some((u) => u.email === singleUser.email)) {
+        usersRegistry.push(singleUser);
+      }
+
+      const existingUser = usersRegistry.find((u) => u.email === cleanEmail);
+      if (existingUser && existingUser.password !== password) {
+        const attemptData = JSON.parse(localStorage.getItem("rmart_login_attempts") || '{"count": 0, "lastTime": 0}');
+        let currentAttempts = (now - attemptData.lastTime < 60000) ? attemptData.count : 0;
+        currentAttempts += 1;
+        localStorage.setItem("rmart_login_attempts", JSON.stringify({ count: currentAttempts, lastTime: now }));
+
+        if (currentAttempts >= 3) {
+          setError("Rate limit exceeded: 3 per 1 minute. Please slow down and wait 60 seconds.");
+          setFieldErrors({ general: "Rate limit exceeded: 3 per 1 minute." });
+        } else {
+          setError(`Incorrect password! Password does not match registered account (Attempt ${currentAttempts} of 3).`);
+          setFieldErrors({ password: "Password does not match registered account." });
+        }
+        return;
+      }
+
+      // Successful login resets rate limit counter
+      localStorage.removeItem("rmart_login_attempts");
+    }
 
     const authenticatedUser = {
       name: finalName,
@@ -104,9 +143,19 @@ export default function AuthPage() {
       role: finalRole,
     };
 
-    // Save credentials to localStorage if checked
-    if (saveCredentials) {
+    // 6. Save to Registered Users Registry
+    if (isRegister || saveCredentials) {
       try {
+        const usersRegistry = JSON.parse(localStorage.getItem("rmart_registered_users") || "[]");
+        const filtered = usersRegistry.filter((u) => u.email !== cleanEmail);
+        filtered.push({
+          name: finalName,
+          email: cleanEmail,
+          password: password,
+          role: finalRole,
+        });
+        localStorage.setItem("rmart_registered_users", JSON.stringify(filtered));
+
         localStorage.setItem(
           "rmart_registered_user",
           JSON.stringify({
@@ -518,42 +567,30 @@ export default function AuthPage() {
                   }}
                 >
                   <span>🔑</span>
-                  <span>Admin Passcode (Required)</span>
+                  <span>Admin Secret Passcode (Required)</span>
                 </label>
-                <span
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: "800",
-                    color: "#F59E0B",
-                    backgroundColor: "rgba(245, 158, 11, 0.15)",
-                    padding: "2px 6px",
-                    borderRadius: "4px",
-                  }}
-                >
-                  ADMIN-2026
-                </span>
               </div>
               <input
-                type="text"
-                placeholder="Enter admin passcode"
+                type="password"
+                placeholder="••••••••"
                 value={adminPasscode}
                 onChange={(e) => setAdminPasscode(e.target.value)}
                 style={{
                   width: "100%",
                   padding: "11px 13px",
                   borderRadius: "8px",
-                  border: `2px solid ${adminPasscode === "ADMIN-2026" ? "#10B981" : "#F59E0B"}`,
+                  border: `2px solid ${adminPasscode ? "#38BDF8" : "#F59E0B"}`,
                   backgroundColor: c.inputBg,
                   color: c.text,
-                  fontSize: "13px",
+                  fontSize: "14px",
                   fontWeight: "800",
                   outline: "none",
                   boxSizing: "border-box",
-                  letterSpacing: "1px",
+                  letterSpacing: "2px",
                 }}
               />
               <div style={{ fontSize: "11px", color: c.subtext, marginTop: "6px" }}>
-                Enter your admin passcode to unlock the Admin control dashboard.
+                Enter your confidential administrative authorization key.
               </div>
             </div>
           )}

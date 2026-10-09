@@ -228,8 +228,21 @@ export function useWebSocket(url, options = {}) {
       isManuallyClosedRef.current = true;
       clearTimers();
       if (socketRef.current) {
+        const ws = socketRef.current;
+        socketRef.current = null;
         try {
-          socketRef.current.close(1000, "Component unmounted");
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.close(1000, "Component unmounted");
+          } else if (ws.readyState === WebSocket.CONNECTING) {
+            ws.onclose = null;
+            ws.onerror = null;
+            ws.onmessage = null;
+            ws.onopen = () => {
+              try {
+                ws.close(1000, "Component unmounted after handshake");
+              } catch (e) {}
+            };
+          }
         } catch (e) {
           // Ignored
         }

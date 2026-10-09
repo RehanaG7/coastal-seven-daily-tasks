@@ -64,11 +64,11 @@ def login_for_access_token(request: Request, form_data: OAuth2PasswordRequestFor
     return {"access_token": token, "token_type": "bearer", "role": user.role}
 
 @router.post("/login", response_model=TokenResponse)
-@limiter.limit("100/minute")
+@limiter.limit("3/minute")
 def login(request: Request, credentials: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == credentials.email).first()
     if not user or not verify_password(credentials.password, user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password or email")
     
     token = create_access_token(data={"sub": user.email, "role": user.role})
     return {"access_token": token, "token_type": "bearer", "role": user.role}

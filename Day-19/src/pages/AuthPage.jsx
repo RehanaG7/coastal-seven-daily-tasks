@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuthStore, useUIStore } from "../store/useStore";
 
 import { loginSchema, registerSchema } from "../schemas/authSchema";
+import { authService } from "../api/authService";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -43,25 +44,12 @@ export default function AuthPage() {
     }
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     setError("");
     setFieldErrors({});
 
-    const now = Date.now();
-
-    // 1. Check Rate Limiter on Login attempts (Blocked on 4th attempt)
-    if (!isRegister) {
-      const attemptData = JSON.parse(localStorage.getItem("rmart_login_attempts") || '{"count": 0, "lastTime": 0}');
-      const currentAttempts = (now - attemptData.lastTime < 60000) ? attemptData.count : 0;
-      if (currentAttempts >= 3) {
-        setError("Rate limit exceeded: 3 attempts per 1 minute. Please slow down and wait 60 seconds.");
-        setFieldErrors({ general: "Rate limit exceeded: 3 per 1 minute. Please slow down." });
-        return;
-      }
-    }
-
-    // 2. Validate required fields
+    // 1. Validate required fields
     if (!email.trim() || !password) {
       setError("Please fill in both email and password.");
       setFieldErrors({
@@ -71,7 +59,7 @@ export default function AuthPage() {
       return;
     }
 
-    // 3. Strict 8-character password requirement
+    // 2. Strict 8-character password requirement
     if (password.length < 8) {
       setError("Password must be at least 8 characters long.");
       setFieldErrors({ password: "Password must be at least 8 characters long." });
@@ -84,7 +72,7 @@ export default function AuthPage() {
       return;
     }
 
-    // 4. Zod Schema Validation
+    // 3. Zod Schema Validation
     const formData = isRegister
       ? { name, email, password, role, adminPasscode }
       : { email, password, role, adminPasscode };
@@ -108,33 +96,57 @@ export default function AuthPage() {
     const finalName = name.trim() || cleanEmail.split("@")[0];
     const finalRole = (role === "admin" || (adminPasscode && adminPasscode.trim() === "ADMIN-2026")) ? "admin" : "customer";
 
-    // 5. Verification on Login: Password must match registered password!
-    if (!isRegister) {
-      const usersRegistry = JSON.parse(localStorage.getItem("rmart_registered_users") || "[]");
-      const singleUser = JSON.parse(localStorage.getItem("rmart_registered_user") || "null");
-      if (singleUser && !usersRegistry.some((u) => u.email === singleUser.email)) {
-        usersRegistry.push(singleUser);
-      }
-
-      const existingUser = usersRegistry.find((u) => u.email === cleanEmail);
-      if (existingUser && existingUser.password !== password) {
-        const attemptData = JSON.parse(localStorage.getItem("rmart_login_attempts") || '{"count": 0, "lastTime": 0}');
-        let currentAttempts = (now - attemptData.lastTime < 60000) ? attemptData.count : 0;
-        currentAttempts += 1;
-        localStorage.setItem("rmart_login_attempts", JSON.stringify({ count: currentAttempts, lastTime: now }));
-
-        if (currentAttempts >= 3) {
-          setError("Rate limit exceeded: 3 per 1 minute. Please slow down and wait 60 seconds.");
-          setFieldErrors({ general: "Rate limit exceeded: 3 per 1 minute." });
-        } else {
-          setError(`Incorrect password! Password does not match registered account (Attempt ${currentAttempts} of 3).`);
-          setFieldErrors({ password: "Password does not match registered account." });
+    // 4. REAL BACKEND API CALL & RATE LIMITING ENFORCEMENT
+    let token = null;
+    try {
+      if (isRegister) {
+        try {
+          await authService.register(cleanEmail, password, finalRole);
+        } catch (regErr) {
+          // If already registered on backend, proceed to login
+          if (regErr.response?.status === 400 && regErr.response.data?.detail?.includes("already registered")) {
+            // Already registered, continue to login
+          } else if (regErr.response?.data?.detail) {
+            setError(regErr.response.data.detail);
+            return;
+          }
         }
+        const loginRes = await authService.login(cleanEmail, password);
+        token = loginRes?.access_token;
+      } else {
+        const loginRes = await authService.login(cleanEmail, password);
+        token = loginRes?.access_token;
+      }
+    } catch (apiErr) {
+      // CATCH HTTP 429 RATE LIMIT EXCEEDED (On 4th attempt)
+      if (apiErr.response?.status === 429) {
+        const retryAfter = apiErr.response.headers?.["retry-after"] || "60";
+        setError(`Status Code 429 (Too Many Requests): Rate limit exceeded: 3 per 1 minute. Please wait ${retryAfter} seconds before retrying.`);
+        setFieldErrors({ general: "Status Code 429: Too Many Requests (Rate limit: 3 per 1 minute exceeded)." });
         return;
       }
 
-      // Successful login resets rate limit counter
-      localStorage.removeItem("rmart_login_attempts");
+      // CATCH HTTP 401 INCORRECT PASSWORD
+      if (apiErr.response?.status === 401) {
+        setError("Incorrect password! Please verify your password and try again.");
+        setFieldErrors({ password: "Incorrect password." });
+        return;
+      }
+
+      // If backend offline, verify against local registry fallback
+      if (!apiErr.response) {
+        const usersRegistry = JSON.parse(localStorage.getItem("rmart_registered_users") || "[]");
+        const singleUser = JSON.parse(localStorage.getItem("rmart_registered_user") || "null");
+        if (singleUser && !usersRegistry.some((u) => u.email === singleUser.email)) {
+          usersRegistry.push(singleUser);
+        }
+        const existingUser = usersRegistry.find((u) => u.email === cleanEmail);
+        if (existingUser && existingUser.password !== password) {
+          setError("Incorrect password! Please verify your password and try again.");
+          setFieldErrors({ password: "Incorrect password." });
+          return;
+        }
+      }
     }
 
     const authenticatedUser = {
@@ -143,7 +155,7 @@ export default function AuthPage() {
       role: finalRole,
     };
 
-    // 6. Save to Registered Users Registry
+    // 5. Save to Registered Users Registry
     if (isRegister || saveCredentials) {
       try {
         const usersRegistry = JSON.parse(localStorage.getItem("rmart_registered_users") || "[]");
@@ -168,12 +180,10 @@ export default function AuthPage() {
       } catch (err) {}
     }
 
-    const token = `rmart_jwt_${finalRole}_${Date.now()}`;
+    token = token || `rmart_jwt_${finalRole}_${Date.now()}`;
     setUser(authenticatedUser, token);
 
     // Flow Routing:
-    // If Admin -> Redirection to /admin
-    // If User -> Launch Full-Screen Cinematic Animation and go to /catalog!
     if (finalRole === "admin") {
       localStorage.setItem("user_role", "admin");
       navigate("/admin");

@@ -13,7 +13,7 @@ class EcommerceCustomerUser(HttpUser):
     5. GZip response compression verification
     6. System health & ping check
     """
-    wait_time = between(0.05, 0.2)
+    wait_time = between(0.15, 0.45)
 
     @task(4)
     def browse_catalog(self):

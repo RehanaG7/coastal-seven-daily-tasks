@@ -109,15 +109,44 @@ def get_redis_client() -> Any:
     return redis_client
 
 
+class ReusableAsyncRedis:
+    def __init__(self, client: Any):
+        self._client = client
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._client, name)
+
+    async def close(self) -> None:
+        pass
+
+    async def aclose(self) -> None:
+        pass
+
+
+_async_redis_instance = None
+
+
 async def get_async_redis() -> Any:
+    global _async_redis_instance
+    if _async_redis_instance is not None:
+        return _async_redis_instance
+
+    if redis_client is shared_in_memory_redis:
+        _async_redis_instance = AsyncInMemoryRedis(shared_in_memory_redis)
+        return _async_redis_instance
+
     try:
         r = aioredis.from_url(
             settings.REDIS_URL,
             decode_responses=True,
             socket_connect_timeout=1,
+            max_connections=50,
         )
         await r.ping()
-        return r
+        _async_redis_instance = ReusableAsyncRedis(r)
+        return _async_redis_instance
     except Exception:
-        return AsyncInMemoryRedis(shared_in_memory_redis)
+        _async_redis_instance = AsyncInMemoryRedis(shared_in_memory_redis)
+        return _async_redis_instance
+
 

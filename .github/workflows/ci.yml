@@ -131,7 +131,7 @@ jobs:
 
       - name: Install Dependencies
         working-directory: ./Day-19
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Run Vitest Suite (50 Tests)
         working-directory: ./Day-19

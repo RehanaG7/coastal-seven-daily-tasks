@@ -17,5 +17,10 @@ if (typeof globalThis !== "undefined") {
 }
 
 beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  if (typeof localStorage !== "undefined") {
+    localStorage.clear();
+  }
+});
 afterAll(() => server.close());

@@ -8,8 +8,33 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import NotificationsPanel from "../components/NotificationsPanel";
 import LiveChatModal from "../components/LiveChatModal";
 import { apiClient } from "../api/apiClient";
+import { useNotificationStore } from "../store/useStore";
 
 describe("Day 17 - Real-Time Notifications Panel", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useNotificationStore.setState({
+      notifications: [
+        {
+          id: 1,
+          title: "Welcome to R-Mart Real-Time!",
+          message: "WebSocket live order tracking and support chat active.",
+          category: "promo",
+          is_read: 0,
+          timestamp: "Just now",
+        },
+        {
+          id: 2,
+          title: "Order Fulfillment Stream",
+          message: "Celery worker pool operational with Redis pub/sub.",
+          category: "order",
+          is_read: 0,
+          timestamp: "5m ago",
+        },
+      ],
+    });
+  });
+
   it("renders notifications drawer when isOpen is true", () => {
     render(<NotificationsPanel isOpen={true} onClose={vi.fn()} />);
 

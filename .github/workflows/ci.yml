@@ -1,4 +1,4 @@
-name: E-Commerce CI Automated Test Matrix (Days 10-16)
+name: E-Commerce CI Automated Test Matrix (Days 10-19)
 
 on:
   push:
@@ -24,11 +24,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest httpx
+          pip install "bcrypt==4.0.1" pytest httpx
 
       - name: Run Backend Pytest Suite (21 Tests)
         working-directory: ./Day-10
-        run: pytest -v tests
+        env:
+          PYTHONPATH: .
+        run: python -m pytest -v tests
 
   day15-frontend-test:
     name: Day-15 TypeScript & Vitest Suite
@@ -88,4 +90,53 @@ jobs:
 
       - name: Build Production Frontend
         working-directory: ./Day-16
+        run: npm run build
+
+  day19-backend-test:
+    name: Day-19 FastAPI Backend & Security Suite (38 Tests)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Backend Dependencies
+        working-directory: ./Day-19/backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install "bcrypt==4.0.1" pytest httpx
+
+      - name: Run Day-19 Pytest Suite
+        working-directory: ./Day-19/backend
+        env:
+          PYTHONPATH: .
+        run: python -m pytest -v tests
+
+  day19-frontend-test:
+    name: Day-19 Frontend Vitest & Build Suite (50 Tests)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        working-directory: ./Day-19
+        run: npm install --legacy-peer-deps
+
+      - name: Run Vitest Suite (50 Tests)
+        working-directory: ./Day-19
+        run: npx vitest run
+
+      - name: Build Production Frontend
+        working-directory: ./Day-19
         run: npm run build

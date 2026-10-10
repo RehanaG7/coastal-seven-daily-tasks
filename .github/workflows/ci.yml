@@ -135,7 +135,16 @@ jobs:
 
       - name: Run Vitest Suite (50 Tests)
         working-directory: ./Day-19
-        run: npx vitest run
+        run: |
+          set -o pipefail
+          npx vitest run --reporter=verbose 2>&1 | tee vitest_output.txt
+
+      - name: Show Vitest Error on Failure
+        if: failure()
+        working-directory: ./Day-19
+        run: |
+          echo "=== VITEST FAILURE LOG ==="
+          cat vitest_output.txt || true
 
       - name: Build Production Frontend
         working-directory: ./Day-19

@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
-import ProductCard from "./ProductCard";
+import ProductCard from "../components/ProductCard";
 import * as storeModule from "../store/useStore";
 import * as productsHook from "../hooks/useProducts";
 

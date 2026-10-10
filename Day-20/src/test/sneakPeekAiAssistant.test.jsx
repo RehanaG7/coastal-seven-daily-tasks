@@ -111,4 +111,27 @@ describe("Day 20 – SneakPeek Robo Assistant & Segmented Role Switcher", () => 
     const menuBtn = screen.getByTitle(/Open Account Menu|Open Admin Console/i);
     expect(menuBtn).toBeInTheDocument();
   });
+
+  it("handles 'What's new in R-Mart Sparkyyy?' suggestion chip and logs inquiry for Admin", async () => {
+    render(
+      <MemoryRouter>
+        <SneakPeekAiAssistant />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId("sneakpeek-robo-container"));
+
+    // Find and click the What's new chip
+    const chip = screen.getByText(/What's new in R-Mart Sparkyyy\? 🎁/i);
+    expect(chip).toBeInTheDocument();
+    fireEvent.click(chip);
+
+    // Verify ticket logged to localStorage for admin
+    await waitFor(() => {
+      const tickets = JSON.parse(localStorage.getItem("rmart_support_tickets") || "[]");
+      expect(tickets.length).toBeGreaterThan(0);
+      expect(tickets[0].subject).toContain("What's new in R-Mart & latest offers?");
+    });
+  });
 });
+

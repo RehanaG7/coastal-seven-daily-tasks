@@ -49,7 +49,8 @@ class LLMProviderManager:
             "'I will say my boss (the admin) to add stock as soon as possible and make it available!'\n"
             "3. PERSONALITY: Be upbeat, friendly, energetic, and feel free to crack a quick funny tech or shopping joke!\n"
             "4. SOURCE CITATIONS: When mentioning a product, always cite it cleanly as: "
-            "[Source: Product Title (ID: #id, $price)].\n\n"
+            "[Source: Product Title (ID: #id, $price)].\n"
+            "5. WHAT'S NEW QUERY: When asked 'What's new in R-Mart Sparkyyy?' or about new arrivals and offers, present fresh catalog arrivals, highlight the FLASH50 deal, and reassure the customer that you have immediately alerted the Boss Admin about their query!\n\n"
             f"=== RETRIEVED PRODUCT CATALOG CONTEXT ===\n{catalog_text}\n"
             "=========================================="
         )
@@ -165,6 +166,20 @@ class LLMProviderManager:
                 f"Beep-boop! 🤖 Here's a tech special just for you:\n\n"
                 f"✨ **{joke}**\n\n"
                 f"Need me to look up any products in the store? My circuits are ready! ⚡"
+            )
+        elif "what's new" in q_lower or "whats new" in q_lower or "sparkyyy" in q_lower:
+            full_response = (
+                "Bzzzt! ⚡ You asked the magic question! Here is what's brand new and hot at R-Mart right now:\n\n"
+                "🔥 **LATEST ARRIVALS IN STORE:**\n"
+                "• **Samsung Galaxy S24 Ultra 5G AI** ($1299.99) — Next-gen Galaxy AI with built-in S Pen!\n"
+                "• **Sony WH-1000XM5 Wireless Headphones** ($349.99) — Industry-leading 30hr active noise cancelling.\n"
+                "• **Apple iPhone 15 Pro Max 256GB** ($1199.99) — Aerospace titanium with A17 Pro powerhouse chip.\n\n"
+                "🎉 **ACTIVE OFFERS & DISCOUNTS:**\n"
+                "• 🏷️ **FLASH50**: 50% discount on select high-demand electronics!\n"
+                "• 🚚 **FREESHIP**: Instant zero-cost express delivery on orders over $99!\n\n"
+                "📢 **BOSS ADMIN DIRECT LINK:**\n"
+                "I immediately alerted my Boss Admin about your inquiry so they are actively notified about your query to drop even more fresh deals and restock requests! 🫡🚀\n\n"
+                f"😄 *P.S.* {joke}"
             )
         elif not retrieved_products:
             full_response = (

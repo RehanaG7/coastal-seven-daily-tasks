@@ -10,9 +10,9 @@ const INITIAL_GREETINGS = [
 ];
 
 const DEFAULT_SUGGESTIONS = [
+  "What's new in R-Mart Sparkyyy? 🎁",
   "Show me smartphones under $800 📱",
   "Any noise-cancelling wireless headphones? 🎧",
-  "Are gaming monitors in stock? 🖥️",
   "Tell me a funny shopping joke! 😂"
 ];
 
@@ -290,6 +290,7 @@ export default function SneakPeekAiAssistant() {
       const latest = viewedProducts[0];
       const shortTitle = latest.title ? latest.title.split(" ").slice(0, 6).join(" ") : "this product";
       return [
+        "What's new in R-Mart Sparkyyy? 🎁",
         `Tell me about ${shortTitle} 🏷️`,
         `Is ${shortTitle} in stock? 📦`,
         "Show similar products in this category 🔍",
@@ -307,6 +308,24 @@ export default function SneakPeekAiAssistant() {
     setInput("");
     const userMsgId = `user_${Date.now()}`;
     const botMsgId = `bot_${Date.now()}`;
+
+    // If shopper asks "what's new" or about offers, immediately file an inquiry ticket for Boss Admin
+    const qLower = query.toLowerCase();
+    if (!isAdmin && (qLower.includes("what's new") || qLower.includes("whats new") || qLower.includes("sparkyyy") || qLower.includes("offer") || qLower.includes("discount"))) {
+      try {
+        const existing = JSON.parse(localStorage.getItem("rmart_support_tickets") || "[]");
+        const newTicket = {
+          id: `TCK-${Date.now().toString().slice(-4)}`,
+          subject: "Customer asked: What's new in R-Mart & latest offers?",
+          user: "Shopper (via Sparky)",
+          text: query,
+          date: new Date().toLocaleDateString()
+        };
+        localStorage.setItem("rmart_support_tickets", JSON.stringify([newTicket, ...existing]));
+      } catch (e) {
+        console.warn("Failed to log admin inquiry ticket:", e);
+      }
+    }
 
     const newMessages = [
       ...messages,
@@ -434,7 +453,26 @@ export default function SneakPeekAiAssistant() {
         }
       } else {
         // Customer Shopping Fallback
-        if (qLower.includes("joke") || qLower.includes("funny")) {
+        if (qLower.includes("what's new") || qLower.includes("whats new") || qLower.includes("sparkyyy") || qLower.includes("offer") || qLower.includes("deal")) {
+          fallbackReply = `✨ **Fresh Arrivals & Hot Deals in R-Mart!** 🎁\n\n` +
+            `Here's what just dropped in our store:\n` +
+            `• **Samsung Galaxy S24 Ultra AI** ($1299.99) — Live Translation & Titanium Armor!\n` +
+            `• **Sony WH-1000XM5 Wireless Headphones** ($349.99) — 30hr battery & active noise cancelling!\n` +
+            `• **Apple iPhone 15 Pro Max 256GB** ($1199.99) — Aerospace titanium with A17 Pro chip!\n\n` +
+            `🎉 **ACTIVE OFFERS & DISCOUNTS:**\n` +
+            `• Use promo code **FLASH50** for **50% OFF** on select electronics!\n` +
+            `• Use code **FREESHIP** for zero-cost express delivery on orders over $99!\n\n` +
+            `🫡 **Boss Admin Direct Link:**\n` +
+            `I immediately alerted my Boss Admin about your query so they can review demand and drop even more fresh deals and stock! 🚀\n\n` +
+            `[Source: Samsung Galaxy S24 Ultra (ID: #3, $1299.99)]\n` +
+            `[Source: Sony WH-1000XM5 Wireless Headphones (ID: #2, $349.99)]\n\n` +
+            `😄 *P.S.* ${randomJoke}`;
+          fallbackSources = [
+            { id: 3, title: "Samsung Galaxy S24 Ultra", price: 1299.99, stock: 8 },
+            { id: 2, title: "Sony WH-1000XM5 Wireless Headphones", price: 349.99, stock: 15 },
+            { id: 1, title: "Apple iPhone 15 Pro Max 256GB", price: 1199.99, stock: 0 }
+          ];
+        } else if (qLower.includes("joke") || qLower.includes("funny")) {
           fallbackReply = `Beep-boop! 🤖 Here's a tech joke to brighten your shopping:\n\n**${randomJoke}**\n\nAsk me about any product or specs! ✨`;
         } else if (qLower.includes("iphone") || qLower.includes("phone")) {
           fallbackReply = `I checked our inventory for **"${query}"**! 📱\n\n` +

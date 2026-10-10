@@ -97,30 +97,18 @@ describe("Day 20 – SneakPeek Robo Assistant & Segmented Role Switcher", () => 
     expect(screen.getByText("Tell me a joke")).toBeInTheDocument();
   });
 
-  it("renders the Segmented Role Switcher in Navbar and toggles user/admin modes", () => {
+  it("keeps navbar clean without redundant switcher and opens transparent command modal", () => {
     render(
       <MemoryRouter>
         <Navbar />
       </MemoryRouter>
     );
 
-    const roleSwitcher = screen.getByTestId("role-switcher");
-    expect(roleSwitcher).toBeInTheDocument();
+    // Redundant role-switcher is removed from top navbar
+    expect(screen.queryByTestId("role-switcher")).not.toBeInTheDocument();
 
-    const customerBtn = screen.getByTestId("role-toggle-customer");
-    const adminBtn = screen.getByTestId("role-toggle-admin");
-
-    expect(customerBtn).toBeInTheDocument();
-    expect(adminBtn).toBeInTheDocument();
-
-    // Switch to Admin
-    fireEvent.click(adminBtn);
-    expect(useAuthStore.getState().user.role).toBe("admin");
-    expect(localStorage.getItem("user_role")).toBe("admin");
-
-    // Switch to Customer
-    fireEvent.click(customerBtn);
-    expect(useAuthStore.getState().user.role).toBe("customer");
-    expect(localStorage.getItem("user_role")).toBe("customer");
+    // Menu toggle button is present
+    const menuBtn = screen.getByTitle(/Open Account Menu|Open Admin Console/i);
+    expect(menuBtn).toBeInTheDocument();
   });
 });

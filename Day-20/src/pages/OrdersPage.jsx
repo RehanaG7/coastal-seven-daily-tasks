@@ -22,6 +22,7 @@ export default function OrdersPage() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [taskTitle, setTaskTitle] = useState("");
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState(null);
+  const [orderTab, setOrderTab] = useState("all"); // "all" | "recent" | "history"
 
   useEffect(() => {
     const loadOrders = async () => {
@@ -239,16 +240,121 @@ export default function OrdersPage() {
               Explore Products Catalog →
             </button>
           </div>
-        ) : (
-          /* Orders List */
-          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            {orders.map((ord, idx) => {
-              const status = ord.status || "Order Placed";
-              const sColor = getStatusColor(status);
-              const stageIdx = getStageIndex(status);
-              const items = ord.items || [];
-              const orderId = ord.orderId || ord.id || `ORD-${1000 + idx}`;
-              const total = Number(ord.totalAmount || ord.total || 0);
+        ) : (() => {
+          const recentOrders = orders.filter((o) => {
+            const s = (o.status || "").toLowerCase();
+            return !s.includes("delivered") && !s.includes("cancelled");
+          });
+          const historyOrders = orders.filter((o) => {
+            const s = (o.status || "").toLowerCase();
+            return s.includes("delivered") || s.includes("cancelled");
+          });
+          const displayedOrders =
+            orderTab === "recent"
+              ? recentOrders
+              : orderTab === "history"
+              ? historyOrders
+              : orders;
+
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              {/* Segmented Filter: All | Recent Orders | Order History */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  backgroundColor: isDark ? "#0F1420" : "#F1F5F9",
+                  padding: "6px",
+                  borderRadius: "14px",
+                  border: `1px solid ${c.border}`,
+                  width: "fit-content",
+                }}
+              >
+                <button
+                  onClick={() => setOrderTab("all")}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: "10px",
+                    border: "none",
+                    fontSize: "13px",
+                    fontWeight: "800",
+                    cursor: "pointer",
+                    backgroundColor: orderTab === "all" ? (isDark ? "#1E293B" : "#FFFFFF") : "transparent",
+                    color: orderTab === "all" ? c.accent : c.subtext,
+                    boxShadow: orderTab === "all" ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
+                  }}
+                >
+                  All Orders ({orders.length})
+                </button>
+
+                <button
+                  onClick={() => setOrderTab("recent")}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: "10px",
+                    border: "none",
+                    fontSize: "13px",
+                    fontWeight: "800",
+                    cursor: "pointer",
+                    backgroundColor: orderTab === "recent" ? (isDark ? "#1E293B" : "#FFFFFF") : "transparent",
+                    color: orderTab === "recent" ? c.accent : c.subtext,
+                    boxShadow: orderTab === "recent" ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <span>⚡</span>
+                  <span>Recent Orders ({recentOrders.length})</span>
+                </button>
+
+                <button
+                  onClick={() => setOrderTab("history")}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: "10px",
+                    border: "none",
+                    fontSize: "13px",
+                    fontWeight: "800",
+                    cursor: "pointer",
+                    backgroundColor: orderTab === "history" ? (isDark ? "#1E293B" : "#FFFFFF") : "transparent",
+                    color: orderTab === "history" ? c.accent : c.subtext,
+                    boxShadow: orderTab === "history" ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <span>📜</span>
+                  <span>Order History ({historyOrders.length})</span>
+                </button>
+              </div>
+
+              {displayedOrders.length === 0 ? (
+                <div
+                  style={{
+                    backgroundColor: c.cardBg,
+                    border: `1px solid ${c.border}`,
+                    borderRadius: "16px",
+                    padding: "36px",
+                    textAlign: "center",
+                    color: c.subtext,
+                  }}
+                >
+                  <p style={{ margin: 0, fontSize: "15px", fontWeight: "700" }}>
+                    No orders found in {orderTab === "recent" ? "Recent Orders" : "Order History"}.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                  {displayedOrders.map((ord, idx) => {
+                    const status = ord.status || "Order Placed";
+                    const sColor = getStatusColor(status);
+                    const stageIdx = getStageIndex(status);
+                    const items = ord.items || [];
+                    const orderId = ord.orderId || ord.id || `ORD-${1000 + idx}`;
+                    const total = Number(ord.totalAmount || ord.total || 0);
 
               return (
                 <div
@@ -575,8 +681,11 @@ export default function OrdersPage() {
                 </div>
               );
             })}
-          </div>
-        )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
       </div>
 

@@ -14,6 +14,7 @@ from typing import AsyncGenerator, List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 
 from core.vector_store import vector_store
+from core.config import settings
 
 
 JOKES = [
@@ -27,8 +28,8 @@ JOKES = [
 
 class LLMProviderManager:
     def __init__(self):
-        self.groq_api_key = os.getenv("GROQ_API_KEY", "")
-        self.gemini_api_key = os.getenv("GEMINI_API_KEY", "")
+        self.groq_api_key = os.getenv("GROQ_API_KEY") or getattr(settings, "GROQ_API_KEY", "")
+        self.gemini_api_key = os.getenv("GEMINI_API_KEY") or getattr(settings, "GEMINI_API_KEY", "")
 
     def _build_system_prompt(self, context_chunks: List[Dict[str, Any]]) -> str:
         catalog_text = "\n\n".join([

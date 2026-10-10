@@ -299,6 +299,26 @@ export default function AdminDashboard() {
     );
   };
 
+  const handlePromptAddStock = (product) => {
+    const input = window.prompt(`Enter stock quantity to add for "${product.name || product.title}":`, "10");
+    if (!input) return;
+    const qty = parseInt(input.trim(), 10);
+    if (isNaN(qty) || qty <= 0) {
+      alert("Please enter a valid positive quantity.");
+      return;
+    }
+    const newStock = Math.max(0, (product.stock || 0) + qty);
+    setProducts(
+      safeProducts.map((p) => (p.id === product.id ? { ...p, stock: newStock } : p))
+    );
+    try {
+      const overrides = JSON.parse(localStorage.getItem("rmart_stock_overrides") || "{}");
+      overrides[product.id] = newStock;
+      overrides[String(product.id)] = newStock;
+      localStorage.setItem("rmart_stock_overrides", JSON.stringify(overrides));
+    } catch (e) {}
+  };
+
   const handleDeleteProduct = async (id, name) => {
     if (window.confirm(`Are you sure you want to permanently delete "${name}" from inventory?`)) {
       const pIdStr = String(id);
@@ -758,75 +778,72 @@ export default function AdminDashboard() {
 
                       <div
                         style={{
-                          backgroundColor: isDark ? "#1E293B" : "#F1F5F9",
+                          backgroundColor: isDark ? "rgba(0,0,0,0.3)" : "#F1F5F9",
                           borderRadius: "8px",
                           padding: "8px 12px",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "space-between",
-                          marginBottom: "10px",
+                          marginBottom: "12px",
                         }}
                       >
-                        <span style={{ fontSize: "11px", fontWeight: "800", color: c.subtext }}>Inventory:</span>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <button
-                            onClick={() => handleModifyStock(p.id, -1)}
-                            style={{ width: "24px", height: "24px", borderRadius: "4px", border: "none", background: "#EF4444", color: "#FFF", fontWeight: "900", cursor: "pointer" }}
-                            title="Decrease Stock"
-                          >
-                            -
-                          </button>
-                          <span style={{ fontWeight: "900", color: c.text, minWidth: "22px", textAlign: "center", fontSize: "13px" }}>
-                            {p.stock}
-                          </span>
-                          <button
-                            onClick={() => handleModifyStock(p.id, +1)}
-                            style={{ width: "24px", height: "24px", borderRadius: "4px", border: "none", background: "#10B981", color: "#FFF", fontWeight: "900", cursor: "pointer" }}
-                            title="Increase Stock"
-                          >
-                            +
-                          </button>
-                          <button
-                            onClick={() => handleModifyStock(p.id, +5)}
-                            style={{ padding: "3px 6px", borderRadius: "4px", border: "none", background: "#3B82F6", color: "#FFF", fontWeight: "800", fontSize: "10px", cursor: "pointer" }}
-                          >
-                            +5 Stock
-                          </button>
-                        </div>
-                      </div>
-
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        <button
-                          onClick={() => navigate(`/catalog/${p.id}`)}
+                        <span style={{ fontSize: "12px", fontWeight: "800", color: c.subtext }}>Stock Available:</span>
+                        <span
                           style={{
-                            flex: 1,
-                            backgroundColor: isDark ? "#1E293B" : "#E2E8F0",
-                            color: c.text,
-                            border: `1px solid ${c.border}`,
-                            padding: "7px",
-                            borderRadius: "6px",
-                            fontSize: "11px",
-                            fontWeight: "700",
-                            cursor: "pointer",
+                            fontSize: "13px",
+                            fontWeight: "900",
+                            color: p.stock === 0 ? "#EF4444" : p.stock < 5 ? "#F59E0B" : "#10B981",
                           }}
                         >
-                          Details
+                          {p.stock === 0 ? "Out of Stock (0)" : `${p.stock} units`}
+                        </span>
+                      </div>
+
+                      {/* Exactly 2 options under product: Add Stock OR Delete Product */}
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button
+                          onClick={() => handlePromptAddStock(p)}
+                          style={{
+                            flex: 1,
+                            backgroundColor: "#10B981",
+                            color: "#FFFFFF",
+                            border: "none",
+                            padding: "9px 12px",
+                            borderRadius: "8px",
+                            fontSize: "12px",
+                            fontWeight: "800",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "6px",
+                            boxShadow: "0 2px 8px rgba(16, 185, 129, 0.25)",
+                          }}
+                        >
+                          <span>➕</span>
+                          <span>Add Stock</span>
                         </button>
                         <button
                           onClick={() => handleDeleteProduct(p.id, p.name)}
                           style={{
                             flex: 1,
                             backgroundColor: "#DC2626",
-                            color: "#FFF",
+                            color: "#FFFFFF",
                             border: "none",
-                            padding: "7px",
-                            borderRadius: "6px",
-                            fontSize: "11px",
+                            padding: "9px 12px",
+                            borderRadius: "8px",
+                            fontSize: "12px",
                             fontWeight: "800",
                             cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "6px",
+                            boxShadow: "0 2px 8px rgba(220, 38, 38, 0.25)",
                           }}
                         >
-                          Delete
+                          <span>🗑️</span>
+                          <span>Delete Product</span>
                         </button>
                       </div>
                     </div>

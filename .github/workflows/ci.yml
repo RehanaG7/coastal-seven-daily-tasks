@@ -131,21 +131,11 @@ jobs:
 
       - name: Install Dependencies
         working-directory: ./Day-19
-        run: npm install --legacy-peer-deps
+        run: npm install
 
       - name: Run Vitest Suite (50 Tests)
         working-directory: ./Day-19
-        run: |
-          set -o pipefail
-          npx vitest run --reporter=verbose 2>&1 | tee vitest_output.txt
-
-      - name: Show Vitest Error on Failure
-        if: failure()
-        working-directory: ./Day-19
-        run: |
-          MSG=$(head -c 2000 vitest_output.txt | tr '\r\n' ' ')
-          echo "::error title=Vitest Output::$MSG"
-          cat vitest_output.txt || true
+        run: npx vitest run
 
       - name: Build Production Frontend
         working-directory: ./Day-19

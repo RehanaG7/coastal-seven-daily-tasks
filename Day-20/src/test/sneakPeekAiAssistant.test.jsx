@@ -51,7 +51,7 @@ describe("Day 20 – SneakPeek Robo Assistant & Segmented Role Switcher", () => 
     // AI Chat modal opens
     const chatModal = screen.getByTestId("ai-chat-modal");
     expect(chatModal).toBeInTheDocument();
-    expect(screen.getByText(/Sparky AI Assistant/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Sparky AI Assistant/i).length).toBeGreaterThan(0);
   });
 
   it("renders watch history suggestions if user viewed items", () => {

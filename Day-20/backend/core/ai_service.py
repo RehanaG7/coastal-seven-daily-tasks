@@ -181,6 +181,20 @@ class LLMProviderManager:
                 "I immediately alerted my Boss Admin about your inquiry so they are actively notified about your query to drop even more fresh deals and restock requests! 🫡🚀\n\n"
                 f"😄 *P.S.* {joke}"
             )
+        elif any(k in q_lower for k in ["order", "track", "shipment", "delivery", "history", "purchased"]):
+            full_response = (
+                "📦 **R-Mart Orders & Tracking System:**\n\n"
+                "I have full access to your order stream! You can view and track your recent orders, shipment stages, and download official PDF invoices directly under **My Orders** in the top navigation.\n\n"
+                "If you need real-time carrier status, your order updates are pushed live via WebSocket & Celery!\n\n"
+                f"😄 *P.S.* {joke}"
+            )
+        elif any(k in q_lower for k in ["address", "profile", "phone number", "my phone", "contact number", "who am i", "my account"]):
+            full_response = (
+                "👤 **Shopper Profile & Delivery Address:**\n\n"
+                "Your registered delivery address and contact credentials are securely linked to your active session.\n"
+                "You can view or update your name, contact phone, and shipping destination anytime using the top menu under **Edit Profile & Address**!\n\n"
+                f"😄 *P.S.* {joke}"
+            )
         elif not retrieved_products:
             full_response = (
                 f"Beep-boop! 🤖 I searched our entire catalog for **'{query}'**, but couldn't find an exact match right now.\n\n"

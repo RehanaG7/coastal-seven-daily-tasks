@@ -143,7 +143,8 @@ jobs:
         if: failure()
         working-directory: ./Day-19
         run: |
-          echo "=== VITEST FAILURE LOG ==="
+          MSG=$(head -c 2000 vitest_output.txt | tr '\r\n' ' ')
+          echo "::error title=Vitest Output::$MSG"
           cat vitest_output.txt || true
 
       - name: Build Production Frontend

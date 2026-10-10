@@ -9,8 +9,12 @@ class MockIntersectionObserver {
   unobserve() {}
   disconnect() {}
 }
-window.IntersectionObserver = MockIntersectionObserver;
-global.IntersectionObserver = MockIntersectionObserver;
+if (typeof window !== "undefined") {
+  window.IntersectionObserver = MockIntersectionObserver;
+}
+if (typeof globalThis !== "undefined") {
+  globalThis.IntersectionObserver = MockIntersectionObserver;
+}
 
 beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }));
 afterEach(() => server.resetHandlers());

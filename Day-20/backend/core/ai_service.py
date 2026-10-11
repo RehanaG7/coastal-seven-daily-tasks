@@ -42,15 +42,16 @@ class LLMProviderManager:
         ]) if context_chunks else "No specific catalog matches found for this query."
 
         return (
-            "You are Sparky, the playful, hyper-intelligent, and cheerful AI Shopping Assistant for R-Mart! 🤖⚡\n\n"
-            "CRITICAL OPERATIONAL RULES:\n"
-            "1. GROUNDING: Only recommend and discuss products that are explicitly provided in the RETRIEVED PRODUCT CATALOG below. Do not invent products or make up fake prices.\n"
-            "2. OUT-OF-STOCK DIRECTIVE: If an item requested or discussed has 0 stock (stock == 0), you must enthusiastically and reassuringly state: "
+            "You are Sparky, the brilliant, articulate, and highly knowledgeable AI Shopping Concierge for R-Mart! ⚡\n\n"
+            "CORE OPERATIONAL GUIDELINES:\n"
+            "1. PROFESSIONAL ELOQUENCE: Never use childish robot clichés like 'beep-boop', 'bzzzt', or robotic sounds. Speak with warmth, sharp intelligence, and natural human eloquence.\n"
+            "2. DEEP REASONING: Never repeat the user's question back to them. Think through their actual intent, compare features, and deliver direct, thoughtful insights.\n"
+            "3. STRICT STORE GROUNDING: Ground your knowledge strictly in the RETRIEVED PRODUCT CATALOG below. Do not hallucinate fictitious items or inaccurate prices.\n"
+            "4. OUT-OF-STOCK DIRECTIVE: If an item discussed or requested has 0 stock (stock == 0), you must reassuringly state: "
             "'I will say my boss (the admin) to add stock as soon as possible and make it available!'\n"
-            "3. PERSONALITY: Be upbeat, friendly, energetic, and feel free to crack a quick funny tech or shopping joke!\n"
-            "4. SOURCE CITATIONS: When mentioning a product, always cite it cleanly as: "
+            "5. SOURCE CITATIONS: When mentioning or recommending a catalog product, always cite it cleanly as: "
             "[Source: Product Title (ID: #id, $price)].\n"
-            "5. WHAT'S NEW QUERY: When asked 'What's new in R-Mart Sparkyyy?' or about new arrivals and offers, present fresh catalog arrivals, highlight the FLASH50 deal, and reassure the customer that you have immediately alerted the Boss Admin about their query!\n\n"
+            "6. WHAT'S NEW & DEALS: When asked 'What's new in R-Mart Sparkyyy?' or about promotions, present fresh store arrivals, feature promo codes FLASH50 (50% off select tech) and FREESHIP (free shipping on $99+), and reassure the user that you notified the Boss Admin of their query!\n\n"
             f"=== RETRIEVED PRODUCT CATALOG CONTEXT ===\n{catalog_text}\n"
             "=========================================="
         )
@@ -63,9 +64,13 @@ class LLMProviderManager:
     ) -> AsyncGenerator[str, None]:
         """
         Executes the full RAG pipeline and streams response tokens via Server-Sent Events (SSE).
-        Fallback order: Groq -> Gemini -> Intelligent Local RAG Generator.
+        Fallback order: Groq (Llama-3.3-70b) -> Gemini (2.0 Flash) -> Intelligent Local RAG Generator.
         """
         history = history or []
+
+        # Ensure fresh keys from environment if updated
+        groq_key = os.getenv("GROQ_API_KEY") or getattr(settings, "GROQ_API_KEY", "") or self.groq_api_key
+        gemini_key = os.getenv("GEMINI_API_KEY") or getattr(settings, "GEMINI_API_KEY", "") or self.gemini_api_key
 
         # 1. Retrieve Top-K products via ChromaDB vector store
         retrieved_products = vector_store.search_similar_products(query=query, top_k=4, db=db)
@@ -88,11 +93,11 @@ class LLMProviderManager:
 
         system_prompt = self._build_system_prompt(retrieved_products)
 
-        # 2. Try Primary Provider: Groq
-        if self.groq_api_key and self.groq_api_key != "your_groq_api_key_here":
+        # 2. Try Primary Provider: Groq (Llama 3.3 70B Versatile)
+        if groq_key and groq_key != "your_groq_api_key_here":
             try:
                 from groq import AsyncGroq
-                client = AsyncGroq(api_key=self.groq_api_key)
+                client = AsyncGroq(api_key=groq_key)
                 messages = [{"role": "system", "content": system_prompt}]
                 for h in history[-4:]:
                     messages.append({"role": h.get("role", "user"), "content": h.get("content", "")})
@@ -102,8 +107,8 @@ class LLMProviderManager:
                     model="llama-3.3-70b-versatile",
                     messages=messages,
                     stream=True,
-                    temperature=0.7,
-                    max_tokens=600,
+                    temperature=0.6,
+                    max_tokens=700,
                 )
 
                 yield f"event: provider\ndata: {json.dumps({'provider': 'Groq (Llama-3.3-70b)'})}\n\n"
@@ -117,11 +122,11 @@ class LLMProviderManager:
             except Exception as e:
                 print(f"[LLM Fallback Manager] Groq failed: {e}. Falling back to Secondary...")
 
-        # 3. Try Secondary Provider: Google Gemini
-        if self.gemini_api_key and self.gemini_api_key != "your_gemini_api_key_here":
+        # 3. Try Secondary Provider: Google Gemini 2.0 Flash
+        if gemini_key and gemini_key != "your_gemini_api_key_here":
             try:
                 from google import genai
-                client = genai.Client(api_key=self.gemini_api_key)
+                client = genai.Client(api_key=gemini_key)
                 prompt_content = f"{system_prompt}\n\nUser Question: {query}"
                 response = client.models.generate_content_stream(
                     model="gemini-2.0-flash",
@@ -141,7 +146,6 @@ class LLMProviderManager:
                 print(f"[LLM Fallback Manager] Gemini failed: {e}. Falling back to Local RAG Generator...")
 
         # 4. Tertiary Resilient Safety Net: Intelligent Local RAG Generator
-        # Ensures zero downtime, offline capability, exact grounding, and instant demo readiness!
         async for sse_chunk in self._stream_local_rag(query, retrieved_products):
             yield sse_chunk
 
@@ -163,14 +167,14 @@ class LLMProviderManager:
         # Check for joke request
         if "joke" in q_lower or "funny" in q_lower or "laugh" in q_lower:
             full_response = (
-                f"Beep-boop! 🤖 Here's a tech special just for you:\n\n"
+                f"Here is a clever tech joke for you:\n\n"
                 f"✨ **{joke}**\n\n"
-                f"Need me to look up any products in the store? My circuits are ready! ⚡"
+                f"Let me know if you would like me to compare specs or check deals on any products in our store!"
             )
         elif "what's new" in q_lower or "whats new" in q_lower or "sparkyyy" in q_lower:
             full_response = (
-                "Bzzzt! ⚡ You asked the magic question! Here is what's brand new and hot at R-Mart right now:\n\n"
-                "🔥 **LATEST ARRIVALS IN STORE:**\n"
+                "Here is what is currently trending and newly stocked at R-Mart:\n\n"
+                "🔥 **LATEST STORE ARRIVALS:**\n"
                 "• **Samsung Galaxy S24 Ultra 5G AI** ($1299.99) — Next-gen Galaxy AI with built-in S Pen!\n"
                 "• **Sony WH-1000XM5 Wireless Headphones** ($349.99) — Industry-leading 30hr active noise cancelling.\n"
                 "• **Apple iPhone 15 Pro Max 256GB** ($1199.99) — Aerospace titanium with A17 Pro powerhouse chip.\n\n"
@@ -197,9 +201,9 @@ class LLMProviderManager:
             )
         elif not retrieved_products:
             full_response = (
-                f"Beep-boop! 🤖 I searched our entire catalog for **'{query}'**, but couldn't find an exact match right now.\n\n"
-                f"💡 *Joke of the moment:* {joke}\n\n"
-                f"Try searching for smartphones, headphones, gaming keyboards, or 4K monitors! 📦"
+                f"I searched our entire store catalog for **'{query}'**, but could not find an exact match right now.\n\n"
+                f"💡 You can explore our top categories: smartphones, noise-cancelling headphones, mechanical keyboards, or 4K monitors!\n\n"
+                f"😄 *P.S.* {joke}"
             )
         else:
             # Check if any retrieved product has stock 0
@@ -207,7 +211,7 @@ class LLMProviderManager:
             in_stock_items = [p for p in retrieved_products if p.get("stock", 0) > 0]
 
             response_parts = [
-                f"Beep-boop! 🤖 Great news! I retrieved the best matching items from our store catalog for **'{query}'**:\n\n"
+                f"Here are the most relevant catalog items matching **'{query}'**:\n\n"
             ]
 
             if in_stock_items:

@@ -234,22 +234,19 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
             </div>
           </div>
 
-          <button
-            onClick={handleRoleToggle}
-            title="Toggle between Shopper and Admin"
+          <span
             style={{
-              padding: "6px 14px",
-              borderRadius: "10px",
-              border: `1px solid ${isAdmin ? "#38BDF8" : "#F59E0B"}`,
-              backgroundColor: isDark ? "rgba(0,0,0,0.3)" : "#FFFFFF",
-              color: isAdmin ? "#38BDF8" : "#F59E0B",
-              fontSize: "12px",
+              padding: "5px 12px",
+              borderRadius: "8px",
+              backgroundColor: isAdmin ? "rgba(245, 158, 11, 0.2)" : "rgba(56, 189, 248, 0.2)",
+              color: isAdmin ? "#F59E0B" : "#38BDF8",
+              fontSize: "11px",
               fontWeight: "900",
-              cursor: "pointer",
+              letterSpacing: "0.5px"
             }}
           >
-            {isAdmin ? "Switch to Shopper 👤" : "Switch to Admin 🛡️"}
-          </button>
+            {isAdmin ? "ADMINISTRATOR" : "CUSTOMER ACCOUNT"}
+          </span>
         </div>
 
         {/* FEEDBACK ALERT MESSAGE */}

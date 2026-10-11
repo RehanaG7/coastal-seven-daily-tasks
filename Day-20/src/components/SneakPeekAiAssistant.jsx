@@ -2,33 +2,20 @@ import React, { useState, useEffect, useRef } from "react";
 import { useCartStore, useUIStore, useAuthStore } from "../store/useStore";
 import { env } from "../config/env";
 
-const INITIAL_GREETINGS = [
-  "Beep-boop! 🤖 Hey there shopper! I'm Sparky, your 24/7 AI shopping assistant at R-Mart with full access to your orders, profile, cart & deals. How can I help you today?",
-  "Bzzzt! ⚡ Greetings human friend! Looking for epic gadgets, secret discounts, order tracking, or specs? I've indexed the entire store catalog and your profile!",
-  "Greetings! 🤖 I was just playing hide-and-seek in the corners! What can I look up for you? Ask me about your orders, address, cart, or discounts!",
-  "Beep! 🤖 Ready to assist! Tell me what you're shopping for, and I'll find the best in-stock products, exact prices, or check your order history!"
-];
-
 const DEFAULT_SUGGESTIONS = [
   "What's new in R-Mart Sparkyyy? 🎁",
   "Where is my order & history? 🚚",
   "What is my saved address & profile? 📍",
   "What is currently in my cart? 🛒",
-  "Tell me a funny shopping joke! 😂"
-];
-
-// Screen positions strictly in the bottom corners so the bot never covers the screen
-const PEEK_POSITIONS = [
-  { id: "bottom-right", style: { bottom: "0px", right: "20px" } },
-  { id: "bottom-left", style: { bottom: "0px", left: "20px" } }
+  "Tell me a shopping joke! 😂"
 ];
 
 const FUN_JOKES = [
-  "Why do computers overheat? Because they have too many fans! 💻😂",
-  "Why did the smartphone need glasses? Because it lost all its contacts! 📱👓",
-  "Why do programmers prefer dark mode? Because light attracts bugs! 🐛🌙",
+  "Why do programmers prefer dark mode? Because light attracts bugs! 🌙",
+  "Why did the smartphone need glasses? Because it lost all its contacts! 📱",
   "Why was the JavaScript developer sad? Because they didn't Node how to Express themselves! ☕",
-  "There are 10 types of people: those who understand binary, and those who don't! 🤖"
+  "There are 10 types of people: those who understand binary, and those who don't! 💻",
+  "Why do computers overheat? Because they have too many fans! ❄️"
 ];
 
 export default function SneakPeekAiAssistant() {
@@ -38,16 +25,10 @@ export default function SneakPeekAiAssistant() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [activeProvider, setActiveProvider] = useState("Store Knowledge Engine");
   const [viewedProducts, setViewedProducts] = useState([]);
-
-  // Hide and Seek animation state - Corner only!
-  const [isHiding, setIsHiding] = useState(false);
-  const [positionIndex, setPositionIndex] = useState(0);
-  const [speechBubbleText, setSpeechBubbleText] = useState("Peek-a-boo! Can't catch me! 👀");
   const [isHovered, setIsHovered] = useState(false);
 
-  // Speech Recognition (Mic) and Speech Synthesis (Voice)
+  // Speech Recognition (Mic) & Speech Synthesis (Voice)
   const [isListening, setIsListening] = useState(false);
-  const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
   const recognitionRef = useRef(null);
 
   const theme = useUIStore((s) => s.theme);
@@ -74,43 +55,34 @@ export default function SneakPeekAiAssistant() {
     refreshWatchHistory();
   }, [isOpen]);
 
-  // Hide-and-seek interval: Bot peeks in and out from corners ONLY
-  useEffect(() => {
-    if (isOpen) return;
-
-    const phrases = [
-      "Peek-a-boo! In the corner! 👀",
-      "Boo! Click me for store magic! ✨",
-      "Psst! I know all deals & orders! 🤖",
-      "Playing hide & seek in the corner! 🎮",
-      "Tap me for Sparky AI Assistant! 💡"
-    ];
-
-    const interval = setInterval(() => {
-      setIsHiding(true);
-      setTimeout(() => {
-        setPositionIndex((prev) => (prev + 1) % PEEK_POSITIONS.length);
-        const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
-        setSpeechBubbleText(randomPhrase);
-        setIsHiding(false);
-      }, 500);
-    }, 8000);
-
-    return () => clearInterval(interval);
-  }, [isOpen]);
-
-  // Text to Speech
-  const speakText = (text) => {
+  // Natural Accent Speech Synthesis (No squeaky or robotic voice)
+  const speakTextInNaturalAccent = (text) => {
     if (!("speechSynthesis" in window)) return;
     try {
       window.speechSynthesis.cancel();
-      const clean = text.replace(/\[Source:[^\]]+\]/g, "").replace(/[*_#`~]/g, "");
+      const clean = text
+        .replace(/\[Source:[^\]]+\]/g, "")
+        .replace(/[*_#`~]/g, "")
+        .replace(/•/g, "");
+
       const utterance = new SpeechSynthesisUtterance(clean);
-      utterance.pitch = 1.2;
-      utterance.rate = 1.05;
+      utterance.pitch = 1.0; // Natural, mature human pitch
+      utterance.rate = 0.98; // Natural, articulate cadence
+
+      // Pick the best natural English voice available
+      const voices = window.speechSynthesis.getVoices();
+      const naturalVoice = voices.find(
+        (v) =>
+          (v.lang.startsWith("en") && (v.name.includes("Natural") || v.name.includes("Google") || v.name.includes("Samantha") || v.name.includes("Jenny") || v.name.includes("US"))) ||
+          v.lang === "en-US"
+      );
+      if (naturalVoice) {
+        utterance.voice = naturalVoice;
+      }
+
       window.speechSynthesis.speak(utterance);
     } catch (e) {
-      console.warn("TTS error:", e);
+      console.warn("TTS voice error:", e);
     }
   };
 
@@ -202,9 +174,9 @@ export default function SneakPeekAiAssistant() {
         {
           id: `restock_${Date.now()}`,
           role: "assistant",
-          content: `✅ Done Boss! Added **+${qty} units** to **${productName}**. Stock is now active and shoppers can purchase! 🚀`,
+          content: `Stock successfully replenished! Added **+${qty} units** to **${productName}**. Shoppers can now complete their purchases.`,
           sources: [],
-          provider: "Boss Admin Action Engine"
+          provider: "Admin Inventory Manager"
         }
       ]);
     } catch (e) {
@@ -212,7 +184,7 @@ export default function SneakPeekAiAssistant() {
     }
   };
 
-  // Initialize greeting on chat open
+  // Initialize Greeting based on User Scroll & Browse History (No Beep-Boop!)
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       if (isAdmin) {
@@ -220,30 +192,24 @@ export default function SneakPeekAiAssistant() {
         const tickets = getCustomerComplaints();
         const orders = JSON.parse(localStorage.getItem("rmart_orders") || "[]");
 
-        let adminGreeting = `Greetings Boss Admin! 🫡 Sparky Operational Assistant reporting for duty with full store access.\n\n`;
+        let adminGreeting = `Welcome, Administrator. Sparky Store Intelligence is active with full access to live inventory and customer data.\n\n`;
 
         if (audit.outOfStock.length > 0) {
-          adminGreeting += `🚨 **LIVE INVENTORY ALERT:**\nThe following product(s) have **RUN OUT OF STOCK (0 units)**:\n`;
-          audit.outOfStock.forEach((p) => {
-            adminGreeting += `• **${p.name || p.title}** ($${p.price}) — *Shoppers are asking for this!*\n`;
-          });
-          adminGreeting += `\nTap the action buttons below to replenish stock immediately!\n\n`;
+          adminGreeting += `🚨 **DEPLETED STOCK ALERT:**\n` +
+            audit.outOfStock.map((p) => `• **${p.name || p.title}** ($${p.price}) — 0 units in stock`).join("\n") +
+            `\n\nYou can use the one-click restock buttons below to replenish items.\n\n`;
         } else {
           adminGreeting += `✅ All catalog items currently have active inventory.\n\n`;
         }
 
         if (tickets.length > 0) {
-          adminGreeting += `📩 **CUSTOMER INQUIRIES & COMPLAINTS (${tickets.length}):**\n`;
-          tickets.slice(0, 3).forEach((t) => {
-            adminGreeting += `• *${t.subject || "Order inquiry"}* (from ${t.user || "Customer"})\n`;
-          });
-          adminGreeting += `\n`;
-        } else {
-          adminGreeting += `💬 Customer inquiries: All clear, no pending complaints!\n\n`;
+          adminGreeting += `📩 **CUSTOMER INQUIRIES (${tickets.length}):**\n` +
+            tickets.slice(0, 3).map((t) => `• ${t.subject || "Order inquiry"} (${t.user || "Customer"})`).join("\n") +
+            `\n\n`;
         }
 
-        adminGreeting += `📦 **Customer Orders:** Total **${orders.length} orders** logged across the store.\n` +
-          `Ask me anything about stock, customer tickets, or customer orders!`;
+        adminGreeting += `📦 **Total Orders:** ${orders.length} orders recorded across the store.\n` +
+          `What management action would you like to take today?`;
 
         setMessages([
           {
@@ -255,22 +221,33 @@ export default function SneakPeekAiAssistant() {
             adminActions: audit.outOfStock.map((p) => p.name || p.title)
           }
         ]);
-        if (isVoiceEnabled) speakText(adminGreeting);
       } else {
-        const randomGreet = INITIAL_GREETINGS[Math.floor(Math.random() * INITIAL_GREETINGS.length)];
+        // Greet customer intelligently based on scroll & watch history
+        let greeting = "";
+        let sources = [];
+
+        if (viewedProducts && viewedProducts.length > 0) {
+          const latest = viewedProducts[0];
+          greeting = `Hello! Welcome to R-Mart. I noticed you were exploring **${latest.title}** ($${latest.price}) while browsing our catalog.\n\n` +
+            `Would you like to review its technical specifications, check delivery availability, or compare it with similar options? Let me know how I can help!`;
+          sources = [latest];
+        } else {
+          greeting = `Hello! I'm Sparky, your AI shopping concierge at R-Mart.\n\n` +
+            `I have complete knowledge of our live product catalog, active discount codes (such as **FLASH50**), and direct access to your order history. What can I find for you today?`;
+        }
+
         setMessages([
           {
             id: "greet_customer",
             role: "assistant",
-            content: randomGreet,
-            sources: [],
+            content: greeting,
+            sources,
             provider: "Sparky Concierge"
           }
         ]);
-        if (isVoiceEnabled) speakText(randomGreet);
       }
     }
-  }, [isOpen, messages.length, isAdmin, isVoiceEnabled]);
+  }, [isOpen, messages.length, isAdmin, viewedProducts]);
 
   // Scroll to bottom on new message
   useEffect(() => {
@@ -305,7 +282,7 @@ export default function SneakPeekAiAssistant() {
     return DEFAULT_SUGGESTIONS;
   };
 
-  // Send Chat Message via SSE Streaming with Full Knowledge Access Fallback
+  // Send Chat Message via SSE Streaming with Intelligent Fallback (No robotic cliché)
   const handleSendMessage = async (textToSend) => {
     const query = (textToSend || input).trim();
     if (!query || isStreaming) return;
@@ -427,16 +404,10 @@ export default function SneakPeekAiAssistant() {
           );
         }
       }
-
-      if (isVoiceEnabled && accumulatedText) {
-        speakText(accumulatedText);
-      }
     } catch (err) {
       console.warn("[Sparky AI] Server stream fallback engaged:", err);
 
-      // ======================================================================
-      // FULL COMPREHENSIVE LOCAL KNOWLEDGE ENGINE (ANSWERS ANYTHING)
-      // ======================================================================
+      // Articulate, Thoughtful Local Knowledge Engine (No "Beep-Boop", No Question Parroting)
       const randomJoke = FUN_JOKES[Math.floor(Math.random() * FUN_JOKES.length)];
       let fallbackReply = "";
       let fallbackSources = [];
@@ -447,30 +418,30 @@ export default function SneakPeekAiAssistant() {
         const orders = JSON.parse(localStorage.getItem("rmart_orders") || "[]");
 
         if (qLower.includes("stock") || qLower.includes("out of stock") || qLower.includes("inventory")) {
-          fallbackReply = `Boss! Here is your live stock status:\n\n` +
+          fallbackReply = `Here is the current live warehouse stock status:\n\n` +
             (audit.outOfStock.length > 0
-              ? `🚨 **${audit.outOfStock.length} Products OUT OF STOCK:**\n` + audit.outOfStock.map((p) => `• ${p.name || p.title} ($${p.price})`).join("\n") +
-                `\n\nTap the action buttons below to replenish stock immediately!`
-              : `✅ All products have active inventory. No stock shortages detected!`);
+              ? `🚨 **${audit.outOfStock.length} Product(s) Depleted:**\n` + audit.outOfStock.map((p) => `• ${p.name || p.title} ($${p.price}) — 0 units available`).join("\n") +
+                `\n\nTap the action buttons below to replenish stock immediately.`
+              : `✅ All products currently have active stock. No shortages detected.`);
         } else if (qLower.includes("complaint") || qLower.includes("inquir") || qLower.includes("ticket")) {
-          fallbackReply = `Boss! Here are current customer inquiries & complaints:\n\n` +
+          fallbackReply = `Here are the active customer inquiries and support tickets:\n\n` +
             (tickets.length > 0
-              ? `📩 **${tickets.length} Tickets on File:**\n` + tickets.map((t) => `• [${t.id || "TCK"}] ${t.subject || "Issue"} (${t.user || "Customer"})`).join("\n")
-              : `💬 No open complaints! Customers are satisfied.`);
+              ? `📩 **${tickets.length} Ticket(s) on File:**\n` + tickets.map((t) => `• [${t.id || "TCK"}] ${t.subject || "Issue"} (${t.user || "Customer"})`).join("\n")
+              : `💬 There are currently no open customer complaints.`);
         } else if (qLower.includes("order") || qLower.includes("customer")) {
-          fallbackReply = `Boss! Here is your customer orders summary:\n\n` +
+          fallbackReply = `Here is your customer order fulfillment overview:\n\n` +
             (orders.length > 0
-              ? `📦 **${orders.length} Customer Orders on File:**\n` + orders.slice(0, 4).map((o, i) => `• Order #${o.orderId || o.id || (1000 + i)}: $${Number(o.total || o.total_amount || 0).toFixed(2)} (${o.status || "Processing"})`).join("\n") +
-                `\n\nYou can review customer fulfillment and download invoices directly from the Admin Customers Orders tab!`
-              : `📦 No customer orders placed yet!`);
+              ? `📦 **${orders.length} Order(s) Processed:**\n` + orders.slice(0, 4).map((o, i) => `• Order #${o.orderId || o.id || (1000 + i)}: $${Number(o.total || o.total_amount || 0).toFixed(2)} (${o.status || "Processing"})`).join("\n") +
+                `\n\nYou can inspect fulfillment stages and generate invoices from the Admin Console.`
+              : `📦 No customer orders placed yet.`);
         } else if (qLower.includes("joke")) {
-          fallbackReply = `Here's a joke for the Boss! 😂\n\n**${randomJoke}**\n\nReady for more store management tasks! 🫡`;
+          fallbackReply = `Here is a lighthearted joke for you:\n\n${randomJoke}`;
         } else {
-          fallbackReply = `Salute, Boss Admin! 🫡 I scanned the store regarding **"${query}"**.\n\n` +
+          fallbackReply = `Administrator briefing for **"${query}"**:\n\n` +
             `• Out-of-stock items: ${audit.outOfStock.length}\n` +
             `• Open customer tickets: ${tickets.length}\n` +
             `• Total customer orders: ${orders.length}\n\n` +
-            `I have full administrative authority over inventory, tickets, and customer orders!`;
+            `You can review individual orders and restock inventory directly through this console.`;
         }
       } else {
         // Customer Shopping Intelligence with Full State Access
@@ -478,7 +449,7 @@ export default function SneakPeekAiAssistant() {
           const localOrders = JSON.parse(localStorage.getItem("rmart_orders") || "[]");
           if (localOrders.length > 0) {
             const recent = localOrders.slice(0, 3);
-            let ordersText = `📦 **You have ${localOrders.length} order(s) on file!** Here is your latest order activity:\n\n`;
+            let ordersText = `You have **${localOrders.length} order(s)** on record. Here is your recent order activity:\n\n`;
             recent.forEach((ord, i) => {
               const id = ord.orderId || ord.id || `#RM-${1000 + i}`;
               const status = ord.status || "Processing";
@@ -487,10 +458,10 @@ export default function SneakPeekAiAssistant() {
               const items = (ord.items || []).map((it) => `${it.product_name || it.name || it.title || "Item"} (${it.quantity || it.qty || 1}x)`).join(", ") || "Electronics Package";
               ordersText += `**${i + 1}. Order ${id}**\n• Status: **${status}** 🚚\n• Total: **$${Number(total).toFixed(2)}**\n• Items: ${items}\n• Placed: ${date}\n\n`;
             });
-            ordersText += `💡 *Tip:* You can view your full order history or download PDF invoices by visiting **My Orders** in the top-right menu!`;
+            ordersText += `You can download official PDF invoices or review delivery stages anytime under **My Orders** in the top navigation.`;
             fallbackReply = ordersText;
           } else {
-            fallbackReply = `📦 **Order History Status:**\n\nYou haven't placed any orders yet in R-Mart!\n\nOnce you place an order, you can ask me anytime to track delivery stages, check shipments, or download invoices. Use coupon code **FLASH50** for **50% OFF** your first purchase! 🚀\n\n😄 *${randomJoke}*`;
+            fallbackReply = `You haven't placed any orders yet in R-Mart.\n\nOnce an order is confirmed, you can track delivery progress and download PDF receipts here. You can also use code **FLASH50** for 50% off your first purchase!`;
           }
         } else if (qLower.includes("address") || qLower.includes("profile") || qLower.includes("my name") || qLower.includes("my email") || qLower.includes("phone number") || qLower.includes("my phone") || qLower.includes("my account") || qLower.includes("who am i")) {
           const uName = user?.name || "Valued Shopper";
@@ -498,80 +469,69 @@ export default function SneakPeekAiAssistant() {
           const uPhone = localStorage.getItem("rmart_user_phone") || user?.phone || "+91 98765 43210";
           const uAddress = localStorage.getItem("rmart_user_address") || user?.address || "Flat 402, Guntur Main Road, Andhra Pradesh";
 
-          fallbackReply = `👤 **Your Registered Shopper Profile & Address:**\n\n` +
+          fallbackReply = `Here are your registered account and delivery details:\n\n` +
             `• **Name:** ${uName}\n` +
             `• **Email:** ${uEmail}\n` +
             `• **Phone:** ${uPhone}\n` +
             `• **Shipping Address:** ${uAddress}\n\n` +
-            `💡 *Tip:* You can edit your name, phone number, and delivery address anytime using the top-right menu under **Edit Profile & Address**!`;
+            `You can edit your delivery address and contact phone anytime using the top menu under **Edit Profile & Address**.`;
         } else if (qLower.includes("cart") || qLower.includes("bag") || qLower.includes("subtotal") || qLower.includes("basket")) {
           const cartItems = useCartStore.getState().cart || [];
           if (cartItems.length > 0) {
             const subtotal = cartItems.reduce((acc, it) => acc + (Number(it.price || 0) * (it.quantity || 1)), 0);
-            let cartText = `🛒 **Current Shopping Bag (${cartItems.length} unique items):**\n\n`;
+            let cartText = `You currently have **${cartItems.length} item(s)** in your shopping bag:\n\n`;
             cartItems.forEach((it) => {
-              cartText += `• **${it.name || it.title}** x${it.quantity || 1} — $${(Number(it.price || 0) * (it.quantity || 1)).toFixed(2)}\n`;
+              cartText += `• **${it.name || it.title}** (x${it.quantity || 1}) — $${(Number(it.price || 0) * (it.quantity || 1)).toFixed(2)}\n`;
             });
-            cartText += `\n💰 **Estimated Subtotal:** $${subtotal.toFixed(2)}\n\nReady to checkout? Click the cart icon in the top header or use code **FREESHIP** for zero-cost delivery! 🚀`;
+            cartText += `\n💰 **Estimated Subtotal:** $${subtotal.toFixed(2)}\n\nYou can proceed to checkout by clicking the cart icon in the top navigation!`;
             fallbackReply = cartText;
           } else {
-            fallbackReply = `🛒 Your shopping bag is currently **empty**!\n\nBrowse our electronics catalog or ask me for top recommendations like the Samsung Galaxy S24 Ultra or Sony WH-1000XM5 headphones! ✨`;
+            fallbackReply = `Your shopping bag is currently empty. Feel free to ask me for product recommendations like the Sony WH-1000XM5 headphones or Samsung Galaxy S24 Ultra!`;
           }
         } else if (qLower.includes("what's new") || qLower.includes("whats new") || qLower.includes("sparkyyy") || qLower.includes("offer") || qLower.includes("deal") || qLower.includes("discount") || qLower.includes("coupon")) {
           const banner = useUIStore.getState().newsBannerText || "⚡ Flash Sale: 50% OFF with code FLASH50";
-          fallbackReply = `✨ **Fresh Arrivals & Active Deals in R-Mart!** 🎁\n\n` +
-            `Here is what just dropped in our store:\n` +
-            `• **Samsung Galaxy S24 Ultra AI** ($1299.99) — Live Translation & Titanium Armor!\n` +
-            `• **Sony WH-1000XM5 Wireless Headphones** ($349.99) — 30hr battery & active noise cancelling!\n` +
-            `• **Apple iPhone 15 Pro Max 256GB** ($1199.99) — Aerospace titanium with A17 Pro chip!\n\n` +
-            `🎉 **ACTIVE OFFERS & DISCOUNTS:**\n` +
-            `• Use promo code **FLASH50** for **50% OFF** on select electronics!\n` +
-            `• Use code **FREESHIP** for zero-cost express delivery on orders over $99!\n\n` +
+          fallbackReply = `Here is what is currently trending and newly stocked at R-Mart:\n\n` +
+            `🔥 **LATEST ARRIVALS:**\n` +
+            `• **Samsung Galaxy S24 Ultra AI** ($1299.99) — Live Translation & Titanium Armor\n` +
+            `• **Sony WH-1000XM5 Wireless Headphones** ($349.99) — 30hr battery & active noise cancelling\n` +
+            `• **Apple iPhone 15 Pro Max 256GB** ($1199.99) — Aerospace titanium with A17 Pro chip\n\n` +
+            `🎉 **ACTIVE DISCOUNT CODES:**\n` +
+            `• **FLASH50**: 50% OFF on select high-demand electronics\n` +
+            `• **FREESHIP**: Zero-cost express delivery on orders over $99\n\n` +
             `📢 **STORE ANNOUNCEMENT:**\n` +
             `"${banner}"\n\n` +
-            `🫡 **Boss Admin Direct Link:**\n` +
-            `I immediately alerted my Boss Admin about your query so they can review demand and drop even more fresh deals and stock! 🚀\n\n` +
+            `I have also logged your interest with the Boss Admin so they can review demand and drop even more promotions! 🚀\n\n` +
             `[Source: Samsung Galaxy S24 Ultra (ID: #3, $1299.99)]\n` +
-            `[Source: Sony WH-1000XM5 Wireless Headphones (ID: #2, $349.99)]\n\n` +
-            `😄 *P.S.* ${randomJoke}`;
+            `[Source: Sony WH-1000XM5 Wireless Headphones (ID: #2, $349.99)]`;
           fallbackSources = [
             { id: 3, title: "Samsung Galaxy S24 Ultra", price: 1299.99, stock: 8 },
             { id: 2, title: "Sony WH-1000XM5 Wireless Headphones", price: 349.99, stock: 15 },
             { id: 1, title: "Apple iPhone 15 Pro Max 256GB", price: 1199.99, stock: 0 }
           ];
         } else if (qLower.includes("joke") || qLower.includes("funny") || qLower.includes("laugh")) {
-          fallbackReply = `Beep-boop! 🤖 Here's a tech joke to brighten your shopping:\n\n**${randomJoke}**\n\nAsk me about any product, specs, or your orders! ✨`;
-        } else if (qLower.includes("iphone") || qLower.includes("phone") || qLower.includes("apple")) {
-          fallbackReply = `I checked our inventory for **"${query}"**! 📱\n\n` +
-            `• **Apple iPhone 15 Pro Max 256GB** ($1199.99) — *Stock: 0 units*\n` +
-            `Don't worry! **I will say my boss admin to add stock as soon as possible - make it available!** 🚀\n\n` +
-            `[Source: Apple iPhone 15 Pro Max 256GB (ID: #1, $1199.99)]\n\n` +
-            `P.S. *${randomJoke}*`;
+          fallbackReply = `Here is a quick joke for you:\n\n${randomJoke}`;
+        } else if (qLower.includes("iphone") || qLower.includes("apple")) {
+          fallbackReply = `Here is the current status for the **Apple iPhone 15 Pro Max 256GB** ($1199.99):\n\n` +
+            `⚠️ Note: This item currently has **0 units in stock**.\n` +
+            `Don't worry though — **I will say my boss admin to add stock as soon as possible - make it available!** 🚀\n\n` +
+            `[Source: Apple iPhone 15 Pro Max 256GB (ID: #1, $1199.99)]`;
           fallbackSources = [{ id: 1, title: "Apple iPhone 15 Pro Max 256GB", price: 1199.99, stock: 0 }];
         } else if (qLower.includes("headphone") || qLower.includes("audio") || qLower.includes("sony") || qLower.includes("sound")) {
-          fallbackReply = `Awesome choice! 🎧 Here's what is ready in our warehouse:\n\n` +
+          fallbackReply = `Here are the top-rated headphones ready in our warehouse:\n\n` +
             `• **Sony WH-1000XM5 Wireless Headphones** ($349.99) — In Stock & ready to ship!\n` +
-            `Industry-leading noise cancelling with 30-hour battery.\n\n` +
-            `[Source: Sony WH-1000XM5 Wireless Headphones (ID: #2, $349.99)]\n\n` +
-            `😄 *${randomJoke}*`;
+            `Features industry-leading noise cancellation with 30-hour battery life and multi-device pairing.\n\n` +
+            `[Source: Sony WH-1000XM5 Wireless Headphones (ID: #2, $349.99)]`;
           fallbackSources = [{ id: 2, title: "Sony WH-1000XM5 Wireless Headphones", price: 349.99, stock: 15 }];
         } else if (qLower.includes("samsung") || qLower.includes("galaxy") || qLower.includes("s24")) {
-          fallbackReply = `Here is our top flagship Android device! ⚡\n\n` +
-            `• **Samsung Galaxy S24 Ultra 5G AI** ($1299.99) — In Stock (8 units)\n` +
-            `Features built-in S Pen, Titanium frame, and Live AI Translation.\n\n` +
-            `[Source: Samsung Galaxy S24 Ultra (ID: #3, $1299.99)]\n\n` +
-            `😄 *${randomJoke}*`;
+          fallbackReply = `Here are details on the **Samsung Galaxy S24 Ultra 5G AI** ($1299.99):\n\n` +
+            `• In Stock (8 units ready for express dispatch)\n` +
+            `• Features built-in S Pen, Titanium chassis, and on-device AI live translation.\n\n` +
+            `[Source: Samsung Galaxy S24 Ultra (ID: #3, $1299.99)]`;
           fallbackSources = [{ id: 3, title: "Samsung Galaxy S24 Ultra", price: 1299.99, stock: 8 }];
         } else {
-          fallbackReply = `Beep-boop! 🤖 I searched our live warehouse for **"${query}"**.\n\n` +
-            `All in-stock products are eligible for instant checkout and fast delivery! ` +
-            `If any item runs out of stock, **I will say my boss admin to add stock as soon as possible - make it available!** 🚀\n\n` +
-            `💡 You can ask me anything about:\n` +
-            `• Your past orders and live tracking 📦\n` +
-            `• Your registered delivery address & profile 📍\n` +
-            `• Items in your shopping cart 🛒\n` +
-            `• New arrivals and secret promo codes 🎁\n\n` +
-            `💡 *Joke of the moment:* ${randomJoke}`;
+          fallbackReply = `I reviewed our warehouse inventory regarding **"${query}"**.\n\n` +
+            `All in-stock products are eligible for express checkout and same-day handling. If an item runs out of stock, **I will say my boss admin to add stock as soon as possible - make it available!** 🚀\n\n` +
+            `You can ask me to look up specific product specs, review your order history, or check active promo codes.`;
         }
       }
 
@@ -593,10 +553,6 @@ export default function SneakPeekAiAssistant() {
         );
         await new Promise((r) => setTimeout(r, 12));
       }
-
-      if (isVoiceEnabled && currentText) {
-        speakText(currentText);
-      }
     } finally {
       setIsStreaming(false);
     }
@@ -606,11 +562,9 @@ export default function SneakPeekAiAssistant() {
     setMessages([]);
   };
 
-  const currentPos = PEEK_POSITIONS[positionIndex] || PEEK_POSITIONS[0];
-
   return (
     <>
-      {/* 1. FULL DARK SCREEN OVERLAY WHEN BOT IS CLICKED */}
+      {/* 1. SCREEN GOES PITCH DARK OVERLAY WHEN BOT IS CLICKED */}
       {isOpen && (
         <div
           data-testid="ai-dark-backdrop"
@@ -618,9 +572,9 @@ export default function SneakPeekAiAssistant() {
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.88)",
-            backdropFilter: "blur(24px)",
-            WebkitBackdropFilter: "blur(24px)",
+            backgroundColor: "rgba(0, 0, 0, 0.94)",
+            backdropFilter: "blur(28px)",
+            WebkitBackdropFilter: "blur(28px)",
             zIndex: 9998,
             animation: "fadeInBackdrop 0.25s ease-out forwards",
             transition: "all 0.3s ease"
@@ -628,89 +582,69 @@ export default function SneakPeekAiAssistant() {
         />
       )}
 
-      {/* 2. SNEAKPEEK ROBO CORNER PEEK-A-BOO (Restricted to bottom corners only) */}
+      {/* 2. SLEEK, UNOBTRUSIVE BOT TRIGGER (Docked in Corner - Never Occupies Space on Screen) */}
       {!isOpen && (
         <div
           data-testid="sneakpeek-robo-container"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           onClick={() => setIsOpen(true)}
+          title="Open Sparky AI Assistant"
           style={{
             position: "fixed",
-            ...currentPos.style,
+            bottom: "20px",
+            right: "20px",
             zIndex: 999,
             cursor: "pointer",
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
+            gap: "8px",
             userSelect: "none",
-            transition: "all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)"
+            transform: isHovered ? "scale(1.08)" : "scale(1)",
+            transition: "transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)"
           }}
         >
-          {/* Playful Floating Speech Bubble */}
+          {/* Compact Pill Badge */}
           <div
             data-testid="robo-speech-bubble"
             style={{
-              marginBottom: "8px",
-              backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
-              color: isAdmin ? "#F59E0B" : isDark ? "#38BDF8" : "#0284C7",
-              border: `2px solid ${isAdmin ? "#F59E0B" : isDark ? "#38BDF8" : "#0284C7"}`,
-              padding: "6px 14px",
-              borderRadius: "16px",
-              fontSize: "12px",
-              fontWeight: "900",
-              boxShadow: isAdmin
-                ? "0 8px 24px rgba(245, 158, 11, 0.4)"
-                : "0 8px 24px rgba(56, 189, 248, 0.35)",
-              transform: isHiding && !isHovered ? "scale(0.7) translateY(24px)" : "scale(1) translateY(0)",
-              opacity: isHiding && !isHovered ? 0 : 1,
-              transition: "all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)",
-              position: "relative",
-              whiteSpace: "nowrap"
+              backgroundColor: isDark ? "#0F172A" : "#FFFFFF",
+              color: isAdmin ? "#F59E0B" : "#38BDF8",
+              border: `1.5px solid ${isAdmin ? "#F59E0B" : "#38BDF8"}`,
+              padding: "5px 12px",
+              borderRadius: "20px",
+              fontSize: "11px",
+              fontWeight: "800",
+              boxShadow: "0 4px 14px rgba(0, 0, 0, 0.35)",
+              whiteSpace: "nowrap",
+              transition: "all 0.2s ease"
             }}
           >
-            {isHovered ? (isAdmin ? "🫡 Click for Boss Command Center!" : "🤖 Click for Sparky Full Screen Assistant!") : speechBubbleText}
-            {/* Bubble arrow pointer */}
-            <div
-              style={{
-                position: "absolute",
-                bottom: "-6px",
-                left: "50%",
-                transform: "translateX(-50%) rotate(45deg)",
-                width: "10px",
-                height: "10px",
-                backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
-                borderRight: `2px solid ${isAdmin ? "#F59E0B" : isDark ? "#38BDF8" : "#0284C7"}`,
-                borderBottom: `2px solid ${isAdmin ? "#F59E0B" : isDark ? "#38BDF8" : "#0284C7"}`
-              }}
-            />
+            {isAdmin ? "Admin AI 🛡️" : "Sparky AI 🤖"}
           </div>
 
-          {/* SNEAKPEEK ROBO AVATAR (Corner Peek Only) */}
+          {/* Compact 56px Sleek Circular Mascot Trigger */}
           <div
             data-testid="sneakpeek-robo-avatar"
             style={{
-              width: "74px",
-              height: "74px",
-              transform: isHiding && !isHovered ? "translateY(56px) scale(0.85)" : "translateY(0px) scale(1)",
-              transition: "transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)",
-              position: "relative",
-              filter: isAdmin
-                ? "drop-shadow(0 10px 20px rgba(245, 158, 11, 0.6))"
-                : "drop-shadow(0 10px 20px rgba(14, 165, 233, 0.5))"
+              width: "58px",
+              height: "58px",
+              borderRadius: "50%",
+              backgroundColor: isDark ? "#0A0E1A" : "#FFFFFF",
+              border: `2.5px solid ${isAdmin ? "#F59E0B" : "#38BDF8"}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: isAdmin
+                ? "0 8px 25px rgba(245, 158, 11, 0.5), inset 0 0 12px rgba(245, 158, 11, 0.2)"
+                : "0 8px 25px rgba(56, 189, 248, 0.45), inset 0 0 12px rgba(56, 189, 248, 0.2)",
+              position: "relative"
             }}
           >
-            <svg viewBox="0 0 100 100" width="100%" height="100%">
+            <svg viewBox="0 0 100 100" width="76%" height="76%">
               {/* Antenna */}
               <line x1="50" y1="20" x2="50" y2="8" stroke={isAdmin ? "#F59E0B" : "#38BDF8"} strokeWidth="4" strokeLinecap="round" />
-              <circle cx="50" cy="7" r="5" fill={isAdmin ? "#F59E0B" : "#38BDF8"}>
-                <animate attributeName="r" values="4;6;4" dur="1.4s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.7;1;0.7" dur="1.4s" repeatCount="indefinite" />
-              </circle>
-
-              {/* Ears */}
-              <rect x="18" y="32" width="6" height="12" rx="3" fill="#64748B" />
-              <rect x="76" y="32" width="6" height="12" rx="3" fill="#64748B" />
+              <circle cx="50" cy="7" r="5" fill={isAdmin ? "#F59E0B" : "#38BDF8"} />
 
               {/* Head */}
               <rect x="22" y="18" width="56" height="42" rx="14" fill="#0F172A" stroke={isAdmin ? "#F59E0B" : "#38BDF8"} strokeWidth="3.5" />
@@ -719,34 +653,35 @@ export default function SneakPeekAiAssistant() {
               <rect x="28" y="26" width="44" height="20" rx="8" fill="#030712" />
 
               {/* Glowing Eyes */}
-              <circle cx="40" cy="36" r="4.5" fill={isAdmin ? "#F59E0B" : "#38BDF8"}>
-                <animate attributeName="opacity" values="1;1;0.1;1" dur="3.5s" repeatCount="indefinite" keyTimes="0;0.9;0.95;1" />
-              </circle>
-              <circle cx="60" cy="36" r="4.5" fill={isAdmin ? "#F59E0B" : "#38BDF8"}>
-                <animate attributeName="opacity" values="1;1;0.1;1" dur="3.5s" repeatCount="indefinite" keyTimes="0;0.9;0.95;1" />
-              </circle>
+              <circle cx="40" cy="36" r="4.5" fill={isAdmin ? "#F59E0B" : "#38BDF8"} />
+              <circle cx="60" cy="36" r="4.5" fill={isAdmin ? "#F59E0B" : "#38BDF8"} />
 
               {/* Cheerful Smile */}
               <path d="M 44 44 Q 50 48 56 44" stroke={isAdmin ? "#F59E0B" : "#38BDF8"} strokeWidth="2.5" fill="none" strokeLinecap="round" />
 
-              {/* Waving Arm (When hovered) */}
-              <g transform={isHovered ? "rotate(-25 24 64)" : "none"} style={{ transition: "transform 0.3s ease" }}>
-                <circle cx="20" cy="62" r="5" fill={isAdmin ? "#F59E0B" : "#38BDF8"} />
-              </g>
-
               {/* Body */}
               <rect x="28" y="60" width="44" height="26" rx="10" fill="#1E293B" stroke={isAdmin ? "#F59E0B" : "#38BDF8"} strokeWidth="3" />
-              {/* Chest Badge */}
-              <circle cx="50" cy="72" r="6" fill={isAdmin ? "#F59E0B" : "#38BDF8"} />
-              <text x="50" y="75" fontSize="8" fontWeight="bold" textAnchor="middle" fill="#000">
-                {isAdmin ? "A" : "R"}
-              </text>
+              <circle cx="50" cy="72" r="5" fill={isAdmin ? "#F59E0B" : "#38BDF8"} />
             </svg>
+
+            {/* Online Green Indicator Dot */}
+            <span
+              style={{
+                position: "absolute",
+                top: "2px",
+                right: "2px",
+                width: "12px",
+                height: "12px",
+                borderRadius: "50%",
+                backgroundColor: "#10B981",
+                border: "2px solid #0A0E1A"
+              }}
+            />
           </div>
         </div>
       )}
 
-      {/* 3. FULL DARK SCREEN AI CHAT MODAL WITH SPARKY MESSAGE CARDS */}
+      {/* 3. FULL DARK SCREEN AI CHAT MODAL - SPARKY JUMPS ON SCREEN */}
       {isOpen && (
         <div
           data-testid="ai-chat-modal"
@@ -757,34 +692,34 @@ export default function SneakPeekAiAssistant() {
             display: "flex",
             flexDirection: "column",
             backgroundColor: "rgba(5, 8, 18, 0.96)",
-            backdropFilter: "blur(24px)",
-            WebkitBackdropFilter: "blur(24px)",
+            backdropFilter: "blur(28px)",
+            WebkitBackdropFilter: "blur(28px)",
             color: "#FFFFFF",
             padding: "16px",
             overflow: "hidden",
-            animation: "fadeInModal 0.25s ease-out forwards"
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
           }}
         >
-          {/* Centered Command Container */}
+          {/* Centered Command Console */}
           <div
             style={{
-              maxWidth: "1000px",
+              maxWidth: "980px",
               width: "100%",
               height: "100%",
               margin: "0 auto",
               display: "flex",
               flexDirection: "column",
-              backgroundColor: "rgba(11, 15, 25, 0.92)",
+              backgroundColor: "rgba(11, 15, 25, 0.94)",
               border: `1px solid ${isAdmin ? "rgba(245, 158, 11, 0.35)" : "rgba(56, 189, 248, 0.3)"}`,
               borderRadius: "24px",
               boxShadow: "0 25px 70px rgba(0, 0, 0, 0.95)",
               overflow: "hidden"
             }}
           >
-            {/* Immersive Header */}
+            {/* Immersive Header (Jumping Robot & Clean Controls - Voice Toggle Removed from Top!) */}
             <div
               style={{
-                padding: "18px 24px",
+                padding: "16px 24px",
                 backgroundColor: "rgba(15, 23, 42, 0.85)",
                 borderBottom: `1px solid ${isAdmin ? "rgba(245, 158, 11, 0.2)" : "rgba(56, 189, 248, 0.2)"}`,
                 display: "flex",
@@ -793,82 +728,68 @@ export default function SneakPeekAiAssistant() {
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                {/* SPARKY JUMPS ON SCREEN ANIMATED AVATAR */}
                 <div
                   style={{
-                    width: "48px",
-                    height: "48px",
+                    width: "50px",
+                    height: "50px",
                     borderRadius: "16px",
                     backgroundColor: isAdmin ? "#F59E0B" : "#38BDF8",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "24px",
+                    fontSize: "26px",
                     boxShadow: isAdmin
-                      ? "0 4px 16px rgba(245, 158, 11, 0.5)"
-                      : "0 4px 16px rgba(56, 189, 248, 0.5)"
+                      ? "0 4px 18px rgba(245, 158, 11, 0.5)"
+                      : "0 4px 18px rgba(56, 189, 248, 0.5)",
+                    animation: "sparkyLeap 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)"
                   }}
                 >
                   {isAdmin ? "🛡️" : "🤖"}
                 </div>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <h3 style={{ margin: 0, fontSize: "19px", fontWeight: "900", letterSpacing: "-0.5px" }}>
+                    <h3 style={{ margin: 0, fontSize: "19px", fontWeight: "900", letterSpacing: "-0.3px", color: "#FFFFFF" }}>
                       {isAdmin ? "Boss Store Command Intelligence" : "Sparky AI Assistant"}
                     </h3>
                     <span
                       style={{
                         fontSize: "11px",
                         fontWeight: "800",
-                        padding: "3px 8px",
+                        padding: "2px 8px",
                         borderRadius: "8px",
                         backgroundColor: isAdmin ? "rgba(245, 158, 11, 0.25)" : "rgba(16, 185, 129, 0.25)",
                         color: isAdmin ? "#F59E0B" : "#10B981"
                       }}
                     >
-                      {isAdmin ? "BOSS ADMIN" : "ONLINE • FULL KNOWLEDGE ACCESS"}
+                      {isAdmin ? "ADMIN CONSOLE" : "ONLINE • FULL KNOWLEDGE"}
                     </span>
                   </div>
-                  <div style={{ fontSize: "12px", color: "#94A3B8", marginTop: "3px" }}>
+                  <div style={{ fontSize: "12px", color: "#94A3B8", marginTop: "2px" }}>
                     {isAdmin
-                      ? "Full access to live inventory restock, open tickets & customer orders"
-                      : "Access to store catalog, your order history, delivery address, cart & discounts"}
+                      ? "Direct control over inventory, customer tickets, and orders"
+                      : "Grounded in live store catalog, your order stream & delivery profile"}
                   </div>
                 </div>
               </div>
 
-              {/* Header Controls */}
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <button
-                  onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
-                  title={isVoiceEnabled ? "Mute Bot Speech" : "Enable Bot Voice Speech (TTS)"}
-                  style={{
-                    backgroundColor: isVoiceEnabled ? (isAdmin ? "#F59E0B" : "#38BDF8") : "rgba(255,255,255,0.08)",
-                    color: isVoiceEnabled ? "#030712" : "#94A3B8",
-                    border: "1px solid rgba(255,255,255,0.15)",
-                    borderRadius: "10px",
-                    padding: "6px 12px",
-                    fontSize: "12px",
-                    cursor: "pointer",
-                    fontWeight: "800"
-                  }}
-                >
-                  {isVoiceEnabled ? "🔊 Voice ON" : "🔇 Voice OFF"}
-                </button>
-
+              {/* Clean Top Controls (Voice toggle removed from top!) */}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <button
                   onClick={handleClearChat}
-                  title="Clear Chat History"
+                  title="Clear Conversation"
                   style={{
                     backgroundColor: "rgba(255,255,255,0.08)",
                     border: "1px solid rgba(255,255,255,0.15)",
                     color: "#94A3B8",
                     fontSize: "14px",
                     cursor: "pointer",
-                    padding: "6px 10px",
-                    borderRadius: "10px"
+                    padding: "7px 12px",
+                    borderRadius: "10px",
+                    fontWeight: "700"
                   }}
                 >
-                  🗑️
+                  Clear Chat
                 </button>
 
                 <button
@@ -884,7 +805,7 @@ export default function SneakPeekAiAssistant() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "16px",
+                    fontSize: "17px",
                     fontWeight: "bold",
                     cursor: "pointer"
                   }}
@@ -894,7 +815,7 @@ export default function SneakPeekAiAssistant() {
               </div>
             </div>
 
-            {/* Messages Container with Sparky Message Cards */}
+            {/* Messages Stream with Highly Legible Typography & Sparky Message Cards */}
             <div
               style={{
                 flex: 1,
@@ -902,7 +823,7 @@ export default function SneakPeekAiAssistant() {
                 padding: "24px",
                 display: "flex",
                 flexDirection: "column",
-                gap: "18px"
+                gap: "20px"
               }}
             >
               {messages.map((m) => {
@@ -922,17 +843,17 @@ export default function SneakPeekAiAssistant() {
                       style={{
                         maxWidth: isUser ? "75%" : "88%",
                         backgroundColor: isUser
-                          ? (isAdmin ? "#F59E0B" : "#0284C7")
-                          : "rgba(15, 23, 42, 0.8)",
+                          ? (isAdmin ? "#D97706" : "#0284C7")
+                          : "rgba(15, 23, 42, 0.88)",
                         border: isUser
                           ? "none"
                           : `1px solid ${isAdmin ? "rgba(245, 158, 11, 0.3)" : "rgba(56, 189, 248, 0.25)"}`,
                         borderRadius: "20px",
-                        padding: "18px 22px",
+                        padding: "20px 24px",
                         boxShadow: isUser
                           ? "0 6px 20px rgba(2, 132, 199, 0.35)"
                           : "0 8px 30px rgba(0, 0, 0, 0.4)",
-                        color: isUser ? "#FFFFFF" : "#F8FAFC",
+                        color: "#FFFFFF",
                         position: "relative"
                       }}
                     >
@@ -942,7 +863,7 @@ export default function SneakPeekAiAssistant() {
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "space-between",
-                          marginBottom: "10px",
+                          marginBottom: "12px",
                           borderBottom: isUser ? "1px solid rgba(255,255,255,0.2)" : "1px solid rgba(255,255,255,0.08)",
                           paddingBottom: "8px"
                         }}
@@ -954,38 +875,53 @@ export default function SneakPeekAiAssistant() {
                           </span>
                         </div>
 
-                        {!isUser && m.content && (
-                          <button
-                            onClick={() => speakText(m.content)}
-                            title="Listen with voice"
-                            style={{
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              fontSize: "14px",
-                              color: "#38BDF8",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "4px"
-                            }}
-                          >
-                            <span>🔊</span>
-                            <span style={{ fontSize: "11px", fontWeight: "700" }}>Listen</span>
-                          </button>
+                        {!isUser && (
+                          <span style={{ fontSize: "11px", color: "#94A3B8" }}>
+                            {m.provider || "Store Intelligence"}
+                          </span>
                         )}
                       </div>
 
-                      {/* Card Body Text */}
+                      {/* Card Body with Highly Legible Font & Clear Spacing */}
                       <div
                         style={{
-                          fontSize: "14px",
-                          lineHeight: "1.65",
+                          fontSize: "14.5px",
+                          lineHeight: "1.7",
                           whiteSpace: "pre-wrap",
-                          fontWeight: isUser ? "600" : "400"
+                          fontWeight: isUser ? "500" : "400",
+                          color: "#F8FAFC",
+                          letterSpacing: "0.2px"
                         }}
                       >
-                        {m.content || (isStreaming ? "Thinking and searching catalog... ⚡" : "")}
+                        {m.content || (isStreaming ? "Analyzing catalog and reasoning... ⚡" : "")}
                       </div>
+
+                      {/* VOICE SPEAKER: PLACED NATURALLY UNDER SPARKY REPLIES ONLY */}
+                      {!isUser && m.content && (
+                        <div style={{ marginTop: "14px", paddingTop: "10px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+                          <button
+                            onClick={() => speakTextInNaturalAccent(m.content)}
+                            title="Listen to this response in a natural English accent"
+                            style={{
+                              backgroundColor: "rgba(56, 189, 248, 0.12)",
+                              border: "1px solid rgba(56, 189, 248, 0.3)",
+                              color: "#38BDF8",
+                              borderRadius: "10px",
+                              padding: "6px 14px",
+                              fontSize: "12px",
+                              fontWeight: "700",
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              transition: "all 0.15s ease"
+                            }}
+                          >
+                            <span>🔊</span>
+                            <span>Listen in Natural Accent</span>
+                          </button>
+                        </div>
+                      )}
 
                       {/* Admin Quick Restock Action Buttons */}
                       {!isUser && m.adminActions && m.adminActions.length > 0 && (
@@ -1176,8 +1112,8 @@ export default function SneakPeekAiAssistant() {
                   isListening
                     ? "Listening to your voice..."
                     : isAdmin
-                    ? "Ask Boss Intelligence about stock, customer tickets, or customer orders..."
-                    : "Ask Sparky anything about products, your orders, delivery address, cart, or discounts..."
+                    ? "Ask Boss Intelligence about stock, tickets, or orders..."
+                    : "Ask Sparky about products, your orders, delivery address, cart, or deals..."
                 }
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -1189,7 +1125,7 @@ export default function SneakPeekAiAssistant() {
                   border: "1px solid rgba(255, 255, 255, 0.12)",
                   backgroundColor: "rgba(3, 7, 18, 0.8)",
                   color: "#FFFFFF",
-                  fontSize: "14px",
+                  fontSize: "14.5px",
                   outline: "none"
                 }}
               />

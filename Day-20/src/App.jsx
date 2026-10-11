@@ -11,6 +11,7 @@ import NotificationsPanel from "./components/NotificationsPanel";
 import SneakPeekAiAssistant from "./components/SneakPeekAiAssistant";
 import CinematicIntro from "./components/CinematicIntro";
 import StateArchitectureModal from "./components/StateArchitectureModal";
+import LiveChatModal from "./components/LiveChatModal";
 import { useAuthStore, useUIStore } from "./store/useStore";
 
 // Code Splitting with React.lazy
@@ -86,6 +87,11 @@ function AppContent() {
         onClose={closeNotifications}
       />
       <SneakPeekAiAssistant />
+      <LiveChatModal
+        isOpen={isLiveChatOpen}
+        onClose={closeLiveChat}
+        roomId={activeChatRoom}
+      />
       <OrderTrackerModal
         isOpen={!!trackingOrder}
         order={trackingOrder}

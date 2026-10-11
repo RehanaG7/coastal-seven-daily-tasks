@@ -30,6 +30,7 @@ export default function SneakPeekAiAssistant() {
   // Speech Recognition (Mic) & Speech Synthesis (Voice)
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
+  const hasInitializedGreeting = useRef(false);
 
   const theme = useUIStore((s) => s.theme);
   const isDark = theme === "dark";
@@ -38,6 +39,60 @@ export default function SneakPeekAiAssistant() {
   const isAdmin = user?.role === "admin" || localStorage.getItem("user_role") === "admin";
 
   const messagesEndRef = useRef(null);
+
+  // Close assistant, cancel speech synthesis immediately, and halt microphone
+  const handleCloseChat = () => {
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {}
+      setIsListening(false);
+    }
+    setIsOpen(false);
+  };
+
+  // Ensure speech synthesis stops immediately whenever chat closes
+  useEffect(() => {
+    if (!isOpen) {
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+        setIsListening(false);
+      }
+    }
+  }, [isOpen]);
+
+  // Clean up speech synthesis on component unmount
+  useEffect(() => {
+    return () => {
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
+    };
+  }, []);
+
+  // Escape key closes modal & halts speech
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isOpen) {
+        handleCloseChat();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
 
   // Load viewed products history from localStorage
   const refreshWatchHistory = () => {
@@ -193,7 +248,8 @@ export default function SneakPeekAiAssistant() {
 
   // Initialize Greeting based on User Scroll & Browse History (No Beep-Boop!)
   useEffect(() => {
-    if (isOpen && messages.length === 0) {
+    if (isOpen && messages.length === 0 && !hasInitializedGreeting.current) {
+      hasInitializedGreeting.current = true;
       if (isAdmin) {
         const audit = getCatalogAudit();
         const tickets = getCustomerComplaints();
@@ -263,6 +319,55 @@ export default function SneakPeekAiAssistant() {
     }
   }, [messages]);
 
+  // Check if shopper wants to talk to admin or problem is unresolved
+  const isAdminHandoverIntent = (text = "") => {
+    const t = text.toLowerCase();
+    const triggers = [
+      "problem not resolved",
+      "problem isn't resolved",
+      "problem is not resolved",
+      "issue not resolved",
+      "not resolved",
+      "unresolved",
+      "not solved",
+      "didn't solve",
+      "did not solve",
+      "didn't help",
+      "did not help",
+      "not helping",
+      "not fixed",
+      "talk to admin",
+      "speak to admin",
+      "chat with admin",
+      "connect to admin",
+      "connect me to admin",
+      "need admin",
+      "contact admin",
+      "call admin",
+      "ask admin",
+      "human support",
+      "human agent",
+      "human admin",
+      "talk to human",
+      "speak to human",
+      "talk to a human",
+      "speak to a human",
+      "real person",
+      "talk to a person",
+      "speak to a person",
+      "talk to someone",
+      "speak to someone",
+      "live support",
+      "live agent",
+      "live chat with admin",
+      "support agent",
+      "customer care",
+      "representative",
+      "escalate"
+    ];
+    return triggers.some((tr) => t.includes(tr));
+  };
+
   // Dynamic Suggestion Chips
   const getSuggestions = () => {
     if (isAdmin) {
@@ -282,11 +387,19 @@ export default function SneakPeekAiAssistant() {
         "What's new in R-Mart Sparkyyy? 🎁",
         `Tell me about ${shortTitle} 🏷️`,
         "Where is my order & history? 🚚",
+        "Talk to admin (Live Chat) 💬",
         "What is my saved address & profile? 📍",
         "Tell me a shopping joke! 😂"
       ];
     }
-    return DEFAULT_SUGGESTIONS;
+    return [
+      "What's new in R-Mart Sparkyyy? 🎁",
+      "Where is my order & history? 🚚",
+      "Talk to admin (Live Chat) 💬",
+      "What is my saved address & profile? 📍",
+      "What is currently in my cart? 🛒",
+      "Tell me a shopping joke! 😂"
+    ];
   };
 
   // Send Chat Message via SSE Streaming with Intelligent Fallback (No robotic cliché)
@@ -295,11 +408,72 @@ export default function SneakPeekAiAssistant() {
     if (!query || isStreaming) return;
 
     setInput("");
+
+    // 1. Quick In-Chat Clear Command
+    const qLower = query.toLowerCase();
+    if (["clear", "clear chat", "clean chat", "reset", "reset chat", "cls"].includes(qLower)) {
+      handleClearChat();
+      return;
+    }
+
     const userMsgId = `user_${Date.now()}`;
     const botMsgId = `bot_${Date.now()}`;
 
+    // 2. Direct Admin Live Chat Handover for Unresolved Problems or Requests to Talk to Admin
+    if (!isAdmin && isAdminHandoverIntent(query)) {
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+        setIsListening(false);
+      }
+
+      // Log escalation ticket into localStorage for Boss Admin Customer Queries desk
+      try {
+        const existing = JSON.parse(localStorage.getItem("rmart_support_tickets") || "[]");
+        const newTicket = {
+          id: `TCK-${Date.now().toString().slice(-4)}`,
+          subject: "Customer Escalation: Unresolved Issue / Needs Admin Live Chat",
+          user: user?.name || "Shopper (via Sparky)",
+          text: `Customer escalated to human admin: "${query}"`,
+          date: new Date().toLocaleDateString()
+        };
+        localStorage.setItem("rmart_support_tickets", JSON.stringify([newTicket, ...existing]));
+      } catch (e) {
+        console.warn("Failed to log escalation ticket:", e);
+      }
+
+      // Show immediate empathetic handover notice
+      setMessages((prev) => [
+        ...prev,
+        { id: userMsgId, role: "user", content: query },
+        {
+          id: botMsgId,
+          role: "assistant",
+          content:
+            "I completely understand! Since your issue requires personal attention from our store management, I am connecting you directly to our human Store Administrator right away via Live Support Chat. 👨‍💼💬\n\nTransferring you to Live Support Chat...",
+          sources: [],
+          provider: "Admin Escalation Desk",
+          isAdminHandover: true
+        }
+      ]);
+
+      // Close Sparky assistant and directly open Live Support Chat with admin
+      setTimeout(() => {
+        handleCloseChat();
+        const openLiveChat = useUIStore.getState().openLiveChat;
+        if (typeof openLiveChat === "function") {
+          openLiveChat("general");
+        }
+      }, 700);
+
+      return;
+    }
+
     // Auto-log inquiry for Boss Admin if shopper asks about new items/offers
-    const qLower = query.toLowerCase();
     if (!isAdmin && (qLower.includes("what's new") || qLower.includes("whats new") || qLower.includes("sparkyyy") || qLower.includes("offer") || qLower.includes("discount"))) {
       try {
         const existing = JSON.parse(localStorage.getItem("rmart_support_tickets") || "[]");
@@ -566,7 +740,29 @@ export default function SneakPeekAiAssistant() {
   };
 
   const handleClearChat = () => {
-    setMessages([]);
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {}
+      setIsListening(false);
+    }
+    setIsStreaming(false);
+    setInput("");
+
+    setMessages([
+      {
+        id: `cleared_${Date.now()}`,
+        role: "assistant",
+        content: isAdmin
+          ? "🧹 Chat conversation cleared. Sparky Store Intelligence is ready for your instructions."
+          : "🧹 Chat cleared! How can I assist you with products, orders, or store offers today?",
+        sources: [],
+        provider: "Sparky Concierge"
+      }
+    ]);
   };
 
   return (
@@ -575,7 +771,7 @@ export default function SneakPeekAiAssistant() {
       {isOpen && (
         <div
           data-testid="ai-dark-backdrop"
-          onClick={() => setIsOpen(false)}
+          onClick={handleCloseChat}
           style={{
             position: "fixed",
             inset: 0,
@@ -800,7 +996,7 @@ export default function SneakPeekAiAssistant() {
                 </button>
 
                 <button
-                  onClick={() => setIsOpen(false)}
+                  onClick={handleCloseChat}
                   title="Close Assistant"
                   style={{
                     backgroundColor: "rgba(255,255,255,0.12)",
@@ -926,6 +1122,37 @@ export default function SneakPeekAiAssistant() {
                           >
                             <span>🔊</span>
                             <span>Listen in Natural Accent</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Live Admin Handover Direct Action Button */}
+                      {!isUser && m.isAdminHandover && (
+                        <div style={{ marginTop: "14px", paddingTop: "10px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+                          <button
+                            onClick={() => {
+                              handleCloseChat();
+                              useUIStore.getState().openLiveChat("general");
+                            }}
+                            title="Directly connect with our human administrator in real-time"
+                            style={{
+                              backgroundColor: "#10B981",
+                              color: "#FFFFFF",
+                              border: "none",
+                              borderRadius: "10px",
+                              padding: "9px 18px",
+                              fontSize: "13px",
+                              fontWeight: "800",
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              boxShadow: "0 4px 14px rgba(16, 185, 129, 0.45)",
+                              transition: "all 0.15s ease"
+                            }}
+                          >
+                            <span>👨‍💼</span>
+                            <span>Open Live Admin Chat Now</span>
                           </button>
                         </div>
                       )}

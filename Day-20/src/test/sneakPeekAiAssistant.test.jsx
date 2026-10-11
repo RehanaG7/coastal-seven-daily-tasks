@@ -133,5 +133,71 @@ describe("Day 20 – SneakPeek Robo Assistant & Segmented Role Switcher", () => 
       expect(tickets[0].subject).toContain("What's new in R-Mart & latest offers?");
     });
   });
+
+  it("cancels speech synthesis and closes assistant when close button is clicked", () => {
+    const cancelMock = vi.fn();
+    window.speechSynthesis = {
+      cancel: cancelMock,
+      speak: vi.fn(),
+      getVoices: vi.fn().mockReturnValue([])
+    };
+
+    render(
+      <MemoryRouter>
+        <SneakPeekAiAssistant />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId("sneakpeek-robo-container"));
+    expect(screen.getByTestId("ai-chat-modal")).toBeInTheDocument();
+
+    const closeBtn = screen.getByTitle(/Close Assistant/i);
+    fireEvent.click(closeBtn);
+
+    expect(cancelMock).toHaveBeenCalled();
+    expect(screen.queryByTestId("ai-chat-modal")).not.toBeInTheDocument();
+  });
+
+  it("clears chat messages and shows clean confirmation when Clear Chat is clicked", async () => {
+    render(
+      <MemoryRouter>
+        <SneakPeekAiAssistant />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId("sneakpeek-robo-container"));
+    expect(screen.getByTestId("ai-chat-modal")).toBeInTheDocument();
+
+    const clearBtn = screen.getByText(/Clear Chat/i);
+    fireEvent.click(clearBtn);
+
+    expect(screen.getByText(/Chat cleared!/i)).toBeInTheDocument();
+  });
+
+  it("triggers live chat handover when user says problem not resolved or wants to talk to admin", async () => {
+    render(
+      <MemoryRouter>
+        <SneakPeekAiAssistant />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId("sneakpeek-robo-container"));
+
+    const input = screen.getByTestId("ai-chat-input");
+    const sendBtn = screen.getByTestId("ai-chat-send-btn");
+
+    fireEvent.change(input, { target: { value: "My problem not resolved, I want to talk to admin" } });
+    fireEvent.click(sendBtn);
+
+    // Verify empathy response and handover message
+    expect(
+      screen.getByText(/connecting you directly to our human Store Administrator right away via Live Support Chat/i)
+    ).toBeInTheDocument();
+
+    // Verify ticket logged to localStorage for Admin Customer Queries desk
+    const tickets = JSON.parse(localStorage.getItem("rmart_support_tickets") || "[]");
+    expect(tickets.length).toBeGreaterThan(0);
+    expect(tickets[0].subject).toContain("Customer Escalation");
+  });
 });
 

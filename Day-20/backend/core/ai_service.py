@@ -51,7 +51,8 @@ class LLMProviderManager:
             "'I will say my boss (the admin) to add stock as soon as possible and make it available!'\n"
             "5. SOURCE CITATIONS: When mentioning or recommending a catalog product, always cite it cleanly as: "
             "[Source: Product Title (ID: #id, $price)].\n"
-            "6. WHAT'S NEW & DEALS: When asked 'What's new in R-Mart Sparkyyy?' or about promotions, present fresh store arrivals, feature promo codes FLASH50 (50% off select tech) and FREESHIP (free shipping on $99+), and reassure the user that you notified the Boss Admin of their query!\n\n"
+            "6. WHAT'S NEW & DEALS: When asked 'What's new in R-Mart Sparkyyy?' or about promotions, present fresh store arrivals, feature promo codes FLASH50 (50% off select tech) and FREESHIP (free shipping on $99+), and reassure the user that you notified the Boss Admin of their query!\n"
+            "7. UNRESOLVED ISSUES & ADMIN LIVE CHAT: If the customer states their problem is not resolved or asks to speak/chat with the admin or human agent, empathetically reassure them and let them know you are connecting them directly to the human Store Administrator via Live Support Chat right away!\n\n"
             f"=== RETRIEVED PRODUCT CATALOG CONTEXT ===\n{catalog_text}\n"
             "=========================================="
         )

@@ -292,136 +292,80 @@ export const ProductCard = memo(({ product }) => {
 
           {/* Action Row: Role Based Controls */}
           {isAdmin ? (
-            /* ADMIN SIDE: VIEW IN DETAIL, DELETE & ADD STOCK */
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <div style={{ display: "flex", gap: "8px" }}>
-                <Link
-                  to={`/catalog/${product.id}`}
-                  style={{
-                    flex: 1,
-                    backgroundColor: isDark ? "#0B0F19" : "#F1F5F9",
-                    color: isDark ? "#FFFFFF" : "#0F172A",
-                    border: `1px solid ${isDark ? "#1E293B" : "#CBD5E1"}`,
-                    padding: "9px 12px",
-                    borderRadius: "10px",
-                    fontSize: "12px",
-                    fontWeight: "800",
-                    textAlign: "center",
-                    textDecoration: "none",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    transition: "all 0.2s ease",
-                  }}
-                >
-                  View ↗
-                </Link>
-
-                <button
-                  type="button"
-                  data-testid={`admin-delete-product-${product.id}`}
-                  title={`Delete ${product.name || product.title} permanently`}
-                  onClick={handleDelete}
-                  disabled={deleteMutation.isPending}
-                  style={{
-                    flex: 1,
-                    backgroundColor: "rgba(220, 38, 38, 0.12)",
-                    color: "#EF4444",
-                    border: "1px solid rgba(220, 38, 38, 0.4)",
-                    padding: "9px 12px",
-                    borderRadius: "10px",
-                    fontSize: "12px",
-                    fontWeight: "800",
-                    cursor: deleteMutation.isPending ? "not-allowed" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "4px",
-                    transition: "all 0.2s ease",
-                  }}
-                >
-                  <span>🗑️</span>
-                  <span>Delete</span>
-                </button>
-              </div>
-
-              {/* ADD STOCK CONTROLS */}
-              <div
+            /* ADMIN SIDE: STRICTLY ONLY 2 OPTIONS: ADD STOCK & DELETE PRODUCT */
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                type="button"
+                data-testid={`admin-add-stock-${product.id}`}
+                title="Increase stock by 1"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  let qty = 1;
+                  if (typeof window !== "undefined" && typeof window.prompt === "function") {
+                    const input = window.prompt(`Enter stock quantity to add for "${product.name || product.title}":`, "10");
+                    if (input !== null && input !== undefined) {
+                      const parsed = parseInt(input.trim(), 10);
+                      if (!isNaN(parsed) && parsed > 0) qty = parsed;
+                    }
+                  }
+                  const nextStock = currentStock + qty;
+                  setLocalStock(nextStock);
+                  stockMutation?.mutate && stockMutation.mutate({ productId: product.id, delta: qty });
+                  try {
+                    const overrides = JSON.parse(localStorage.getItem("rmart_stock_overrides") || "{}");
+                    overrides[product.id] = nextStock;
+                    overrides[String(product.id)] = nextStock;
+                    localStorage.setItem("rmart_stock_overrides", JSON.stringify(overrides));
+                  } catch (err) {}
+                }}
                 style={{
-                  backgroundColor: "rgba(245, 158, 11, 0.08)",
-                  border: "1px solid rgba(245, 158, 11, 0.3)",
+                  flex: 1,
+                  backgroundColor: "#10B981",
+                  color: "#FFFFFF",
+                  border: "none",
+                  padding: "10px 12px",
                   borderRadius: "10px",
-                  padding: "8px 12px",
+                  fontSize: "12px",
+                  fontWeight: "800",
+                  cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "space-between",
+                  justifyContent: "center",
+                  gap: "6px",
+                  boxShadow: "0 2px 8px rgba(16, 185, 129, 0.25)",
                 }}
               >
-                <span style={{ fontSize: "11px", fontWeight: "800", color: "#F59E0B" }}>
-                  📦 Add Stock:
-                </span>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <button
-                    type="button"
-                    title="Reduce stock by 1"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const nextStock = Math.max(0, currentStock - 1);
-                      setLocalStock(nextStock);
-                      stockMutation?.mutate && stockMutation.mutate({ productId: product.id, delta: -1 });
-                    }}
-                    style={{
-                      backgroundColor: "#DC2626",
-                      color: "#FFFFFF",
-                      border: "none",
-                      borderRadius: "6px",
-                      width: "28px",
-                      height: "28px",
-                      fontWeight: "900",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "15px",
-                    }}
-                  >
-                    -
-                  </button>
+                <span>➕</span>
+                <span>Add Stock:</span>
+              </button>
 
-                  <span style={{ fontSize: "14px", fontWeight: "900", color: isDark ? "#FFFFFF" : "#0F172A", minWidth: "26px", textAlign: "center" }}>
-                    {currentStock}
-                  </span>
-
-                  <button
-                    type="button"
-                    title="Increase stock by 1"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const nextStock = currentStock + 1;
-                      setLocalStock(nextStock);
-                      stockMutation?.mutate && stockMutation.mutate({ productId: product.id, delta: 1 });
-                    }}
-                    style={{
-                      backgroundColor: "#10B981",
-                      color: "#FFFFFF",
-                      border: "none",
-                      borderRadius: "6px",
-                      width: "28px",
-                      height: "28px",
-                      fontWeight: "900",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "15px",
-                    }}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
+              <button
+                type="button"
+                data-testid={`admin-delete-product-${product.id}`}
+                title={`Delete ${product.name || product.title} permanently`}
+                onClick={handleDelete}
+                disabled={deleteMutation.isPending}
+                style={{
+                  flex: 1,
+                  backgroundColor: "#DC2626",
+                  color: "#FFFFFF",
+                  border: "none",
+                  padding: "10px 12px",
+                  borderRadius: "10px",
+                  fontSize: "12px",
+                  fontWeight: "800",
+                  cursor: deleteMutation.isPending ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  boxShadow: "0 2px 8px rgba(220, 38, 38, 0.25)",
+                }}
+              >
+                <span>🗑️</span>
+                <span>Delete Product</span>
+              </button>
             </div>
           ) : (
             /* USER SIDE: VIEW IN DETAIL & ADD TO CART */

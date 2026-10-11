@@ -2,19 +2,34 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useUIStore, useAuthStore } from "../store/useStore";
 import { MOCK_CATALOG, ALL_CATEGORIES, productKeys } from "../hooks/useProducts";
 import { queryClient } from "../lib/queryClient";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { orderService, csvService, apiClient, productService } from "../api/apiClient";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { env } from "../config/env";
 import TaskProgressModal from "../components/TaskProgressModal";
+import OrderTrackerModal from "../components/OrderTrackerModal";
 
 export default function AdminDashboard() {
   const theme = useUIStore((s) => s.theme);
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isDark = theme === "dark";
 
-  const [activeTab, setActiveTab] = useState("add_product"); // "add_product" | "bulk_import" | "live_support"
+  const urlTab = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(urlTab || "catalog"); // "catalog" | "orders" | "add_product" | "bulk_import" | "live_support"
+
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
+  const handleTabSelect = (tabId) => {
+    setActiveTab(tabId);
+    setSearchParams({ tab: tabId });
+  };
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortOption, setSortOption] = useState("default");
@@ -45,15 +60,86 @@ export default function AdminDashboard() {
   // Reviews modal state
   const [reviewModalProduct, setReviewModalProduct] = useState(null);
 
+  // Default realistic sample orders ensuring Admin always has detailed data on which customer ordered what & from where
+  const DEFAULT_SAMPLE_ORDERS = [
+    {
+      orderId: "ORD-942810",
+      id: "ORD-942810",
+      fullName: "Ananya Sharma",
+      email: "ananya.sharma@example.com",
+      phone: "+91 98765 43210",
+      address: "Flat 402, Guntur Main Road, Near Green Park",
+      city: "Guntur",
+      state: "Andhra Pradesh",
+      postalCode: "522002",
+      totalAmount: 1549.98,
+      status: "Processing",
+      orderDate: "Oct 11, 2026",
+      paymentMethod: "UPI / Credit Card",
+      items: [
+        {
+          id: 1,
+          name: "Apple iPhone 15 Pro Max",
+          title: "Apple iPhone 15 Pro Max",
+          price: 1199.99,
+          quantity: 1,
+          image: "https://picsum.photos/seed/iphone15/200/200",
+          category: "Mobiles and Electronics"
+        },
+        {
+          id: 2,
+          name: "Sony WH-1000XM5 Headphones",
+          title: "Sony WH-1000XM5 Headphones",
+          price: 349.99,
+          quantity: 1,
+          image: "https://picsum.photos/seed/sonyheadphones/200/200",
+          category: "Mobiles and Electronics"
+        }
+      ]
+    },
+    {
+      orderId: "ORD-839174",
+      id: "ORD-839174",
+      fullName: "Rahul Verma",
+      email: "rahul.v@example.com",
+      phone: "+91 98112 34567",
+      address: "Villa 14, Silicon Meadows, Jubilee Hills",
+      city: "Hyderabad",
+      state: "Telangana",
+      postalCode: "500033",
+      totalAmount: 699.99,
+      status: "Shipped",
+      orderDate: "Oct 10, 2026",
+      paymentMethod: "Cash on Delivery",
+      items: [
+        {
+          id: 4,
+          name: "Samsung Odyssey 4K Gaming Monitor",
+          title: "Samsung Odyssey 4K Gaming Monitor",
+          price: 699.99,
+          quantity: 1,
+          image: "https://picsum.photos/seed/samsungmon/200/200",
+          category: "Mobiles and Electronics"
+        }
+      ]
+    }
+  ];
+
   // Admin Orders Management State
   const [adminOrders, setAdminOrders] = useState([]);
+  const [selectedTrackingOrder, setSelectedTrackingOrder] = useState(null);
 
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("rmart_orders") || "[]");
-      setAdminOrders(saved);
+      if (Array.isArray(saved) && saved.length > 0) {
+        setAdminOrders(saved);
+      } else {
+        setAdminOrders(DEFAULT_SAMPLE_ORDERS);
+        localStorage.setItem("rmart_orders", JSON.stringify(DEFAULT_SAMPLE_ORDERS));
+      }
     } catch (e) {
-      setAdminOrders([]);
+      setAdminOrders(DEFAULT_SAMPLE_ORDERS);
     }
   }, [activeTab]);
 
@@ -573,13 +659,13 @@ export default function AdminDashboard() {
         {/* Navigation Tabs */}
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "22px" }}>
           <button
-            onClick={() => setActiveTab("add_product")}
-            data-testid="admin-add-product-tab"
+            onClick={() => handleTabSelect("catalog")}
+            data-testid="admin-catalog-tab"
             style={{
-              backgroundColor: activeTab === "add_product" ? "#3B82F6" : c.cardBg,
-              color: activeTab === "add_product" ? "#FFF" : c.text,
-              border: `1px solid ${activeTab === "add_product" ? "#3B82F6" : c.border}`,
-              padding: "10px 20px",
+              backgroundColor: activeTab === "catalog" ? "#3B82F6" : c.cardBg,
+              color: activeTab === "catalog" ? "#FFF" : c.text,
+              border: `1px solid ${activeTab === "catalog" ? "#3B82F6" : c.border}`,
+              padding: "10px 18px",
               borderRadius: "8px",
               fontWeight: "800",
               fontSize: "13px",
@@ -589,18 +675,60 @@ export default function AdminDashboard() {
               gap: "6px",
             }}
           >
-            <span>+</span>
+            <span>📦</span>
+            <span>Products Catalogue ({safeProducts.length})</span>
+          </button>
+
+          <button
+            onClick={() => handleTabSelect("orders")}
+            data-testid="admin-orders-tab"
+            style={{
+              backgroundColor: activeTab === "orders" ? "#3B82F6" : c.cardBg,
+              color: activeTab === "orders" ? "#FFF" : c.text,
+              border: `1px solid ${activeTab === "orders" ? "#3B82F6" : c.border}`,
+              padding: "10px 18px",
+              borderRadius: "8px",
+              fontWeight: "800",
+              fontSize: "13px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <span>📋</span>
+            <span>Customers Orders ({adminOrders.length})</span>
+          </button>
+
+          <button
+            onClick={() => handleTabSelect("add_product")}
+            data-testid="admin-add-product-tab"
+            style={{
+              backgroundColor: activeTab === "add_product" ? "#3B82F6" : c.cardBg,
+              color: activeTab === "add_product" ? "#FFF" : c.text,
+              border: `1px solid ${activeTab === "add_product" ? "#3B82F6" : c.border}`,
+              padding: "10px 18px",
+              borderRadius: "8px",
+              fontWeight: "800",
+              fontSize: "13px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <span>➕</span>
             <span>Add Products</span>
           </button>
 
           <button
-            onClick={() => setActiveTab("bulk_import")}
+            onClick={() => handleTabSelect("bulk_import")}
             data-testid="admin-bulk-import-tab"
             style={{
               backgroundColor: activeTab === "bulk_import" ? "#3B82F6" : c.cardBg,
               color: activeTab === "bulk_import" ? "#FFF" : c.text,
               border: `1px solid ${activeTab === "bulk_import" ? "#3B82F6" : c.border}`,
-              padding: "10px 20px",
+              padding: "10px 18px",
               borderRadius: "8px",
               fontWeight: "800",
               fontSize: "13px",
@@ -615,13 +743,13 @@ export default function AdminDashboard() {
           </button>
 
           <button
-            onClick={() => setActiveTab("live_support")}
-            data-testid="admin-live-support-tab"
+            onClick={() => handleTabSelect("live_support")}
+            data-testid="admin-customer-queries-tab"
             style={{
               backgroundColor: activeTab === "live_support" ? "#3B82F6" : c.cardBg,
               color: activeTab === "live_support" ? "#FFF" : c.text,
               border: `1px solid ${activeTab === "live_support" ? "#3B82F6" : c.border}`,
-              padding: "9px 18px",
+              padding: "10px 18px",
               borderRadius: "8px",
               fontWeight: "800",
               fontSize: "13px",
@@ -631,7 +759,7 @@ export default function AdminDashboard() {
               gap: "6px",
             }}
           >
-            <span>💬 Live Support & Chat</span>
+            <span>💬 Customer Queries</span>
             <span
               style={{
                 backgroundColor: isChatConnected ? "#10B981" : "#EF4444",
@@ -856,71 +984,267 @@ export default function AdminDashboard() {
 
         {/* TAB 2: ORDERS MANAGEMENT */}
         {activeTab === "orders" && (
-          <div style={{ maxWidth: "980px", margin: "0 auto" }}>
-            <h2 style={{ fontSize: "20px", fontWeight: "900", color: c.text, margin: "0 0 16px 0" }}>
-              Customer Order Management ({adminOrders.length})
-            </h2>
+          <div style={{ maxWidth: "1020px", margin: "0 auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "18px", flexWrap: "wrap", gap: "10px" }}>
+              <div>
+                <h2 style={{ fontSize: "20px", fontWeight: "900", color: c.text, margin: 0 }}>
+                  📋 Customers Orders ({adminOrders.length})
+                </h2>
+                <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: c.subtext }}>
+                  Review which customer ordered what, delivery destinations, and modify live tracking stages.
+                </p>
+              </div>
+            </div>
 
             {adminOrders.length === 0 ? (
               <div style={{ backgroundColor: c.cardBg, border: `1px dashed ${c.border}`, borderRadius: "14px", padding: "40px", textAlign: "center" }}>
                 <p style={{ color: c.subtext, fontSize: "14px", margin: 0 }}>No customer orders placed yet.</p>
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                {adminOrders.map((ord, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      backgroundColor: c.cardBg,
-                      border: `1px solid ${c.border}`,
-                      borderRadius: "14px",
-                      padding: "20px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "12px",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
-                      <div>
-                        <span style={{ fontFamily: "monospace", fontWeight: "900", fontSize: "14px", color: "#3B82F6" }}>
-                          {ord.orderId}
-                        </span>
-                        <span style={{ fontSize: "12px", color: c.subtext, marginLeft: "10px" }}>
-                          Placed by: <strong style={{ color: c.text }}>{ord.fullName}</strong> ({ord.email})
-                        </span>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <span style={{ fontSize: "16px", fontWeight: "900", color: "#10B981" }}>
-                          ${Number(ord.totalAmount || 0).toFixed(2)}
-                        </span>
-                        <select
-                          value={ord.status || "Confirmed"}
-                          onChange={(e) => handleUpdateOrderStatus(ord.orderId, e.target.value)}
-                          style={{
-                            backgroundColor: isDark ? "#1E293B" : "#F1F5F9",
-                            color: c.text,
-                            border: `1px solid ${c.border}`,
-                            padding: "4px 8px",
-                            borderRadius: "6px",
-                            fontSize: "12px",
-                            fontWeight: "800",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <option value="Confirmed">Confirmed</option>
-                          <option value="Processing">Processing</option>
-                          <option value="Shipped">Shipped</option>
-                          <option value="Delivered">Delivered</option>
-                        </select>
-                      </div>
-                    </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+                {adminOrders.map((ord, idx) => {
+                  const currentStatus = ord.status || "Processing";
+                  const trackerStages = ["Placed", "Processing", "Shipped", "Out for Delivery", "Delivered"];
 
-                    <div style={{ fontSize: "12px", color: c.subtext, borderTop: `1px solid ${c.border}`, paddingTop: "8px" }}>
-                      📍 Delivery Address: {ord.address}, {ord.city} - {ord.postalCode} • Payment: {ord.paymentMethod?.toUpperCase()}
+                  // Normalize items
+                  const itemsList = Array.isArray(ord.items) && ord.items.length > 0
+                    ? ord.items
+                    : [
+                        {
+                          id: 1,
+                          name: "Customer Order Package",
+                          price: Number(ord.totalAmount || 99.99),
+                          quantity: 1,
+                          image: "https://picsum.photos/seed/package/200/200",
+                          category: "Retail Goods"
+                        }
+                      ];
+
+                  // Determine current stage index
+                  const getStageIndex = (st) => {
+                    const s = (st || "").toLowerCase();
+                    if (s.includes("deliver")) return 4;
+                    if (s.includes("out")) return 3;
+                    if (s.includes("ship")) return 2;
+                    if (s.includes("process")) return 1;
+                    return 0; // placed
+                  };
+                  const activeStageIdx = getStageIndex(currentStatus);
+
+                  return (
+                    <div
+                      key={ord.orderId || ord.id || idx}
+                      style={{
+                        backgroundColor: c.cardBg,
+                        border: `1px solid ${c.border}`,
+                        borderRadius: "16px",
+                        padding: "22px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "16px",
+                        boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+                      }}
+                    >
+                      {/* 1. Order Header: ID, Date, Amount, Payment */}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", borderBottom: `1px solid ${c.border}`, paddingBottom: "14px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                          <span style={{ fontFamily: "monospace", fontWeight: "900", fontSize: "16px", color: "#3B82F6", backgroundColor: "rgba(59, 130, 246, 0.12)", padding: "4px 10px", borderRadius: "8px" }}>
+                            {ord.orderId || ord.id || `#ORD-${1000 + idx}`}
+                          </span>
+                          <span style={{ fontSize: "12px", color: c.subtext }}>
+                            📅 {ord.orderDate || ord.createdAt || "Oct 11, 2026"}
+                          </span>
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                          <span style={{ fontSize: "18px", fontWeight: "900", color: "#10B981" }}>
+                            ${Number(ord.totalAmount || ord.total || 0).toFixed(2)}
+                          </span>
+                          <span style={{ fontSize: "11px", fontWeight: "800", padding: "4px 8px", borderRadius: "6px", backgroundColor: isDark ? "#1E293B" : "#F1F5F9", color: c.text }}>
+                            💳 {ord.paymentMethod?.toUpperCase() || "PAID"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 2. Customer Info & Origin Destination */}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "14px", backgroundColor: isDark ? "rgba(0,0,0,0.25)" : "#F8FAFC", padding: "14px", borderRadius: "12px", border: `1px solid ${c.border}` }}>
+                        <div>
+                          <div style={{ fontSize: "11px", fontWeight: "800", color: c.subtext, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                            👤 Customer Details
+                          </div>
+                          <div style={{ fontSize: "14px", fontWeight: "900", color: c.text, marginTop: "4px" }}>
+                            {ord.fullName || "Valued Shopper"}
+                          </div>
+                          <div style={{ fontSize: "12px", color: c.subtext, marginTop: "2px" }}>
+                            📧 {ord.email || "customer@rmart.com"}
+                          </div>
+                          <div style={{ fontSize: "12px", color: c.subtext, marginTop: "2px" }}>
+                            📞 {ord.phone || "+91 98765 43210"}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div style={{ fontSize: "11px", fontWeight: "800", color: c.subtext, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                            📍 From / Delivery Destination
+                          </div>
+                          <div style={{ fontSize: "13px", fontWeight: "800", color: c.text, marginTop: "4px", lineHeight: 1.4 }}>
+                            {ord.address || "Flat 402, Main Road"}
+                          </div>
+                          <div style={{ fontSize: "12px", color: c.subtext, marginTop: "2px" }}>
+                            {ord.city || "Guntur"}{ord.state ? `, ${ord.state}` : ""} - {ord.postalCode || ord.zip || "522002"}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 3. Items Ordered ("Which Customer Ordered What") */}
+                      <div>
+                        <div style={{ fontSize: "12px", fontWeight: "800", color: c.subtext, marginBottom: "8px", textTransform: "uppercase" }}>
+                          📦 Items Ordered ({itemsList.length}):
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                          {itemsList.map((item, itemIdx) => (
+                            <div
+                              key={item.id || itemIdx}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                backgroundColor: isDark ? "#0B0F19" : "#FFFFFF",
+                                border: `1px solid ${c.border}`,
+                                borderRadius: "10px",
+                                padding: "10px 14px",
+                                gap: "12px",
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                <img
+                                  src={item.image || item.image_url || `https://picsum.photos/seed/item-${itemIdx}/80/80`}
+                                  alt={item.name || item.title}
+                                  style={{ width: "42px", height: "42px", borderRadius: "8px", objectFit: "cover" }}
+                                />
+                                <div>
+                                  <div style={{ fontSize: "13px", fontWeight: "800", color: c.text }}>
+                                    {item.name || item.title || "Catalog Product"}
+                                  </div>
+                                  <div style={{ fontSize: "11px", color: c.subtext }}>
+                                    {item.category || "General"} • Qty: <strong style={{ color: c.text }}>{item.quantity || 1}</strong> × ${Number(item.price || 0).toFixed(2)}
+                                  </div>
+                                </div>
+                              </div>
+                              <div style={{ fontSize: "13px", fontWeight: "900", color: c.text }}>
+                                ${(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 4. Modify Tracker Section */}
+                      <div style={{ backgroundColor: isDark ? "rgba(15, 23, 42, 0.6)" : "#F1F5F9", borderRadius: "12px", padding: "16px", border: `1px solid ${c.border}` }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px", marginBottom: "12px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ fontSize: "16px" }}>🚚</span>
+                            <span style={{ fontSize: "13px", fontWeight: "900", color: c.text }}>
+                              Order Tracker Stage:
+                            </span>
+                            <span style={{ fontSize: "12px", fontWeight: "900", color: "#3B82F6", backgroundColor: "rgba(59, 130, 246, 0.15)", padding: "3px 8px", borderRadius: "6px" }}>
+                              {currentStatus}
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedTrackingOrder(ord)}
+                            style={{
+                              backgroundColor: "transparent",
+                              color: "#38BDF8",
+                              border: "1px solid #38BDF8",
+                              padding: "4px 10px",
+                              borderRadius: "6px",
+                              fontSize: "11px",
+                              fontWeight: "800",
+                              cursor: "pointer",
+                            }}
+                          >
+                            🔍 Open Live Tracker Simulation
+                          </button>
+                        </div>
+
+                        {/* Tracker Stepper Progress Bar */}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative", marginBottom: "16px", padding: "0 10px" }}>
+                          {trackerStages.map((st, sIdx) => {
+                            const isDone = sIdx <= activeStageIdx;
+                            const isCurrent = sIdx === activeStageIdx;
+                            return (
+                              <div key={st} style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 2, flex: 1 }}>
+                                <div
+                                  style={{
+                                    width: "28px",
+                                    height: "28px",
+                                    borderRadius: "50%",
+                                    backgroundColor: isCurrent ? "#3B82F6" : isDone ? "#10B981" : isDark ? "#1E293B" : "#CBD5E1",
+                                    color: isDone || isCurrent ? "#FFF" : c.subtext,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: "11px",
+                                    fontWeight: "900",
+                                    boxShadow: isCurrent ? "0 0 10px rgba(59, 130, 246, 0.6)" : "none",
+                                    transition: "all 0.2s ease",
+                                  }}
+                                >
+                                  {isDone && !isCurrent ? "✓" : sIdx + 1}
+                                </div>
+                                <span style={{ fontSize: "11px", fontWeight: isCurrent ? "900" : "700", color: isCurrent ? "#3B82F6" : isDone ? "#10B981" : c.subtext, marginTop: "6px", textAlign: "center" }}>
+                                  {st}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Modify Tracker Control Buttons */}
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                          <span style={{ fontSize: "11px", fontWeight: "800", color: c.subtext }}>
+                            Modify Tracker Status:
+                          </span>
+                          {[
+                            { label: "📌 Placed", status: "Order Placed" },
+                            { label: "⚙️ Processing", status: "Processing" },
+                            { label: "🚚 Shipped", status: "Shipped" },
+                            { label: "🛵 Out for Delivery", status: "Out for Delivery" },
+                            { label: "✅ Delivered", status: "Delivered" },
+                          ].map((btn) => (
+                            <button
+                              key={btn.status}
+                              type="button"
+                              onClick={() => handleUpdateOrderStatus(ord.orderId || ord.id, btn.status)}
+                              style={{
+                                backgroundColor: currentStatus.toLowerCase().includes(btn.status.toLowerCase().split(" ")[0])
+                                  ? "#3B82F6"
+                                  : isDark
+                                  ? "#1E293B"
+                                  : "#FFFFFF",
+                                color: currentStatus.toLowerCase().includes(btn.status.toLowerCase().split(" ")[0])
+                                  ? "#FFFFFF"
+                                  : c.text,
+                                border: `1px solid ${c.border}`,
+                                padding: "6px 12px",
+                                borderRadius: "8px",
+                                fontSize: "11px",
+                                fontWeight: "800",
+                                cursor: "pointer",
+                                transition: "all 0.15s ease",
+                              }}
+                            >
+                              {btn.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -995,63 +1319,105 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                  <label style={{ fontSize: "12px", fontWeight: "800", color: c.subtext }}>Product Photo</label>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <button
-                      type="button"
-                      onClick={() => setUploadMode("link")}
-                      style={{ background: uploadMode === "link" ? "#3B82F6" : "none", color: uploadMode === "link" ? "#FFF" : c.subtext, border: "none", padding: "3px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "800", cursor: "pointer" }}
-                    >
-                      🔗 Paste Link
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setUploadMode("file")}
-                      style={{ background: uploadMode === "file" ? "#3B82F6" : "none", color: uploadMode === "file" ? "#FFF" : c.subtext, border: "none", padding: "3px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "800", cursor: "pointer" }}
-                    >
-                      📁 Browse & Drag
-                    </button>
-                  </div>
-                </div>
+                <label style={{ fontSize: "12px", fontWeight: "800", color: c.subtext, display: "block", marginBottom: "8px" }}>
+                  Product Photo
+                </label>
 
-                {uploadMode === "link" ? (
+                {/* Unified Box: Paste Link OR Browse OR Drag & Drop Images */}
+                <div
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                  style={{
+                    border: `2px dashed ${dragActive ? "#3B82F6" : c.border}`,
+                    backgroundColor: dragActive ? "rgba(59, 130, 246, 0.08)" : c.bg,
+                    borderRadius: "12px",
+                    padding: "20px",
+                    textAlign: "center",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "12px",
+                    transition: "border-color 0.2s ease",
+                  }}
+                >
+                  {newProduct.image ? (
+                    <div style={{ position: "relative", width: "100%", maxHeight: "160px", overflow: "hidden", borderRadius: "8px" }}>
+                      <img
+                        src={newProduct.image}
+                        alt="Product preview"
+                        style={{ width: "100%", maxHeight: "160px", objectFit: "contain", borderRadius: "8px" }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setNewProduct({ ...newProduct, image: "" })}
+                        style={{
+                          position: "absolute",
+                          top: "6px",
+                          right: "6px",
+                          backgroundColor: "rgba(220, 38, 38, 0.9)",
+                          color: "#FFF",
+                          border: "none",
+                          borderRadius: "50%",
+                          width: "24px",
+                          height: "24px",
+                          cursor: "pointer",
+                          fontWeight: "900",
+                          fontSize: "12px",
+                        }}
+                        title="Remove photo"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: "32px" }}>📸</div>
+                  )}
+
+                  {/* Paste link input field */}
                   <input
                     type="text"
-                    placeholder="Paste image link (https://...)"
+                    placeholder="Paste image link here (https://...)"
                     value={newProduct.image}
                     onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
-                    style={{ width: "100%", padding: "10px", borderRadius: "8px", border: `1px solid ${c.border}`, background: c.bg, color: c.text, boxSizing: "border-box" }}
-                  />
-                ) : (
-                  <div
-                    onDragEnter={handleDrag}
-                    onDragLeave={handleDrag}
-                    onDragOver={handleDrag}
-                    onDrop={handleDrop}
-                    onClick={() => fileInputRef.current && fileInputRef.current.click()}
                     style={{
-                      border: `2px dashed ${dragActive ? "#3B82F6" : c.border}`,
-                      backgroundColor: dragActive ? "rgba(59, 130, 246, 0.08)" : c.bg,
-                      borderRadius: "10px",
-                      padding: "26px",
-                      textAlign: "center",
-                      cursor: "pointer",
+                      width: "100%",
+                      maxWidth: "460px",
+                      padding: "9px 12px",
+                      borderRadius: "8px",
+                      border: `1px solid ${c.border}`,
+                      background: c.cardBg,
+                      color: c.text,
+                      fontSize: "12px",
+                      boxSizing: "border-box",
+                      outline: "none",
                     }}
-                  >
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={(e) => handleFiles(e.target.files)}
-                      accept="image/*"
-                      style={{ display: "none" }}
-                    />
-                    <div style={{ fontSize: "32px", marginBottom: "6px" }}>☁️</div>
-                    <div style={{ fontSize: "13px", fontWeight: "800", color: c.text }}>
-                      Drag & drop your product image here, or browse
-                    </div>
+                  />
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%", maxWidth: "460px" }}>
+                    <div style={{ flex: 1, height: "1px", backgroundColor: c.border }} />
+                    <span style={{ fontSize: "11px", fontWeight: "700", color: c.subtext }}>OR</span>
+                    <div style={{ flex: 1, height: "1px", backgroundColor: c.border }} />
                   </div>
-                )}
+
+                  {/* Browse or Drag and drop prompt */}
+                  <div
+                    onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                    style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", color: "#3B82F6", fontSize: "12px", fontWeight: "800" }}
+                  >
+                    <span>📁 Click to browse image</span>
+                    <span style={{ color: c.subtext, fontWeight: "600" }}>or drag and drop here</span>
+                  </div>
+
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={(e) => handleFiles(e.target.files)}
+                    accept="image/*"
+                    style={{ display: "none" }}
+                  />
+                </div>
               </div>
 
               <button
@@ -1138,13 +1504,13 @@ export default function AdminDashboard() {
             >
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ fontSize: "22px" }}>🎧</span>
+                  <span style={{ fontSize: "22px" }}>💬</span>
                   <h2 style={{ fontSize: "18px", fontWeight: "900", color: c.text, margin: 0 }}>
-                    Real-Time Customer Concierge Desk
+                    Customer Queries
                   </h2>
                 </div>
                 <div style={{ fontSize: "12px", color: c.subtext, marginTop: "4px" }}>
-                  Bi-directional WebSockets: <span style={{ color: isChatConnected ? "#10B981" : "#EF4444", fontWeight: "800" }}>{isChatConnected ? "Active Stream Connected" : "Connecting..."}</span> • Room: <strong>general</strong>
+                  Direct live customer questions and instant support replies. Status: <span style={{ color: isChatConnected ? "#10B981" : "#EF4444", fontWeight: "800" }}>{isChatConnected ? "Live Connected" : "Connecting..."}</span>
                 </div>
               </div>
 
@@ -1621,6 +1987,14 @@ export default function AdminDashboard() {
             }
           } catch (e) {}
         }}
+      />
+
+      {/* Real-time Order Tracking Simulation Modal for Admin */}
+      <OrderTrackerModal
+        isOpen={!!selectedTrackingOrder}
+        order={selectedTrackingOrder}
+        onClose={() => setSelectedTrackingOrder(null)}
+        theme={theme}
       />
     </div>
   );

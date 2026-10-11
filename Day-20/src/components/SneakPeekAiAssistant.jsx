@@ -55,6 +55,13 @@ export default function SneakPeekAiAssistant() {
     refreshWatchHistory();
   }, [isOpen]);
 
+  // Listen for top navbar chat button trigger
+  useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener("rmart:open_chat", handleOpen);
+    return () => window.removeEventListener("rmart:open_chat", handleOpen);
+  }, []);
+
   // Natural Accent Speech Synthesis (No squeaky or robotic voice)
   const speakTextInNaturalAccent = (text) => {
     if (!("speechSynthesis" in window)) return;

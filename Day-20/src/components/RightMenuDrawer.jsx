@@ -366,7 +366,7 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
 
                 {/* 2. Customers Orders */}
                 <button
-                  onClick={() => handleNavigate("/admin")}
+                  onClick={() => handleNavigate("/admin?tab=orders")}
                   style={{
                     padding: "18px 20px",
                     borderRadius: "16px",

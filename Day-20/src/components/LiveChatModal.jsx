@@ -44,8 +44,8 @@ export default function LiveChatModal({ isOpen, onClose, roomId = "general", ini
     {
       id: "init-1",
       sender_role: "admin",
-      sender_name: "R-Mart Concierge",
-      text: initialGreeting || "Hello! How can our support team assist you with your orders, products, or delivery today?",
+      sender_name: "R-Mart Concierge (Store Admin)",
+      text: initialGreeting || "Hello! You are directly connected with Store Admin Support. How can we assist you with your orders, products, or delivery today?",
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
@@ -321,7 +321,7 @@ export default function LiveChatModal({ isOpen, onClose, roomId = "general", ini
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <span style={{ fontSize: "16px", fontWeight: "900", color: c.text }}>
-                  {currentRole === "admin" ? "Admin Support Console" : "Live Customer Concierge"}
+                  {currentRole === "admin" ? "Admin Support Console" : "Chat with Admin (Live Support)"}
                 </span>
 
                 {/* Clear Admin Online / Offline Badge */}

@@ -73,7 +73,7 @@ describe("Day 20 – SneakPeek Robo Assistant & Segmented Role Switcher", () => 
     fireEvent.click(roboContainer);
 
     expect(screen.getByText(/Tell me about Apple iPhone 15 Pro Max/i)).toBeInTheDocument();
-    expect(screen.getByText(/Tell me a shopping joke!/i)).toBeInTheDocument();
+    expect(screen.getByText(/What offers are active today\?/i)).toBeInTheDocument();
   });
 
   it("allows user to type a query and submit it", async () => {
@@ -88,13 +88,33 @@ describe("Day 20 – SneakPeek Robo Assistant & Segmented Role Switcher", () => 
     const input = screen.getByTestId("ai-chat-input");
     const sendBtn = screen.getByTestId("ai-chat-send-btn");
 
-    fireEvent.change(input, { target: { value: "Tell me a joke" } });
-    expect(input.value).toBe("Tell me a joke");
+    fireEvent.change(input, { target: { value: "Tell me about Sony headphones" } });
+    expect(input.value).toBe("Tell me about Sony headphones");
 
     fireEvent.click(sendBtn);
 
     // User message renders
-    expect(screen.getByText("Tell me a joke")).toBeInTheDocument();
+    expect(screen.getByText("Tell me about Sony headphones")).toBeInTheDocument();
+  });
+
+  it("politely declines off-topic or joke queries and suggests trending products and offers", async () => {
+    render(
+      <MemoryRouter>
+        <SneakPeekAiAssistant />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId("sneakpeek-robo-container"));
+
+    const input = screen.getByTestId("ai-chat-input");
+    const sendBtn = screen.getByTestId("ai-chat-send-btn");
+
+    fireEvent.change(input, { target: { value: "Tell me a joke" } });
+    fireEvent.click(sendBtn);
+
+    expect(screen.getByText(/Apologise, I only can solve queries regarding our website!/i)).toBeInTheDocument();
+    expect(screen.getByText(/What would you like to buy today\?/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Samsung Galaxy S24 Ultra/i).length).toBeGreaterThan(0);
   });
 
   it("keeps navbar clean without redundant switcher and opens transparent command modal", () => {

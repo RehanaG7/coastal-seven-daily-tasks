@@ -35,7 +35,7 @@ async def stream_ai_chat_endpoint(
     """
     Server-Sent Events (SSE) streaming endpoint:
     - Performs ChromaDB semantic vector search against store catalog.
-    - Grounded prompt injection with stock enforcement and jokes.
+    - Grounded prompt injection with stock enforcement and e-commerce guardrails.
     - Multi-provider fallback: Groq -> Gemini -> Local RAG Engine.
     - Yields SSE tokens with source citations metadata.
     """

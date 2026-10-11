@@ -5,17 +5,10 @@ import { env } from "../config/env";
 const DEFAULT_SUGGESTIONS = [
   "What's new in R-Mart Sparkyyy? 🎁",
   "Where is my order & history? 🚚",
+  "Chat with Admin (Live Support) 💬",
   "What is my saved address & profile? 📍",
   "What is currently in my cart? 🛒",
-  "Tell me a shopping joke! 😂"
-];
-
-const FUN_JOKES = [
-  "Why do programmers prefer dark mode? Because light attracts bugs! 🌙",
-  "Why did the smartphone need glasses? Because it lost all its contacts! 📱",
-  "Why was the JavaScript developer sad? Because they didn't Node how to Express themselves! ☕",
-  "There are 10 types of people: those who understand binary, and those who don't! 💻",
-  "Why do computers overheat? Because they have too many fans! ❄️"
+  "What offers are active today? 🏷️"
 ];
 
 export default function SneakPeekAiAssistant() {
@@ -368,7 +361,55 @@ export default function SneakPeekAiAssistant() {
     return triggers.some((tr) => t.includes(tr));
   };
 
-  // Dynamic Suggestion Chips
+  // Check if query is unrelated to our website or asking for jokes
+  const isOffTopicQuery = (text = "") => {
+    const q = text.toLowerCase().trim();
+    if (!q) return false;
+
+    // Joke requests are strictly off-topic
+    if (["joke", "funny", "laugh", "humor", "riddle", "comedy", "entertain"].some((k) => q.includes(k))) {
+      return true;
+    }
+
+    // Explicit non-ecommerce questions
+    const offTopicTriggers = [
+      "who is ", "who was ", "what is the capital", "how do airplanes", "how to code",
+      "solve ", "write python", "write code", "write an essay", "write a poem", "write a story",
+      "weather", "sing a song", "tell a story", "what is photosynthesis",
+      "quantum", "president of", "cricket match", "football match", "math problem",
+      "homework", "translate to"
+    ];
+    if (offTopicTriggers.some((k) => q.includes(k))) {
+      return true;
+    }
+
+    // E-commerce store allowed topics
+    const ecommerceKeywords = [
+      "product", "item", "buy", "cart", "bag", "order", "track", "ship", "deliver",
+      "price", "cost", "stock", "discount", "offer", "deal", "coupon", "code",
+      "flash50", "freeship", "rmart", "store", "catalog", "catalogue", "phone",
+      "headphone", "audio", "keyboard", "monitor", "laptop", "apple", "iphone",
+      "samsung", "galaxy", "sony", "logitech", "address", "profile", "account",
+      "admin", "boss", "support", "ticket", "hello", "hi", "hey", "help",
+      "recommend", "what's new", "whats new", "sparky", "specs", "specification",
+      "refund", "return", "warranty", "replace", "cancel", "payment", "checkout",
+      "inquiry", "unresolved", "problem", "solve"
+    ];
+
+    if (ecommerceKeywords.some((kw) => q.includes(kw))) {
+      return false;
+    }
+
+    // If query has 3 or more words and doesn't match any e-commerce keyword, it's unrelated
+    const words = q.split(/\s+/);
+    if (words.length >= 3) {
+      return true;
+    }
+
+    return false;
+  };
+
+  // Dynamic Suggestion Chips (Strictly E-Commerce - No Jokes!)
   const getSuggestions = () => {
     if (isAdmin) {
       return [
@@ -376,7 +417,7 @@ export default function SneakPeekAiAssistant() {
         "Review customer inquiries & complaints 📩",
         "Review all customers orders 🚚",
         "Restock depleted inventory ⚡",
-        "Tell me a boss joke 😄"
+        "Review catalogue metrics 📊"
       ];
     }
 
@@ -387,18 +428,18 @@ export default function SneakPeekAiAssistant() {
         "What's new in R-Mart Sparkyyy? 🎁",
         `Tell me about ${shortTitle} 🏷️`,
         "Where is my order & history? 🚚",
-        "Talk to admin (Live Chat) 💬",
+        "Chat with Admin (Live Support) 💬",
         "What is my saved address & profile? 📍",
-        "Tell me a shopping joke! 😂"
+        "What offers are active today? 🏷️"
       ];
     }
     return [
       "What's new in R-Mart Sparkyyy? 🎁",
       "Where is my order & history? 🚚",
-      "Talk to admin (Live Chat) 💬",
+      "Chat with Admin (Live Support) 💬",
       "What is my saved address & profile? 📍",
       "What is currently in my cart? 🛒",
-      "Tell me a shopping joke! 😂"
+      "What offers are active today? 🏷️"
     ];
   };
 
@@ -418,6 +459,38 @@ export default function SneakPeekAiAssistant() {
 
     const userMsgId = `user_${Date.now()}`;
     const botMsgId = `bot_${Date.now()}`;
+
+    // 2. Off-Topic & Joke Guardrail: Strictly E-Commerce Shopping Answers Only
+    if (!isAdmin && isOffTopicQuery(query)) {
+      const offTopicReply =
+        "Apologise, I only can solve queries regarding our website!\n\n" +
+        "What would you like to buy today? Here are some trending products and exciting offers you might like:\n\n" +
+        "🔥 **TRENDING PRODUCTS:**\n" +
+        "• **Samsung Galaxy S24 Ultra 5G AI** ($1299.99) — Next-gen Galaxy AI with built-in S Pen!\n" +
+        "• **Sony WH-1000XM5 Wireless Headphones** ($349.99) — Industry-leading 30hr active noise cancelling\n" +
+        "• **Apple iPhone 15 Pro Max 256GB** ($1199.99) — Aerospace titanium with A17 Pro chip\n\n" +
+        "🎉 **ACTIVE STORE OFFERS:**\n" +
+        "• 🏷️ **FLASH50**: 50% discount on select high-demand electronics!\n" +
+        "• 🚚 **FREESHIP**: Instant zero-cost express delivery on orders over $99!\n\n" +
+        "What items would you like to explore or add to your shopping bag? 🛒";
+
+      setMessages((prev) => [
+        ...prev,
+        { id: userMsgId, role: "user", content: query },
+        {
+          id: botMsgId,
+          role: "assistant",
+          content: offTopicReply,
+          sources: [
+            { id: 3, title: "Samsung Galaxy S24 Ultra", price: 1299.99, stock: 8 },
+            { id: 2, title: "Sony WH-1000XM5 Wireless Headphones", price: 349.99, stock: 15 },
+            { id: 1, title: "Apple iPhone 15 Pro Max 256GB", price: 1199.99, stock: 0 }
+          ],
+          provider: "R-Mart Store Guide"
+        }
+      ]);
+      return;
+    }
 
     // 2. Direct Admin Live Chat Handover for Unresolved Problems or Requests to Talk to Admin
     if (!isAdmin && isAdminHandoverIntent(query)) {
@@ -588,8 +661,7 @@ export default function SneakPeekAiAssistant() {
     } catch (err) {
       console.warn("[Sparky AI] Server stream fallback engaged:", err);
 
-      // Articulate, Thoughtful Local Knowledge Engine (No "Beep-Boop", No Question Parroting)
-      const randomJoke = FUN_JOKES[Math.floor(Math.random() * FUN_JOKES.length)];
+      // Articulate, Thoughtful Local Knowledge Engine (Strictly E-Commerce - No Jokes!)
       let fallbackReply = "";
       let fallbackSources = [];
 
@@ -615,8 +687,6 @@ export default function SneakPeekAiAssistant() {
               ? `📦 **${orders.length} Order(s) Processed:**\n` + orders.slice(0, 4).map((o, i) => `• Order #${o.orderId || o.id || (1000 + i)}: $${Number(o.total || o.total_amount || 0).toFixed(2)} (${o.status || "Processing"})`).join("\n") +
                 `\n\nYou can inspect fulfillment stages and generate invoices from the Admin Console.`
               : `📦 No customer orders placed yet.`);
-        } else if (qLower.includes("joke")) {
-          fallbackReply = `Here is a lighthearted joke for you:\n\n${randomJoke}`;
         } else {
           fallbackReply = `Administrator briefing for **"${query}"**:\n\n` +
             `• Out-of-stock items: ${audit.outOfStock.length}\n` +
@@ -689,8 +759,6 @@ export default function SneakPeekAiAssistant() {
             { id: 2, title: "Sony WH-1000XM5 Wireless Headphones", price: 349.99, stock: 15 },
             { id: 1, title: "Apple iPhone 15 Pro Max 256GB", price: 1199.99, stock: 0 }
           ];
-        } else if (qLower.includes("joke") || qLower.includes("funny") || qLower.includes("laugh")) {
-          fallbackReply = `Here is a quick joke for you:\n\n${randomJoke}`;
         } else if (qLower.includes("iphone") || qLower.includes("apple")) {
           fallbackReply = `Here is the current status for the **Apple iPhone 15 Pro Max 256GB** ($1199.99):\n\n` +
             `⚠️ Note: This item currently has **0 units in stock**.\n` +
@@ -710,9 +778,22 @@ export default function SneakPeekAiAssistant() {
             `[Source: Samsung Galaxy S24 Ultra (ID: #3, $1299.99)]`;
           fallbackSources = [{ id: 3, title: "Samsung Galaxy S24 Ultra", price: 1299.99, stock: 8 }];
         } else {
-          fallbackReply = `I reviewed our warehouse inventory regarding **"${query}"**.\n\n` +
-            `All in-stock products are eligible for express checkout and same-day handling. If an item runs out of stock, **I will say my boss admin to add stock as soon as possible - make it available!** 🚀\n\n` +
-            `You can ask me to look up specific product specs, review your order history, or check active promo codes.`;
+          fallbackReply =
+            "Apologise, I only can solve queries regarding our website!\n\n" +
+            "What would you like to buy today? Here are some trending products and active offers you might like:\n\n" +
+            "🔥 **TRENDING PRODUCTS:**\n" +
+            "• **Samsung Galaxy S24 Ultra 5G AI** ($1299.99) — Next-gen Galaxy AI with built-in S Pen!\n" +
+            "• **Sony WH-1000XM5 Wireless Headphones** ($349.99) — Industry-leading 30hr active noise cancelling\n" +
+            "• **Apple iPhone 15 Pro Max 256GB** ($1199.99) — Aerospace titanium with A17 Pro chip\n\n" +
+            "🎉 **ACTIVE STORE OFFERS:**\n" +
+            "• 🏷️ **FLASH50**: 50% discount on select high-demand electronics!\n" +
+            "• 🚚 **FREESHIP**: Instant zero-cost express delivery on orders over $99!\n\n" +
+            "What would you like to buy or explore in our store today?";
+          fallbackSources = [
+            { id: 3, title: "Samsung Galaxy S24 Ultra", price: 1299.99, stock: 8 },
+            { id: 2, title: "Sony WH-1000XM5 Wireless Headphones", price: 349.99, stock: 15 },
+            { id: 1, title: "Apple iPhone 15 Pro Max 256GB", price: 1199.99, stock: 0 }
+          ];
         }
       }
 

@@ -141,8 +141,8 @@ def test_out_of_stock_directive_and_grounding(seed_test_products, db):
     assert "stock" in reply.lower()
 
 
-def test_shopping_joke_delivery(seed_test_products, db):
-    """Verify the assistant cracks witty jokes on request."""
+def test_off_topic_guardrail_rejection(seed_test_products, db):
+    """Verify that off-topic queries (jokes/unrelated) are declined with polite refusal and store recommendations."""
     import asyncio
 
     async def get_response():
@@ -154,7 +154,8 @@ def test_shopping_joke_delivery(seed_test_products, db):
         return full
 
     reply = asyncio.run(get_response())
-    assert any(kw in reply.lower() for kw in ["joke", "programmer", "computer", "smartphone", "binary"])
+    assert any(kw in reply.lower() for kw in ["apologise", "apologize", "queries regarding our website"])
+    assert any(kw in reply.lower() for kw in ["buy", "trending", "offer"])
 
 
 def test_sse_streaming_endpoint(seed_test_products):

@@ -17,15 +17,6 @@ from core.vector_store import vector_store
 from core.config import settings
 
 
-JOKES = [
-    "Why do programmers prefer dark mode? Because light attracts bugs! 😂",
-    "Why did the smartphone need glasses? Because it lost all its contacts! 📱👓",
-    "Why did the laptop go to the doctor? Because it had a bad case of the microchips! 💻",
-    "Why was the computer cold? It forgot to close its Windows! ❄️🪟",
-    "There are only 10 types of people in the world: those who understand binary, and those who don't! 🤖"
-]
-
-
 class LLMProviderManager:
     def __init__(self):
         self.groq_api_key = os.getenv("GROQ_API_KEY") or getattr(settings, "GROQ_API_KEY", "")
@@ -52,7 +43,10 @@ class LLMProviderManager:
             "5. SOURCE CITATIONS: When mentioning or recommending a catalog product, always cite it cleanly as: "
             "[Source: Product Title (ID: #id, $price)].\n"
             "6. WHAT'S NEW & DEALS: When asked 'What's new in R-Mart Sparkyyy?' or about promotions, present fresh store arrivals, feature promo codes FLASH50 (50% off select tech) and FREESHIP (free shipping on $99+), and reassure the user that you notified the Boss Admin of their query!\n"
-            "7. UNRESOLVED ISSUES & ADMIN LIVE CHAT: If the customer states their problem is not resolved or asks to speak/chat with the admin or human agent, empathetically reassure them and let them know you are connecting them directly to the human Store Administrator via Live Support Chat right away!\n\n"
+            "7. UNRESOLVED ISSUES & ADMIN LIVE CHAT: If the customer states their problem is not resolved or asks to speak/chat with the admin or human agent, empathetically reassure them and let them know you are connecting them directly to the human Store Administrator via Live Support Chat right away!\n"
+            "8. STRICT STORE SCOPE & OFF-TOPIC REFUSAL (NO JOKES): You are exclusively an e-commerce shopping assistant for R-Mart. You must NEVER crack jokes or answer questions about general knowledge, programming, homework, politics, weather, or unrelated topics. If the user asks anything not related to our website or asks for a joke, you must immediately decline with:\n"
+            "'Apologise, I only can solve queries regarding our website! What would you like to buy today? Here are some trending products and exciting offers:'\n"
+            "followed by suggesting trending products (Samsung Galaxy S24 Ultra, Sony WH-1000XM5, Apple iPhone 15 Pro Max) and active discount codes (FLASH50, FREESHIP).\n\n"
             f"=== RETRIEVED PRODUCT CATALOG CONTEXT ===\n{catalog_text}\n"
             "=========================================="
         )
@@ -161,16 +155,30 @@ class LLMProviderManager:
         """
         yield f"event: provider\ndata: {json.dumps({'provider': 'R-Mart Intelligent RAG Engine (Local Safety Net)'})}\n\n"
 
-        import random
-        joke = random.choice(JOKES)
         q_lower = query.lower()
 
-        # Check for joke request
-        if "joke" in q_lower or "funny" in q_lower or "laugh" in q_lower:
+        # Check for off-topic query or joke request
+        off_topic_triggers = [
+            "joke", "funny", "laugh", "humor", "riddle", "comedy",
+            "who is ", "who was ", "what is the capital", "how do airplanes",
+            "solve ", "write python", "write code", "write an essay", "write a poem",
+            "weather", "sing a song", "tell a story", "what is photosynthesis",
+            "quantum", "president of", "cricket match", "football match"
+        ]
+        is_off_topic = any(k in q_lower for k in off_topic_triggers)
+
+        if is_off_topic:
             full_response = (
-                f"Here is a clever tech joke for you:\n\n"
-                f"✨ **{joke}**\n\n"
-                f"Let me know if you would like me to compare specs or check deals on any products in our store!"
+                "Apologise, I only can solve queries regarding our website!\n\n"
+                "What would you like to buy today? Here are some trending products and active offers you might like:\n\n"
+                "🔥 **TRENDING PRODUCTS:**\n"
+                "• **Samsung Galaxy S24 Ultra 5G AI** ($1299.99) — Next-gen Galaxy AI with built-in S Pen!\n"
+                "• **Sony WH-1000XM5 Wireless Headphones** ($349.99) — Industry-leading 30hr active noise cancelling.\n"
+                "• **Apple iPhone 15 Pro Max 256GB** ($1199.99) — Aerospace titanium with A17 Pro powerhouse chip.\n\n"
+                "🎉 **ACTIVE OFFERS & DISCOUNTS:**\n"
+                "• 🏷️ **FLASH50**: 50% discount on select high-demand electronics!\n"
+                "• 🚚 **FREESHIP**: Instant zero-cost express delivery on orders over $99!\n\n"
+                "What items would you like to explore or add to your shopping bag?"
             )
         elif "what's new" in q_lower or "whats new" in q_lower or "sparkyyy" in q_lower:
             full_response = (
@@ -183,28 +191,32 @@ class LLMProviderManager:
                 "• 🏷️ **FLASH50**: 50% discount on select high-demand electronics!\n"
                 "• 🚚 **FREESHIP**: Instant zero-cost express delivery on orders over $99!\n\n"
                 "📢 **BOSS ADMIN DIRECT LINK:**\n"
-                "I immediately alerted my Boss Admin about your inquiry so they are actively notified about your query to drop even more fresh deals and restock requests! 🫡🚀\n\n"
-                f"😄 *P.S.* {joke}"
+                "I immediately alerted my Boss Admin about your inquiry so they are actively notified about your query to drop even more fresh deals and restock requests! 🫡🚀"
             )
         elif any(k in q_lower for k in ["order", "track", "shipment", "delivery", "history", "purchased"]):
             full_response = (
                 "📦 **R-Mart Orders & Tracking System:**\n\n"
                 "I have full access to your order stream! You can view and track your recent orders, shipment stages, and download official PDF invoices directly under **My Orders** in the top navigation.\n\n"
-                "If you need real-time carrier status, your order updates are pushed live via WebSocket & Celery!\n\n"
-                f"😄 *P.S.* {joke}"
+                "If you need real-time carrier status, your order updates are pushed live via WebSocket & Celery!"
             )
         elif any(k in q_lower for k in ["address", "profile", "phone number", "my phone", "contact number", "who am i", "my account"]):
             full_response = (
                 "👤 **Shopper Profile & Delivery Address:**\n\n"
                 "Your registered delivery address and contact credentials are securely linked to your active session.\n"
-                "You can view or update your name, contact phone, and shipping destination anytime using the top menu under **Edit Profile & Address**!\n\n"
-                f"😄 *P.S.* {joke}"
+                "You can view or update your name, contact phone, and shipping destination anytime using the top menu under **Edit Profile & Address**!"
             )
         elif not retrieved_products:
             full_response = (
-                f"I searched our entire store catalog for **'{query}'**, but could not find an exact match right now.\n\n"
-                f"💡 You can explore our top categories: smartphones, noise-cancelling headphones, mechanical keyboards, or 4K monitors!\n\n"
-                f"😄 *P.S.* {joke}"
+                "Apologise, I only can solve queries regarding our website!\n\n"
+                "What would you like to buy today? Here are some trending products and active offers you might like:\n\n"
+                "🔥 **TRENDING PRODUCTS:**\n"
+                "• **Samsung Galaxy S24 Ultra 5G AI** ($1299.99) — Next-gen Galaxy AI with built-in S Pen!\n"
+                "• **Sony WH-1000XM5 Wireless Headphones** ($349.99) — Industry-leading 30hr active noise cancelling.\n"
+                "• **Apple iPhone 15 Pro Max 256GB** ($1199.99) — Aerospace titanium with A17 Pro powerhouse chip.\n\n"
+                "🎉 **ACTIVE OFFERS & DISCOUNTS:**\n"
+                "• 🏷️ **FLASH50**: 50% discount on select high-demand electronics!\n"
+                "• 🚚 **FREESHIP**: Instant zero-cost express delivery on orders over $99!\n\n"
+                "You can also explore our top categories: smartphones, noise-cancelling headphones, mechanical keyboards, or 4K monitors!"
             )
         else:
             # Check if any retrieved product has stock 0
@@ -233,8 +245,7 @@ class LLMProviderManager:
                     )
 
             response_parts.append(
-                f"💡 *Sparky's Quick Tip:* All in-stock items are ready for same-day dispatch!\n"
-                f"😄 *P.S.* {joke}"
+                "💡 *Sparky's Quick Tip:* All in-stock items are ready for same-day dispatch!\n"
             )
             full_response = "".join(response_parts)
 

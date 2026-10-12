@@ -161,6 +161,18 @@ class VectorStoreService:
 
         query_is_test = is_test_item(query)
         tokens = [t.lower() for t in re.findall(r"\w+", query) if len(t) > 2]
+        typo_map = {
+            "samung": ["samsung"], "samsng": ["samsung"], "ipone": ["iphone", "apple"],
+            "labtop": ["laptop"], "lapotp": ["laptop"], "headfones": ["headphones"],
+            "hedphones": ["headphones"], "televison": ["television", "tv"], "smarttv": ["tv"],
+            "shose": ["shoes"], "snoy": ["sony"], "keybord": ["keyboard"]
+        }
+        expanded_tokens = list(tokens)
+        for t in tokens:
+            if t in typo_map:
+                expanded_tokens.extend(typo_map[t])
+        tokens = list(set(expanded_tokens))
+
         products = db.query(Product).all()
         scored = []
 

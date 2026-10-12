@@ -62,20 +62,109 @@ class AICopywriterService:
         """
         profile = TONE_PROFILES.get(tone.lower(), TONE_PROFILES["professional"])
         clean_features = [f.strip() for f in features if f.strip()]
-        features_list = clean_features if clean_features else [
-            "Premium ergonomic materials with lasting durability",
-            "Next-generation precision engineering",
-            "Backed by full manufacturer warranty and 24/7 support"
-        ]
+
+        t_low = title.lower().strip()
+        cat_low = (category or "").lower().strip()
+        combined = f"{t_low} {cat_low}"
+
+        if not clean_features:
+            if any(k in combined for k in ["tv", "television", "oled", "qled", "screen", "display", "bravia", "smart tv"]):
+                features_list = [
+                    "Breathtaking 4K Ultra HD resolution with HDR10+ vibrant contrast",
+                    "Seamless Smart TV streaming platform (Netflix, Prime Video, YouTube)",
+                    "Immersive Dolby Audio surround sound with crystal-clear dialogue",
+                    "Ultra-slim bezel-less design with multiple high-speed HDMI and USB ports",
+                    "Energy Star certified eco-efficient display technology"
+                ]
+                narrative_default = (
+                    f"Transform your home entertainment with the {title}. "
+                    f"Engineered with stunning 4K HDR clarity, deep cinematic contrast, and dynamic surround sound, "
+                    f"it brings movies, live sports, and next-gen gaming to life with breathtaking detail."
+                )
+            elif any(k in combined for k in ["headphone", "earphone", "audio", "airpod", "buds", "soundbar", "speaker", "anc"]):
+                features_list = [
+                    "Industry-leading Active Noise Cancellation (ANC) with Ambient Sound mode",
+                    "Up to 30 hours of continuous battery life with fast USB-C quick charge",
+                    "High-fidelity acoustic drivers delivering deep punchy bass and crystalline trebles",
+                    "Ergonomic memory-foam ear cushions engineered for all-day comfort",
+                    "Built-in multi-microphone array for studio-grade hands-free calls"
+                ]
+                narrative_default = (
+                    f"Immerse yourself in rich, studio-grade sound with the {title}. "
+                    f"Designed to isolate ambient distractions and elevate every beat, it pairs cutting-edge acoustic engineering "
+                    f"with supreme wireless convenience for audiophiles on the move."
+                )
+            elif any(k in combined for k in ["phone", "iphone", "samsung", "galaxy", "smartphone", "mobile", "pixel", "5g"]):
+                features_list = [
+                    "Blazing-fast next-gen 5G processor with ultra-responsive multitasking",
+                    "Pro-grade multi-lens camera system with AI night photography and 4K video",
+                    "Vibrant 120Hz AMOLED display with true-to-life color reproduction",
+                    "All-day intelligent battery life with rapid quick-charge technology",
+                    "Aerospace-grade durable build with IP68 water and dust resistance"
+                ]
+                narrative_default = (
+                    f"Experience the pinnacle of mobile innovation with the {title}. "
+                    f"Whether capturing life's finest moments, streaming in ultra-high definition, or managing a busy workday, "
+                    f"it delivers blistering speed, extraordinary battery endurance, and flawless reliability."
+                )
+            elif any(k in combined for k in ["laptop", "macbook", "computer", "notebook", "pc", "desktop"]):
+                features_list = [
+                    "High-performance multi-core processor for demanding workflows and gaming",
+                    "Ultra-fast solid-state NVMe SSD storage and high-bandwidth RAM",
+                    "Stunning anti-glare high-resolution display with ultra-wide viewing angles",
+                    "All-day battery endurance in an ultra-slim, lightweight portable chassis",
+                    "Comprehensive connectivity suite with Thunderbolt, USB-C, and Wi-Fi 6E"
+                ]
+                narrative_default = (
+                    f"Power through your biggest projects and entertainment with the {title}. "
+                    f"Built for modern creators, professionals, and students, it delivers blazing performance, "
+                    f"whisper-quiet cooling, and exceptional battery life wherever inspiration strikes."
+                )
+            elif any(k in combined for k in ["shoe", "sneaker", "running", "boot", "footwear"]):
+                features_list = [
+                    "Breathable engineered mesh upper providing maximum ventilation",
+                    "High-rebound shock-absorbing cushioned midsole for cloud-like comfort",
+                    "Durable multi-surface traction rubber outsole for non-slip grip",
+                    "Ergonomic arch support designed for fatigue-free all-day wear",
+                    "Lightweight feather-flex construction ideal for training and lifestyle"
+                ]
+                narrative_default = (
+                    f"Step up your daily comfort and performance with the {title}. "
+                    f"Designed to combine responsive athletic cushioning with a stylish, modern silhouette, "
+                    f"it keeps your feet energised from morning workouts to evening strolls."
+                )
+            elif any(k in combined for k in ["coffee", "espresso", "maker", "brewer", "blender", "kitchen"]):
+                features_list = [
+                    "Rapid precision thermoblock heating system ready in seconds",
+                    "Intuitive one-touch brewing controls with customizable cup volumes",
+                    "Easy-to-clean food-grade stainless steel parts and removable water reservoir",
+                    "Compact modern countertop footprint with auto-shutoff safety"
+                ]
+                narrative_default = (
+                    f"Brew cafe-quality perfection right from home with the {title}. "
+                    f"Combining effortless one-touch simplicity with rapid heating and rich extraction, "
+                    f"it turns your morning routine into a luxurious coffee ritual."
+                )
+            else:
+                features_list = [
+                    "Premium materials engineered for long-lasting durability and reliability",
+                    "Refined ergonomic design crafted for everyday convenience",
+                    "Backed by full manufacturer warranty, fast shipping, and 24/7 customer care"
+                ]
+                narrative_default = (
+                    f"Discover the {title}, curated within our {category} selection. "
+                    f"{profile['intro']} Crafted to deliver an exceptional user experience without compromise."
+                )
+        else:
+            features_list = clean_features
+            narrative_default = (
+                f"Discover the {title}, curated within our {category} selection. "
+                f"{profile['intro']} Crafted to deliver an exceptional user experience without compromise."
+            )
 
         headline = f"{title} — {profile['badge']}"
         audience_text = f" Tailored specifically for {target_audience}." if target_audience else ""
-
-        narrative = (
-            f"Discover the {title}, curated within our {category} selection. "
-            f"{profile['intro']}{audience_text} Crafted to deliver an exceptional user experience "
-            f"without compromise."
-        )
+        narrative = f"{narrative_default}{audience_text}"
 
         bullet_points = [f"• {feat}" for feat in features_list]
         bullet_str = "\n".join(bullet_points)

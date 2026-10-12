@@ -938,24 +938,26 @@ export default function SneakPeekAiAssistant() {
             transition: "transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)"
           }}
         >
-          {/* Compact Pill Badge */}
-          <div
-            data-testid="robo-speech-bubble"
-            style={{
-              backgroundColor: isDark ? "#0F172A" : "#FFFFFF",
-              color: isAdmin ? "#F59E0B" : "#38BDF8",
-              border: `1.5px solid ${isAdmin ? "#F59E0B" : "#38BDF8"}`,
-              padding: "5px 12px",
-              borderRadius: "20px",
-              fontSize: "11px",
-              fontWeight: "800",
-              boxShadow: "0 4px 14px rgba(0, 0, 0, 0.35)",
-              whiteSpace: "nowrap",
-              transition: "all 0.2s ease"
-            }}
-          >
-            {isAdmin ? "Admin AI 🛡️" : "Sparky AI 🤖"}
-          </div>
+          {/* ONLY WHEN HOVERED: says "sparkyyy here !" for user and "bosss" for admin - no more side texts */}
+          {isHovered && (
+            <div
+              data-testid="robo-speech-bubble"
+              style={{
+                backgroundColor: isDark ? "#0F172A" : "#FFFFFF",
+                color: isAdmin ? "#F59E0B" : "#38BDF8",
+                border: `1.5px solid ${isAdmin ? "#F59E0B" : "#38BDF8"}`,
+                padding: "6px 14px",
+                borderRadius: "20px",
+                fontSize: "12px",
+                fontWeight: "900",
+                boxShadow: "0 4px 16px rgba(0, 0, 0, 0.4)",
+                whiteSpace: "nowrap",
+                animation: "fadeIn 0.2s ease-out"
+              }}
+            >
+              {isAdmin ? "bosss" : "sparkyyy here !"}
+            </div>
+          )}
 
           {/* Compact 56px Sleek Circular Mascot Trigger */}
           <div

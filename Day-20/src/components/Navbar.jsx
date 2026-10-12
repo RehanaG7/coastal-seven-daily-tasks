@@ -275,38 +275,6 @@ export default function Navbar() {
           </button>
         )}
 
-        {/* Chat Symbol Button (Beside Menu on top for both Admin and User) */}
-        <button
-          onClick={() => {
-            window.dispatchEvent(new CustomEvent("rmart:open_chat"));
-          }}
-          data-testid="navbar-chat-button"
-          style={{
-            width: "40px",
-            height: "40px",
-            backgroundColor: isDark ? "#0F172A" : "#FFFFFF",
-            color: isAdmin ? "#F59E0B" : isDark ? "#38BDF8" : "#0284C7",
-            border: `1px solid ${
-              isAdmin
-                ? "rgba(245, 158, 11, 0.4)"
-                : isDark
-                ? "rgba(56, 189, 248, 0.4)"
-                : "#CBD5E1"
-            }`,
-            borderRadius: "12px",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "18px",
-            padding: 0,
-            transition: "all 0.15s ease",
-          }}
-          title={isAdmin ? "Open Admin AI Assistant (Stock & Inquiries)" : "Open Sparky AI Assistant"}
-        >
-          <span>💬</span>
-        </button>
-
         {/* Menu Toggle (Icon only) */}
         <button
           onClick={openRightMenu}

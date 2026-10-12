@@ -17,7 +17,7 @@ describe("Day 20 – SneakPeek Robo Assistant & Segmented Role Switcher", () => 
     useCartStore.setState({ cart: [] });
   });
 
-  it("renders the SneakPeek Robo container and speech bubble in bottom right", () => {
+  it("renders the SneakPeek Robo container and shows speech bubble only on hover ('sparkyyy here !' for user, 'bosss' for admin)", () => {
     render(
       <MemoryRouter>
         <SneakPeekAiAssistant />
@@ -27,8 +27,18 @@ describe("Day 20 – SneakPeek Robo Assistant & Segmented Role Switcher", () => 
     const roboContainer = screen.getByTestId("sneakpeek-robo-container");
     expect(roboContainer).toBeInTheDocument();
 
+    // No persistent side texts when unhovered
+    expect(screen.queryByTestId("robo-speech-bubble")).not.toBeInTheDocument();
+
+    // When hovered as user -> says 'sparkyyy here !'
+    fireEvent.mouseEnter(roboContainer);
     const speechBubble = screen.getByTestId("robo-speech-bubble");
     expect(speechBubble).toBeInTheDocument();
+    expect(speechBubble).toHaveTextContent("sparkyyy here !");
+
+    // When unhovered -> disappears
+    fireEvent.mouseLeave(roboContainer);
+    expect(screen.queryByTestId("robo-speech-bubble")).not.toBeInTheDocument();
 
     const avatar = screen.getByTestId("sneakpeek-robo-avatar");
     expect(avatar).toBeInTheDocument();

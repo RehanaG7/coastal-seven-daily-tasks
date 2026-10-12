@@ -17,7 +17,7 @@ export default function AdminDashboard() {
   const isDark = theme === "dark";
 
   const urlTab = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState(urlTab || "catalog"); // "catalog" | "orders" | "add_product" | "bulk_import" | "live_support"
+  const [activeTab, setActiveTab] = useState(urlTab || "orders"); // "orders" | "add_product" | "bulk_import"
 
   useEffect(() => {
     const tabFromUrl = searchParams.get("tab");
@@ -659,27 +659,6 @@ export default function AdminDashboard() {
         {/* Navigation Tabs */}
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "22px" }}>
           <button
-            onClick={() => handleTabSelect("catalog")}
-            data-testid="admin-catalog-tab"
-            style={{
-              backgroundColor: activeTab === "catalog" ? "#3B82F6" : c.cardBg,
-              color: activeTab === "catalog" ? "#FFF" : c.text,
-              border: `1px solid ${activeTab === "catalog" ? "#3B82F6" : c.border}`,
-              padding: "10px 18px",
-              borderRadius: "8px",
-              fontWeight: "800",
-              fontSize: "13px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-            }}
-          >
-            <span>📦</span>
-            <span>Products Catalogue ({safeProducts.length})</span>
-          </button>
-
-          <button
             onClick={() => handleTabSelect("orders")}
             data-testid="admin-orders-tab"
             style={{
@@ -740,34 +719,6 @@ export default function AdminDashboard() {
           >
             <span>📤</span>
             <span>Bulk CSV Import (Celery)</span>
-          </button>
-
-          <button
-            onClick={() => handleTabSelect("live_support")}
-            data-testid="admin-customer-queries-tab"
-            style={{
-              backgroundColor: activeTab === "live_support" ? "#3B82F6" : c.cardBg,
-              color: activeTab === "live_support" ? "#FFF" : c.text,
-              border: `1px solid ${activeTab === "live_support" ? "#3B82F6" : c.border}`,
-              padding: "10px 18px",
-              borderRadius: "8px",
-              fontWeight: "800",
-              fontSize: "13px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-            }}
-          >
-            <span>💬 Customer Queries</span>
-            <span
-              style={{
-                backgroundColor: isChatConnected ? "#10B981" : "#EF4444",
-                width: "8px",
-                height: "8px",
-                borderRadius: "50%",
-              }}
-            />
           </button>
         </div>
 

@@ -135,9 +135,14 @@ export const ProductCard = memo(({ product }) => {
           />
         )}
 
-        {/* Product Image Container */}
-        <div style={{ height: "190px", backgroundColor: "#1E293B", position: "relative", overflow: "hidden" }}>
-          <img
+        {/* Product Image Container (Clickable for both User & Admin to view in detail) */}
+        <Link
+          to={`/catalog/${product.id}`}
+          style={{ textDecoration: "none", display: "block", color: "inherit" }}
+          title={`View ${product.name || product.title} in detail`}
+        >
+          <div style={{ height: "190px", backgroundColor: "#1E293B", position: "relative", overflow: "hidden", cursor: "pointer" }}>
+            <img
             src={product.image || product.image_url || `https://picsum.photos/seed/product-${product.id}/400/300`}
             alt={product.name || product.title}
             loading="lazy"
@@ -234,6 +239,7 @@ export const ProductCard = memo(({ product }) => {
             </button>
           )}
         </div>
+      </Link>
 
         {/* Details Section */}
         <div
@@ -245,17 +251,27 @@ export const ProductCard = memo(({ product }) => {
             position: "relative",
           }}
         >
-          <h3
-            style={{
-              fontSize: "16px",
-              fontWeight: "900",
-              color: isDark ? "#FFFFFF" : "#0F172A",
-              margin: "0 0 8px 0",
-              lineHeight: 1.3,
-            }}
+          <Link
+            to={`/catalog/${product.id}`}
+            style={{ textDecoration: "none", color: "inherit" }}
+            title={`View ${product.name || product.title} in detail`}
           >
-            {product.name || product.title}
-          </h3>
+            <h3
+              style={{
+                fontSize: "16px",
+                fontWeight: "900",
+                color: isDark ? "#FFFFFF" : "#0F172A",
+                margin: "0 0 8px 0",
+                lineHeight: 1.3,
+                cursor: "pointer",
+                transition: "color 0.2s ease"
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "#38BDF8"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = isDark ? "#FFFFFF" : "#0F172A"; }}
+            >
+              {product.name || product.title}
+            </h3>
+          </Link>
 
           <p
             style={{

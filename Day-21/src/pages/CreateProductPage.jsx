@@ -24,6 +24,10 @@ export default function CreateProductPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [serverError, setServerError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
+  const [magicPencilRateLimit, setMagicPencilRateLimit] = useState(false);
+  const [magicPencilModeration, setMagicPencilModeration] = useState(false);
+  const [aiDescStatus, setAiDescStatus] = useState("");
   const navigate = useNavigate();
 
   const {
@@ -47,6 +51,76 @@ export default function CreateProductPage() {
       image: null,
     },
   });
+
+  const handleMagicPencil = async () => {
+    const currentTitle = watch("title");
+    const currentCategory = watch("category");
+    if (!currentTitle || currentTitle.trim().length < 2) {
+      alert("Please enter a product title first so the Magic Pencil can craft a description!");
+      return;
+    }
+
+    setIsGeneratingDesc(true);
+    setMagicPencilRateLimit(false);
+    setMagicPencilModeration(false);
+    setAiDescStatus("⏳ Generating eye-catching description with AI...");
+
+    const token = localStorage.getItem("token") || localStorage.getItem("access_token");
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    try {
+      let res;
+      const payload = {
+        title: currentTitle.trim(),
+        category: currentCategory || "General",
+        tone: "persuasive",
+        features: ["Premium quality", "E-commerce bestseller", "Fast express delivery"],
+        target_audience: "Online Shoppers",
+      };
+
+      try {
+        res = await fetch("http://localhost:8000/api/v1/ai/generate-description", {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload),
+        });
+      } catch (err) {
+        res = await fetch("/api/v1/ai/generate-description", {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload),
+        });
+      }
+
+      if (res.status === 429) {
+        setMagicPencilRateLimit(true);
+        setAiDescStatus("🛑 Rate Limit Exceeded (HTTP 429)");
+        return;
+      }
+
+      if (res.status === 422) {
+        setMagicPencilModeration(true);
+        setAiDescStatus("🛡️ Flagged by Safety Policy (HTTP 422)");
+        return;
+      }
+
+      if (res.ok) {
+        const json = await res.json();
+        const fullText = json?.data?.full_text || json?.data?.description || "";
+        if (fullText) {
+          setValue("description", fullText, { shouldValidate: true, shouldDirty: true });
+          setAiDescStatus(json.cached ? "⚡ AI Generated (Redis Cache <3ms)" : "✨ AI Generated & Applied");
+          setTimeout(() => setAiDescStatus(""), 4000);
+        }
+      }
+    } catch (e) {
+      console.error("[Magic Pencil Error]", e);
+      setAiDescStatus("⚠️ Generation error. Type manually.");
+    } finally {
+      setIsGeneratingDesc(false);
+    }
+  };
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -191,27 +265,57 @@ export default function CreateProductPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5" htmlFor="description">
-                  Product Description *
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-sm font-semibold text-gray-700" htmlFor="description">
+                    Product Description *
+                  </label>
+                  {aiDescStatus && (
+                    <span className={`text-xs font-bold ${aiDescStatus.includes("Error") || aiDescStatus.includes("429") ? "text-red-500" : "text-emerald-500"}`}>
+                      {aiDescStatus}
+                    </span>
+                  )}
+                </div>
 
-                <AiErrorBoundary title="AI Generator Unavailable" showStandardFallback>
-                  <AiDescriptionGenerator
-                    productTitle={formValues.title}
-                    productCategory={formValues.category}
-                    onApplyDescription={(desc) => {
-                      setValue("description", desc, { shouldValidate: true });
-                    }}
+                <div className="relative">
+                  <textarea
+                    id="description"
+                    rows={4}
+                    placeholder="Enter product description or click ✏️ Magic Pencil at bottom-right to auto-generate..."
+                    {...register("description")}
+                    className="w-full rounded-lg border border-gray-300 bg-white p-3 pr-28 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
-                </AiErrorBoundary>
 
-                <textarea
-                  id="description"
-                  rows={4}
-                  placeholder="Detailed description of features, materials, and warranty..."
-                  {...register("description")}
-                  className="w-full rounded-lg border border-gray-300 bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                  {/* Magic Pencil Button at bottom-right */}
+                  <button
+                    type="button"
+                    data-testid="magic-pencil-btn"
+                    title="Auto-generate professional, eye-catching description with AI"
+                    onClick={handleMagicPencil}
+                    disabled={isGeneratingDesc}
+                    className="absolute right-2.5 bottom-3.5 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 px-3 py-1.5 text-xs font-black text-white shadow-md hover:from-purple-700 hover:to-indigo-700 transition-all disabled:opacity-50"
+                  >
+                    <span>{isGeneratingDesc ? "⏳" : "✏️✨"}</span>
+                    <span>{isGeneratingDesc ? "Writing..." : "Magic Pencil"}</span>
+                  </button>
+                </div>
+
+                {magicPencilRateLimit && (
+                  <div
+                    data-testid="magic-pencil-rate-limit-banner"
+                    className="mt-2 flex items-center justify-between rounded-lg border border-red-500 bg-red-500/10 p-2.5 text-xs font-bold text-red-400"
+                  >
+                    <span>🛑 Too Many Requests (HTTP 429): You have exceeded your AI request limit. Please wait a moment before trying again.</span>
+                    <button type="button" onClick={() => setMagicPencilRateLimit(false)} className="font-black">✕</button>
+                  </div>
+                )}
+
+                {magicPencilModeration && (
+                  <div className="mt-2 flex items-center justify-between rounded-lg border border-amber-500 bg-amber-500/10 p-2.5 text-xs font-bold text-amber-400">
+                    <span>🛡️ Content Moderation Guardrail: Product title or details violated safety policy.</span>
+                    <button type="button" onClick={() => setMagicPencilModeration(false)} className="font-black">✕</button>
+                  </div>
+                )}
+
                 {errors.description && (
                   <p className="text-xs text-red-500 mt-1">{errors.description.message}</p>
                 )}

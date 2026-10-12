@@ -11,6 +11,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { env } from "../config/env";
 import { useAuthStore, useUIStore } from "../store/useStore";
+import { checkContentSafety, logAdminModerationAlert } from "../utils/moderationGuardrail";
 
 // Intelligent client-side fallback responses
 function getFallbackReply(query = "", name = "Customer") {
@@ -40,6 +41,7 @@ export default function LiveChatModal({ isOpen, onClose, roomId = "general", ini
 
   const [inputMessage, setInputMessage] = useState("");
   const [adminOnline, setAdminOnline] = useState(false);
+  const [chatModerationError, setChatModerationError] = useState("");
   const [messages, setMessages] = useState([
     {
       id: "init-1",
@@ -179,6 +181,27 @@ export default function LiveChatModal({ isOpen, onClose, roomId = "general", ini
     const trimmed = inputMessage.trim();
     if (!trimmed) return;
 
+    // AI Content Moderation & Guardrails
+    const safety = checkContentSafety(trimmed);
+    if (!safety.isSafe) {
+      setChatModerationError(
+        safety.reason || "🛡️ Content Moderation Warning: Harassing, abusive, or offensive comments towards our staff and administration are strictly prohibited."
+      );
+      logAdminModerationAlert("Customer Live Chat to Admin", trimmed, currentSenderName);
+      
+      const modMsg = {
+        id: `mod-warn-${Date.now()}`,
+        sender_role: "admin",
+        sender_name: "🛡️ Safety Guardrail",
+        text: "🛡️ Content Moderation Warning: Harassing, abusive, or offensive language is strictly prohibited. Your message was blocked and flagged for store administration.",
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        isModerationBlocked: true,
+      };
+      setMessages((prev) => [...prev, modMsg]);
+      return;
+    }
+
+    setChatModerationError("");
     const clientId = `local-${Date.now()}`;
     const newMsg = {
       id: clientId,
@@ -545,6 +568,34 @@ export default function LiveChatModal({ isOpen, onClose, roomId = "general", ini
           )}
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Moderation Warning Banner */}
+        {chatModerationError && (
+          <div
+            data-testid="chat-moderation-warning"
+            style={{
+              padding: "10px 16px",
+              backgroundColor: "rgba(239, 68, 68, 0.15)",
+              borderTop: "1px solid #EF4444",
+              borderBottom: "1px solid #EF4444",
+              color: "#EF4444",
+              fontSize: "12px",
+              fontWeight: "800",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <span>{chatModerationError}</span>
+            <button
+              type="button"
+              onClick={() => setChatModerationError("")}
+              style={{ background: "none", border: "none", color: "#EF4444", fontWeight: "900", cursor: "pointer", marginLeft: "8px" }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         {/* Message Input Footer */}
         <form

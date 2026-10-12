@@ -1,171 +1,131 @@
-# Day 19 — Production Security Hardening, Response Compression, Performance & Load Testing
+# Day 20 — AI Shopping Concierge with ChromaDB Vector RAG, Multi-Provider LLMs & SSE Streaming
 
 <p align="left">
   <img src="https://img.shields.io/badge/FASTAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
-  <img src="https://img.shields.io/badge/SLOWAPI-RATE_LIMITING-FF4B4B?style=for-the-badge&logo=fastapi&logoColor=white" />
-  <img src="https://img.shields.io/badge/OWASP-TOP_10_HARDENED-00599C?style=for-the-badge&logo=owasp&logoColor=white" />
-  <img src="https://img.shields.io/badge/GZIP-RESPONSE_COMPRESSION-4B8BBE?style=for-the-badge&logo=python&logoColor=white" />
-  <img src="https://img.shields.io/badge/LOCUST-50_CONCURRENT_USERS-37814A?style=for-the-badge&logo=locust&logoColor=white" />
-  <img src="https://img.shields.io/badge/LIGHTHOUSE-90%2B_OPTIMIZED-F44B27?style=for-the-badge&logo=googlechrome&logoColor=white" />
-  <img src="https://img.shields.io/badge/PYTEST-38_PASSED-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" />
-  <img src="https://img.shields.io/badge/VITEST-50_PASSED-brightgreen?style=for-the-badge&logo=vitest&logoColor=white" />
+  <img src="https://img.shields.io/badge/CHROMADB-VECTOR_STORE-E97157?style=for-the-badge&logo=databricks&logoColor=white" />
+  <img src="https://img.shields.io/badge/EMBEDDINGS-all--MiniLM--L6--v2-blueviolet?style=for-the-badge&logo=huggingface&logoColor=white" />
+  <img src="https://img.shields.io/badge/GROQ-LLAMA_3.3_70B-F55036?style=for-the-badge&logo=meta&logoColor=white" />
+  <img src="https://img.shields.io/badge/GEMINI-2.0_FLASH-4285F4?style=for-the-badge&logo=google&logoColor=white" />
+  <img src="https://img.shields.io/badge/SSE-TOKEN_STREAMING-00A86B?style=for-the-badge&logo=fastapi&logoColor=white" />
+  <img src="https://img.shields.io/badge/PYTEST-44_PASSED-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" />
+  <img src="https://img.shields.io/badge/VITEST-67_PASSED-brightgreen?style=for-the-badge&logo=vitest&logoColor=white" />
 </p>
 
 ---
 
 ## 🎯 Overview & Objectives
 
-Day 19 elevates the entire full-stack platform into an enterprise, production-hardened, high-performance web application. It combines API rate limiting, OWASP API Top 10 defensive hardening, GZip response compression, Rollup code splitting, Lighthouse 90+ optimizations, and Locust load testing simulating 50 concurrent shoppers with zero failures.
+**Day 20** implements **Sparky AI Concierge** — an enterprise-grade, retrieval-augmented shopping and customer support assistant seamlessly integrated across the full-stack e-commerce architecture. 
 
----
+It pairs local vector search with high-throughput multi-provider LLMs, Server-Sent Events (SSE) token streaming, real-time citation cards, voice STT/TTS synthesis, and automated customer support exception handling.
 
-## 🛡️ 1. API Security & Rate Limiting (`slowapi` + OWASP Top 10)
-
-### 🚦 Sliding-Window Rate Limiting (`core/rate_limiter.py`)
-* Powered by `slowapi` with in-memory / Redis key storage (`key_func=get_remote_address`).
-* Protects authentication endpoints (`/api/v1/auth/login`, `/api/v1/auth/register`) against brute-force credential stuffing and password spraying attacks.
-* Custom HTTP 429 response handler returning RFC-compliant payloads with structured error messaging and standard `Retry-After: 60` headers:
-  ```json
-  {
-    "detail": "Too many requests. Rate limit exceeded. Please wait 60 seconds before retrying.",
-    "error": "RateLimitExceeded",
-    "retry_after": 60
-  }
-  ```
-* Verified via automated test `test_01_slowapi_rate_limiting_enforcement` triggering 429 on excessive requests.
-
-### 🔒 OWASP API Top 10 Security Hardening (`core/security_headers.py`)
-Custom Starlette/FastAPI middleware attaching strict defensive HTTP headers across all API responses:
-* `X-Frame-Options: DENY` (Mitigates clickjacking attacks)
-* `X-Content-Type-Options: nosniff` (Prevents MIME-sniffing exploits)
-* `X-XSS-Protection: 1; mode=block` (Reflected XSS filter)
-* `Strict-Transport-Security: max-age=31536000; includeSubDomains` (Enforces HTTPS transport)
-* `Referrer-Policy: strict-origin-when-cross-origin` (Prevents referrer leakage)
-* `Permissions-Policy: geolocation=(), camera=(), microphone=()` (Restricts browser sensor access)
-
-### ⛔ Broken Function Level Authorization (BFLA) Guard
-* Strict role-based access control (`require_admin` dependency) protecting administrative endpoints (`POST /api/v1/products`, `DELETE /api/v1/products/{id}`).
-* Unauthenticated customers or regular users receive immediate `HTTP 403 Forbidden`.
-* Verified via automated test `test_03_owasp_bfla_customer_forbidden_from_admin_ops`.
-
----
-
-## 🗜️ 2. High-Throughput Response Compression (`GZipMiddleware`)
-
-* Integrated Starlette's `GZipMiddleware(minimum_size=1000)` in `backend/main.py`.
-* Automatically compresses payloads exceeding 1 KB whenever clients send `Accept-Encoding: gzip`.
-* Dramatically reduces bandwidth consumption for large product catalog arrays and database dumps.
-* Verified via automated test `test_04_gzip_compression_enabled` and live `curl` streaming.
-
----
-
-## ⚡ 3. Frontend Performance & Bundle Optimization
-
-### 📦 Rollup Code Splitting (`vite.config.js`)
-Configured functional `manualChunks` in Vite / Rolldown to eliminate the monolithic JavaScript bundle:
-* **`vendor-react`** (`react`, `react-dom`, `react-router-dom`)
-* **`vendor-query`** (`@tanstack/react-query`, `zustand`, `axios`)
-* **`vendor-ui`** (`lucide-react`, `clsx`, `tailwind-merge`)
-* **`vendor-form`** (`react-hook-form`, `@hookform/resolvers`, `zod`)
-* **Result**: Reduced initial JavaScript chunk from **401 kB down to 160 kB** (gzip: 39 kB) and production build finishes in **under 900ms**!
-
-### 🖼️ Native Image Lazy Loading & Async Decoding
-* Attached `loading="lazy"` and `decoding="async"` across `ProductCard.jsx`, `ProductCard.tsx`, and media components.
-* Defers off-screen image decoding until the user scrolls into view, avoiding network congestion during initial page load.
-
----
-
-## 🌟 4. Lighthouse 90+ Optimization
-
-Enhanced `index.html` and core presentation layers for Google Lighthouse standards:
-1. **Performance**: Modern semantic structure, preconnect hints (`fonts.googleapis.com`, `picsum.photos`), and lightweight bundle execution.
-2. **Accessibility**: `dir="ltr"`, `lang="en"`, descriptive `alt` tags on all product media, and explicit `aria-label` attributes on interactive icon buttons.
-3. **Best Practices**: Strict security headers, secure HTTPS links, zero runtime warnings, and `<noscript>` fallback.
-4. **SEO**: Complete metadata tags including `<meta name="description">`, keywords, author tags, and OpenGraph social preview tags (`og:title`, `og:description`, `og:image`).
-
----
-
-## 🤖 5. Load Testing with Locust (50 Concurrent Users)
-
-### 🧪 Load Test Specification (`load_tests/locustfile.py`)
-Simulates 50 concurrent realistic shopper journeys against the live FastAPI + PostgreSQL backend:
-1. `GET /api/v1/products` (Catalog browsing with Redis Cache-Aside hit)
-2. `GET /api/v1/products?q={term}` (Keyword search)
-3. `GET /api/v1/products?category={cat}` (Category filtering)
-4. `GET /api/v1/products/{id}` (Single product detail inspection)
-5. `GET /api/v1/test-compression` (GZip compressed stream retrieval)
-6. `GET /` (Health check ping)
-
-### 📈 Verification Results (`load_tests/locust_report.html`)
-```text
-Simulated Users:       50 Concurrent Users
-Ramp-up Rate:          25 Users / Second
-Run Duration:          15 Seconds
-Total Requests:        31 Requests
-Failures:              0 (0.00% Failure Rate)
-Health & Compression:  ~5-6 ms Latency
-```
-* Interactive visual performance report saved at `Day-19/load_tests/locust_report.html`.
-
----
-
-## 📂 Directory Structure
-
-```text
-Day-19/
-├── README.md               # Day 19 comprehensive documentation (This file)
-├── index.html              # Lighthouse 90+ optimized HTML template
-├── package.json            # Frontend dependencies & scripts
-├── vite.config.js          # Vite configuration with Rollup manualChunks
-├── load_tests/             # Locust load testing suite
-│   ├── locustfile.py       # 50-user concurrent simulation suite
-│   └── locust_report.html  # Interactive visual HTML report (0% fails)
-├── backend/                # Full-Stack FastAPI backend
-│   ├── main.py             # Server entry point with GZip & Security Middlewares
-│   ├── core/
-│   │   ├── rate_limiter.py # slowapi Limiter & custom 429 handler
-│   │   └── security_headers.py # OWASP Top 10 defensive headers middleware
-│   ├── models/             # User, Product, Order models
-│   ├── routers/            # auth.py, products.py, cart.py, orders.py, tasks.py
-│   └── tests/
-│       ├── test_day19_security_suite.py # 4 rate-limiting & OWASP tests
-│       ├── test_day18_suite.py          # 9 async task & search tests
-│       └── test_ecommerce_suite.py      # 25 core e-commerce tests
-└── src/                    # Optimized React frontend
-    ├── components/         # ProductCard, CartDrawer, RightMenuDrawer
-    └── pages/              # ProductsPage, AdminDashboard, CheckoutPage
+```mermaid
+flowchart LR
+    User["Shopper / Admin"] -->|Query / Voice / Photo| Sparky["Sparky UI Assistant (React 19)"]
+    Sparky -->|POST /chat/stream| FastAPIRouter["FastAPI AI Gateway"]
+    FastAPIRouter --> ChromaDB["ChromaDB Vector Store\n(all-MiniLM-L6-v2)"]
+    ChromaDB -->|Top-K Context Chunks| PromptEngine["Prompt Builder & Guardrails"]
+    PromptEngine --> LLMFallback{"Multi-Provider Engine"}
+    LLMFallback -->|Primary| Groq["Groq (Llama-3.3-70B)"]
+    LLMFallback -->|Secondary| Gemini["Google Gemini (2.0 Flash)"]
+    LLMFallback -->|Tertiary Safety Net| LocalRAG["Local Rule Generator"]
+    LLMFallback -->|SSE Tokens & Metadata| Sparky
+    Sparky -->|Unresolved / Damaged / Return| AdminConsole["Store Admin Boss & Live Chat"]
 ```
 
 ---
 
-## 🚀 How to Run & Verify
+## 🧠 1. Vector Store & Semantic Embeddings (ChromaDB)
 
-### 1. Launch FastAPI Backend
+### 📐 Embedding Model: `all-MiniLM-L6-v2`
+* **Architecture:** Sentence-Transformers BERT-based dense bi-encoder.
+* **Vector Dimensionality:** **384 dimensions**.
+* **Metric:** Cosine Similarity (`"hnsw:space": "cosine"`).
+* **Storage:** Persistent ChromaDB storage under `backend/chroma_db` with in-memory fallback.
+
+### 📦 Document Chunking & Indexing (`core/vector_store.py`)
+Products from PostgreSQL are structured into dense retrieval chunks:
+```text
+Product ID: {id}
+Title: {title}
+Category: {category}
+Price: ${price}
+Stock: {stock} units available
+Description: {description}
+```
+* **Endpoint:** `POST /api/v1/ai/index-catalog` triggers automated chunking and vector indexing.
+* **Semantic Top-K Search:** Queries are embedded into 384-d vectors to retrieve the top 4 relevant products with similarity distance scores, filtering out synthetic test fixtures.
+
+---
+
+## ⚡ 2. Multi-Provider LLM Architecture & Resilient Fallbacks (`core/ai_service.py`)
+
+1. **Primary Provider (Ultra-Fast LPU):**
+   * **Groq** (`llama-3.3-70b-versatile` / `llama-3.1-8b-instant`).
+   * Sub-second time-to-first-token (TTFT) for snappy shopper conversational interactions.
+2. **Secondary Provider (Deep Context):**
+   * **Google Gemini** (`gemini-2.0-flash` / `gemini-1.5-flash`).
+   * High-context window fallback when Groq experiences quota limits.
+3. **Tertiary Safety Net (Zero-Downtime Offline Engine):**
+   * **Local Intelligent RAG Generator**.
+   * Provides 100% uptime even if external APIs or internet access are unavailable.
+
+---
+
+## 📡 3. Server-Sent Events (SSE) Streaming (`routers/ai_chat.py`)
+
+* **Endpoint:** `POST /api/v1/ai/chat/stream` returns a continuous `text/event-stream`:
+  * `event: metadata` — Emits structured JSON containing referenced catalog items, real-time pricing, stock status, and citation badges.
+  * `event: provider` — Emits active AI model (`Groq & Llama-3.3-70B`, `Google Gemini 2.0 Flash`, or `Local RAG Intelligence`).
+  * `event: token` — Emits incremental token chunks for real-time word-by-word UI rendering.
+  * `event: done` — Signals completion of the response stream.
+
+---
+
+## 🛡️ 4. Customer Support Exception Handling & Concise Formatting
+
+Sparky is explicitly trained to understand query intent and reply in **concise, turn-by-turn messages with interactive action buttons** (no bulky paragraphs):
+
+| Support Scenario | Conversational Behavior & Prompt Directive | Interactive Action in UI |
+| :--- | :--- | :--- |
+| **Product Inquiry** | Answers specifically about the requested item (specs, price, stock). | Renders clean product card with direct `+ Cart` button. |
+| **Generic Complaint** | Responds with empathy: *"We are sorry for the inconvenience! Could you please share more details about the issue so we can help you right away?"* | Logs feedback ticket to `rmart_support_tickets`. |
+| **Return Request** | Asks for return reason first; upon reason selection, registers return pickup with invoice guidelines and re-order option. | Clickable reason chips + return item card with `🔄 Place Same Order Again (+ Cart)`. |
+| **Not Received Order** | Apologizes for delay: *"We will talk to our Admin Boss about this right away to investigate your shipment immediately. 🚨"* | Logs urgent alert to `rmart_admin_notifications` + `👨‍💼 Talk to Admin on Live Chat` button. |
+| **Damaged Product** | Prompts customer to upload photos of damage; verifies validity and approves 100% full refund. | `📸 Upload Photos of Damaged Item` button + refund payout alert. |
+| **Off-Topic / Jokes** | Politely refuses jokes/unrelated topics: *"Apologise, I only can solve queries regarding our website!"* | Highlights trending products and active coupons (`FLASH50`, `FREESHIP`). |
+| **Admin Handover** | Triggered on *"Problem not resolved"* or *"Talk to admin"*. Briefs Admin Boss on Sparky's attempt. | One-click direct transfer to Live Human Support Chat. |
+
+---
+
+## 🎙️ 5. Voice Input & Speech Synthesis
+
+* **Speech Recognition (STT):** Web Speech API integration (`SpeechRecognition` / `webkitSpeechRecognition`) with pulsing microphone indicator.
+* **Natural Speech Synthesis (TTS):** Human-like pitch (1.0) and articulate cadence (0.98), auto-canceling speech on chat modal close or reset.
+
+---
+
+## 🧪 6. Automated Verification Suite
+
+### Backend Pytest Suite (44 Tests Passed)
 ```bash
 cd backend
-python -m uvicorn main:app --reload --port 8000
+..\..\venv\Scripts\python.exe -m pytest tests/
 ```
+* `test_ai_health_endpoint`: Validates provider health and ChromaDB connectivity.
+* `test_index_catalog_endpoint`: Validates chunking and vector storage.
+* `test_vector_store_semantic_search`: Validates cosine similarity product retrieval.
+* `test_out_of_stock_directive_and_grounding`: Verifies Admin Boss restock alert directive.
+* `test_off_topic_guardrail_rejection`: Verifies refusal of jokes and off-topic queries.
+* `test_sse_streaming_endpoint`: Verifies SSE metadata, provider, and token streaming.
 
-### 2. Run Headless Locust Load Test (50 Users)
+### Frontend Vitest Suite (67 Tests Passed)
 ```bash
-python -m locust -f load_tests/locustfile.py --headless -u 50 -r 25 --run-time 15s --host http://127.0.0.1:8000 --html load_tests/locust_report.html
+npm test -- --run
 ```
-
-### 3. Run Backend Pytest Suite (38 Tests)
-```bash
-cd backend
-pytest -v tests
-```
-*(All 38 tests pass green)*
-
-### 4. Run Frontend Vitest Suite (50 Tests)
-```bash
-npm run test
-```
-*(All 10 test files and 50 tests pass green)*
-
-### 5. Build Frontend with Code Splitting
-```bash
-npm run build
-```
-*(Splits into lightweight vendor chunks in under 900ms)*
+* Verifies hover-only Sparky speech bubble (`sparkyyy here !` for shoppers, `bosss` for admin).
+* Verifies pitch-dark background backdrop on chat modal activation.
+* Verifies damaged product photo upload, validity check, and 100% refund approval.
+* Verifies order not received immediate Admin Boss alert.
+* Verifies return reason prompt, pickup scheduling with invoice packing, and 1-click re-order button.
+* Verifies thorough Log Out token purge.

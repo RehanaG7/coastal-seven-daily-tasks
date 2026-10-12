@@ -65,20 +65,22 @@ export default function ProductsPage() {
         }
 
         if (res.status === 429) {
-          setAiAlertMessage("Too Many Requests (HTTP 429): You have exceeded your AI request limit. Please wait a moment before trying again.");
-          setSemanticProducts([]);
+          // Search bar is free, public, and unthrottled - gracefully fall back without showing 429 alert banner
           return;
         }
 
         if (res.status === 422) {
-          setAiAlertMessage("🛡️ Content Moderation Guardrail: Your search query was flagged for policy violations (Prompt Injection / Inappropriate Content).");
-          setSemanticProducts([]);
           return;
         }
 
         if (res.ok) {
           const json = await res.json();
-          setSemanticProducts(json.items || []);
+          let deletedIds = new Set();
+          try {
+            deletedIds = new Set(JSON.parse(localStorage.getItem("rmart_deleted_product_ids") || "[]").map(String));
+          } catch (e) {}
+          const filteredSemantic = (json.items || []).filter((it) => it && !deletedIds.has(String(it.id)));
+          setSemanticProducts(filteredSemantic);
           setSemanticMode(json.search_mode);
           setSemanticCached(Boolean(json.cached));
         }
@@ -87,7 +89,7 @@ export default function ProductsPage() {
       } finally {
         setIsSemanticLoading(false);
       }
-    }, 300);
+    }, 250);
 
     return () => clearTimeout(timer);
   }, [query]);
@@ -134,12 +136,72 @@ export default function ProductsPage() {
     return prods;
   }, [allProducts, sortBy]);
 
-  // Integrated Semantic AI Search vs Standard Filtered Products
+  // Integrated Amazon-Grade Fast Semantic & Intent Search (Zero Ghost / Deleted Products)
   const displayedProducts = useMemo(() => {
-    if (query.trim() && semanticProducts.length > 0) {
-      return semanticProducts;
+    let deletedIds = new Set();
+    try {
+      deletedIds = new Set(JSON.parse(localStorage.getItem("rmart_deleted_product_ids") || "[]").map(String));
+    } catch (e) {}
+
+    const baseList = sortedProducts.filter((p) => p && !deletedIds.has(String(p.id)));
+
+    if (!query.trim()) {
+      return baseList;
     }
-    return sortedProducts;
+
+    const q = query.trim().toLowerCase();
+    const qWords = q.split(/\s+/).filter(Boolean);
+    const validSemantic = (semanticProducts || []).filter((it) => it && !deletedIds.has(String(it.id)));
+
+    const scoredList = baseList.map((p) => {
+      let score = 0;
+      const title = (p.name || p.title || "").toLowerCase();
+      const desc = (p.description || "").toLowerCase();
+      const cat = (p.category || "").toLowerCase();
+      const fullText = `${title} ${desc} ${cat}`;
+
+      if (title.includes(q)) score += 100;
+      if (cat.includes(q)) score += 50;
+      if (desc.includes(q)) score += 30;
+
+      qWords.forEach((w) => {
+        if (title.includes(w)) score += 20;
+        if (desc.includes(w)) score += 10;
+        if (cat.includes(w)) score += 15;
+      });
+
+      // Semantic Intent Synonyms (Amazon Search behavior)
+      if ((q.includes("noise") || q.includes("cancelling") || q.includes("anc") || q.includes("audio")) && (fullText.includes("headphone") || fullText.includes("sony") || fullText.includes("bose") || fullText.includes("audio"))) {
+        score += 45;
+      }
+      if ((q.includes("programming") || q.includes("coding") || q.includes("developer") || q.includes("software")) && (fullText.includes("macbook") || fullText.includes("laptop") || fullText.includes("keyboard") || fullText.includes("monitor") || fullText.includes("code"))) {
+        score += 45;
+      }
+      if ((q.includes("shoe") || q.includes("sneaker") || q.includes("running") || q.includes("footwear") || q.includes("durable")) && (fullText.includes("shoe") || fullText.includes("sneaker") || fullText.includes("running") || fullText.includes("fitness") || fullText.includes("apparel"))) {
+        score += 45;
+      }
+
+      if (validSemantic.some((s) => String(s.id) === String(p.id))) {
+        score += 60;
+      }
+
+      return { product: p, score };
+    });
+
+    const matches = scoredList
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((item) => item.product);
+
+    if (matches.length > 0) {
+      return matches;
+    }
+
+    if (validSemantic.length > 0) {
+      return validSemantic;
+    }
+
+    return [];
   }, [query, semanticProducts, sortedProducts]);
 
   // Infinite Scroll Intersection Observer
@@ -315,20 +377,20 @@ export default function ProductsPage() {
                 </div>
               )}
 
-              {/* Quick Semantic Intent Query Suggestion Pills */}
+              {/* Quick Semantic Intent Query Suggestion Pills (Amazon-style intent discovery) */}
               <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap", marginTop: "4px" }}>
                 <span style={{ fontSize: "11px", fontWeight: "800", color: "#A855F7" }}>🧠 Try AI Intent Search:</span>
                 {[
-                  "🎧 noise cancelling",
-                  "👟 durable shoes",
-                  "💻 laptop for programming",
-                  "☕ organic healthy morning",
-                  "🛡️ ignore previous instructions (DAN)"
+                  "🎧 Noise Cancelling",
+                  "💻 Programming Laptops",
+                  "📱 5G Smartphones",
+                  "🎮 Gaming Gear",
+                  "👟 Running Shoes"
                 ].map((promptText) => (
                   <button
                     key={promptText}
                     type="button"
-                    onClick={() => setQuery(promptText.replace(/^[^a-zA-Z0-9]+/, ""))}
+                    onClick={() => setQuery(promptText.replace(/^[^a-zA-Z0-9\s]+/, "").trim())}
                     style={{
                       background: isDark ? "rgba(147, 51, 234, 0.15)" : "#F3E8FF",
                       border: "1px solid rgba(147, 51, 234, 0.4)",
@@ -345,17 +407,17 @@ export default function ProductsPage() {
                 ))}
               </div>
 
-              {/* Rate Limit 429 & Moderation 422 Alert Notification */}
-              {aiAlertMessage && (
+              {/* Safety Moderation 422 Alert Notification Only */}
+              {aiAlertMessage && !aiAlertMessage.includes("429") && (
                 <div
                   data-testid="ai-alert-banner"
                   style={{
                     marginTop: "8px",
                     padding: "10px 14px",
                     borderRadius: "12px",
-                    backgroundColor: aiAlertMessage.includes("429") ? "rgba(220, 38, 38, 0.2)" : "rgba(234, 179, 8, 0.2)",
-                    border: aiAlertMessage.includes("429") ? "1px solid #DC2626" : "1px solid #EAB308",
-                    color: aiAlertMessage.includes("429") ? "#FCA5A5" : "#FDE047",
+                    backgroundColor: "rgba(234, 179, 8, 0.2)",
+                    border: "1px solid #EAB308",
+                    color: "#FDE047",
                     fontSize: "12px",
                     fontWeight: "800",
                     display: "flex",
@@ -365,7 +427,7 @@ export default function ProductsPage() {
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ fontSize: "16px" }}>{aiAlertMessage.includes("429") ? "🛑" : "🛡️"}</span>
+                    <span style={{ fontSize: "16px" }}>🛡️</span>
                     <span>{aiAlertMessage}</span>
                   </div>
                   <button

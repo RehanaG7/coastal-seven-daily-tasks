@@ -100,8 +100,7 @@ def generate_product_description_endpoint(
 
 @router.get(
     "/semantic-search",
-    summary="Semantic vector search for products using ChromaDB dense embeddings",
-    dependencies=[Depends(ai_rate_limit_dep)]
+    summary="Semantic vector search for products using ChromaDB dense embeddings"
 )
 def semantic_search_endpoint(
     request: Request,

@@ -421,7 +421,22 @@ export default function AdminDashboard() {
                 description: item.description || "",
                 image: item.image_url || `https://picsum.photos/seed/product-${item.id}/400/300`,
               }));
-            setProductsState(mapped);
+
+            const custom = JSON.parse(localStorage.getItem("rmart_custom_products") || "[]");
+            const combinedMap = new Map();
+            mapped.forEach((p) => combinedMap.set(String(p.id), p));
+            custom.forEach((p) => {
+              if (!deleted.has(String(p.id)) && !combinedMap.has(String(p.id))) {
+                combinedMap.set(String(p.id), p);
+              }
+            });
+            MOCK_CATALOG.forEach((p) => {
+              if (!deleted.has(String(p.id)) && !combinedMap.has(String(p.id))) {
+                combinedMap.set(String(p.id), p);
+              }
+            });
+
+            setProductsState(Array.from(combinedMap.values()));
           }
         }
       } catch (e) {}

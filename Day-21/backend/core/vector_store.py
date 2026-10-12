@@ -100,6 +100,13 @@ class VectorStoreService:
 
         query_is_test = is_test_item(query)
 
+        active_db_ids = None
+        if db is not None:
+            try:
+                active_db_ids = {p[0] for p in db.query(Product.id).all()}
+            except Exception:
+                pass
+
         # 1. Semantic Vector Search via ChromaDB
         try:
             results = self.collection.query(
@@ -111,6 +118,9 @@ class VectorStoreService:
             if results and results.get("ids") and results["ids"][0]:
                 for idx, doc_id in enumerate(results["ids"][0]):
                     metadata = results["metadatas"][0][idx] if results.get("metadatas") else {}
+                    prod_id = metadata.get("id")
+                    if active_db_ids is not None and prod_id not in active_db_ids:
+                        continue
                     title = metadata.get("title", "")
                     if is_test_item(title) and not query_is_test:
                         continue

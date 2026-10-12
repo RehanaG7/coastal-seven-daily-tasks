@@ -529,6 +529,19 @@ async def delete_product(
     except Exception:
         pass
 
+    # Delete from ChromaDB vector store & AI Redis Cache
+    try:
+        from core.vector_store import vector_store
+        vector_store.collection.delete(ids=[f"prod_{p_id}", str(p_id)])
+    except Exception:
+        pass
+
+    try:
+        from core.redis_ai_cache import ai_cache
+        ai_cache.invalidate_all()
+    except Exception:
+        pass
+
     # Broadcast to Admin WebSocket
     try:
         await notify_admin_ws("PRODUCT_DELETED", p_id, p_name)

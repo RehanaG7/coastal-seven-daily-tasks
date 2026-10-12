@@ -504,20 +504,71 @@ export default function SneakPeekAiAssistant() {
         setIsListening(false);
       }
 
-      // Log escalation ticket into localStorage for Boss Admin Customer Queries desk
+      // Find previous assistant response to summarize what Sparky tried
+      const prevAssistant = [...messages].reverse().find((m) => m.role === "assistant");
+      const sparkyAttempt = prevAssistant?.content
+        ? prevAssistant.content.replace(/\[Source:[^\]]+\]/g, "").replace(/\n+/g, " ").slice(0, 160) + "..."
+        : "Assisted with store catalog specifications and shopping guidelines";
+
+      const customerName = user?.name || "Shopper";
+      const customerEmail = user?.email || "customer@rmart.com";
+
+      // 1. Dispatch urgent alert to Admin Boss in rmart_admin_notifications
+      try {
+        const existingAdminNotifs = JSON.parse(localStorage.getItem("rmart_admin_notifications") || "[]");
+        const urgentAdminNotif = {
+          id: `admin-urgent-${Date.now()}`,
+          title: "🚨 URGENT: Customer Escalation to Admin Boss!",
+          message: `Customer ${customerName} (${customerEmail}) problem not resolved: "${query}". Sparky attempted: "${sparkyAttempt}". Status: Unresolved. Admin boss, resolve this immediately!`,
+          category: "query",
+          badge: "🚨 ADMIN BOSS URGENT",
+          is_read: 0,
+          timestamp: "Just now",
+          user: customerName,
+          query,
+          sparkyAttempt,
+          actionRequired: "Admin boss resolve this immediately"
+        };
+        localStorage.setItem("rmart_admin_notifications", JSON.stringify([urgentAdminNotif, ...existingAdminNotifs]));
+      } catch (e) {
+        console.warn("Failed to log urgent admin notification:", e);
+      }
+
+      // 2. Log high-priority escalation ticket into localStorage for Boss Admin Customer Queries desk
       try {
         const existing = JSON.parse(localStorage.getItem("rmart_support_tickets") || "[]");
         const newTicket = {
           id: `TCK-${Date.now().toString().slice(-4)}`,
-          subject: "Customer Escalation: Unresolved Issue / Needs Admin Live Chat",
-          user: user?.name || "Shopper (via Sparky)",
-          text: `Customer escalated to human admin: "${query}"`,
+          subject: "🚨 Unresolved Issue: Customer Escalation to Admin Boss",
+          user: `${customerName} (${customerEmail})`,
+          text: `Customer Problem: "${query}"\n\nSparky AI Attempted Solution: "${sparkyAttempt}"\n\nStatus: Unresolved - Shopper requested live human admin assistance.\n\n⚠️ URGENT INSTRUCTION: Admin boss, resolve this immediately via Live Support Chat!`,
+          status: "Urgent",
           date: new Date().toLocaleDateString()
         };
         localStorage.setItem("rmart_support_tickets", JSON.stringify([newTicket, ...existing]));
       } catch (e) {
         console.warn("Failed to log escalation ticket:", e);
       }
+
+      // 3. Add to notification store
+      try {
+        useNotificationStore.getState().addNotification({
+          id: Date.now(),
+          title: "👨‍💼 Transferred to Live Admin Support",
+          message: `Your query has been escalated to Store Admin Boss. Sparky briefed the admin with your details.`,
+          category: "order",
+          is_read: 0,
+          timestamp: "Just now"
+        });
+      } catch {}
+
+      const handoverReply =
+        `I completely understand! Since your query requires personal attention from our store management, I am connecting you directly to our human Store Administrator right away via Live Support Chat. 👨‍💼💬\n\n` +
+        `📋 **Admin Briefing Sent:**\n` +
+        `• **Your Problem:** "${query}"\n` +
+        `• **Sparky's Attempt:** ${sparkyAttempt}\n` +
+        `• **Status:** Unresolved — Alert sent: *"Admin boss, resolve this immediately!"* 🚨\n\n` +
+        `Transferring you to Live Support Chat with Admin right now...`;
 
       // Show immediate empathetic handover notice
       setMessages((prev) => [
@@ -526,8 +577,7 @@ export default function SneakPeekAiAssistant() {
         {
           id: botMsgId,
           role: "assistant",
-          content:
-            "I completely understand! Since your issue requires personal attention from our store management, I am connecting you directly to our human Store Administrator right away via Live Support Chat. 👨‍💼💬\n\nTransferring you to Live Support Chat...",
+          content: handoverReply,
           sources: [],
           provider: "Admin Escalation Desk",
           isAdminHandover: true
@@ -541,7 +591,7 @@ export default function SneakPeekAiAssistant() {
         if (typeof openLiveChat === "function") {
           openLiveChat("general");
         }
-      }, 700);
+      }, 900);
 
       return;
     }
@@ -838,8 +888,8 @@ export default function SneakPeekAiAssistant() {
         id: `cleared_${Date.now()}`,
         role: "assistant",
         content: isAdmin
-          ? "🧹 Chat conversation cleared. Sparky Store Intelligence is ready for your instructions."
-          : "🧹 Chat cleared! How can I assist you with products, orders, or store offers today?",
+          ? "How can I assist you with store inventory, tickets, or orders today?"
+          : "How can I assist you with products, orders, or store offers today?",
         sources: [],
         provider: "Sparky Concierge"
       }
@@ -975,9 +1025,9 @@ export default function SneakPeekAiAssistant() {
             zIndex: 9999,
             display: "flex",
             flexDirection: "column",
-            backgroundColor: "rgba(5, 8, 18, 0.96)",
-            backdropFilter: "blur(28px)",
-            WebkitBackdropFilter: "blur(28px)",
+            backgroundColor: "rgba(4, 7, 15, 0.95)",
+            backdropFilter: "blur(24px)",
+            WebkitBackdropFilter: "blur(24px)",
             color: "#FFFFFF",
             padding: "16px",
             overflow: "hidden",
@@ -987,25 +1037,27 @@ export default function SneakPeekAiAssistant() {
           {/* Centered Command Console */}
           <div
             style={{
-              maxWidth: "980px",
+              maxWidth: "960px",
               width: "100%",
               height: "100%",
               margin: "0 auto",
               display: "flex",
               flexDirection: "column",
-              backgroundColor: "rgba(11, 15, 25, 0.94)",
-              border: `1px solid ${isAdmin ? "rgba(245, 158, 11, 0.35)" : "rgba(56, 189, 248, 0.3)"}`,
-              borderRadius: "24px",
-              boxShadow: "0 25px 70px rgba(0, 0, 0, 0.95)",
+              backgroundColor: "#0B1120",
+              backgroundImage: "radial-gradient(circle at 50% 0%, rgba(30, 58, 138, 0.12) 0%, transparent 65%)",
+              border: `1px solid ${isAdmin ? "rgba(245, 158, 11, 0.25)" : "rgba(59, 130, 246, 0.25)"}`,
+              borderRadius: "22px",
+              boxShadow: "0 25px 65px rgba(0, 0, 0, 0.85), 0 0 1px 1px rgba(255, 255, 255, 0.05)",
               overflow: "hidden"
             }}
           >
-            {/* Immersive Header (Jumping Robot & Clean Controls - Voice Toggle Removed from Top!) */}
+            {/* Immersive Header (Jumping Robot & Clean Controls) */}
             <div
               style={{
                 padding: "16px 24px",
                 backgroundColor: "rgba(15, 23, 42, 0.85)",
-                borderBottom: `1px solid ${isAdmin ? "rgba(245, 158, 11, 0.2)" : "rgba(56, 189, 248, 0.2)"}`,
+                borderBottom: `1px solid ${isAdmin ? "rgba(245, 158, 11, 0.15)" : "rgba(59, 130, 246, 0.15)"}`,
+                backdropFilter: "blur(12px)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between"
@@ -1015,17 +1067,17 @@ export default function SneakPeekAiAssistant() {
                 {/* SPARKY JUMPS ON SCREEN ANIMATED AVATAR */}
                 <div
                   style={{
-                    width: "50px",
-                    height: "50px",
-                    borderRadius: "16px",
-                    backgroundColor: isAdmin ? "#F59E0B" : "#38BDF8",
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "14px",
+                    backgroundColor: isAdmin ? "#D97706" : "#2563EB",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "26px",
+                    fontSize: "24px",
                     boxShadow: isAdmin
-                      ? "0 4px 18px rgba(245, 158, 11, 0.5)"
-                      : "0 4px 18px rgba(56, 189, 248, 0.5)",
+                      ? "0 4px 18px rgba(217, 119, 6, 0.35)"
+                      : "0 4px 18px rgba(37, 99, 235, 0.35)",
                     animation: "sparkyLeap 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)"
                   }}
                 >
@@ -1033,17 +1085,18 @@ export default function SneakPeekAiAssistant() {
                 </div>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <h3 style={{ margin: 0, fontSize: "19px", fontWeight: "900", letterSpacing: "-0.3px", color: "#FFFFFF" }}>
+                    <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "800", letterSpacing: "-0.2px", color: "#FFFFFF" }}>
                       {isAdmin ? "Boss Store Command Intelligence" : "Sparky AI Assistant"}
                     </h3>
                     <span
                       style={{
                         fontSize: "11px",
-                        fontWeight: "800",
+                        fontWeight: "700",
                         padding: "2px 8px",
                         borderRadius: "8px",
-                        backgroundColor: isAdmin ? "rgba(245, 158, 11, 0.25)" : "rgba(16, 185, 129, 0.25)",
-                        color: isAdmin ? "#F59E0B" : "#10B981"
+                        backgroundColor: isAdmin ? "rgba(245, 158, 11, 0.15)" : "rgba(37, 99, 235, 0.15)",
+                        border: `1px solid ${isAdmin ? "rgba(245, 158, 11, 0.3)" : "rgba(37, 99, 235, 0.3)"}`,
+                        color: isAdmin ? "#FBBF24" : "#60A5FA"
                       }}
                     >
                       {isAdmin ? "ADMIN CONSOLE" : "ONLINE • FULL KNOWLEDGE"}
@@ -1057,20 +1110,21 @@ export default function SneakPeekAiAssistant() {
                 </div>
               </div>
 
-              {/* Clean Top Controls (Voice toggle removed from top!) */}
+              {/* Clean Top Controls */}
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <button
                   onClick={handleClearChat}
                   title="Clear Conversation"
                   style={{
-                    backgroundColor: "rgba(255,255,255,0.08)",
-                    border: "1px solid rgba(255,255,255,0.15)",
+                    backgroundColor: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.12)",
                     color: "#94A3B8",
-                    fontSize: "14px",
+                    fontSize: "13px",
                     cursor: "pointer",
-                    padding: "7px 12px",
+                    padding: "7px 14px",
                     borderRadius: "10px",
-                    fontWeight: "700"
+                    fontWeight: "600",
+                    transition: "all 0.15s ease"
                   }}
                 >
                   Clear Chat
@@ -1080,18 +1134,19 @@ export default function SneakPeekAiAssistant() {
                   onClick={handleCloseChat}
                   title="Close Assistant"
                   style={{
-                    backgroundColor: "rgba(255,255,255,0.12)",
+                    backgroundColor: "rgba(255,255,255,0.08)",
                     border: "none",
-                    color: "#FFFFFF",
+                    color: "#E2E8F0",
                     borderRadius: "50%",
                     width: "36px",
                     height: "36px",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "17px",
+                    fontSize: "16px",
                     fontWeight: "bold",
-                    cursor: "pointer"
+                    cursor: "pointer",
+                    transition: "all 0.15s ease"
                   }}
                 >
                   ✕
@@ -1126,17 +1181,17 @@ export default function SneakPeekAiAssistant() {
                     <div
                       style={{
                         maxWidth: isUser ? "75%" : "88%",
-                        backgroundColor: isUser
-                          ? (isAdmin ? "#D97706" : "#0284C7")
-                          : "rgba(15, 23, 42, 0.88)",
+                        background: isUser
+                          ? (isAdmin ? "linear-gradient(135deg, #D97706 0%, #B45309 100%)" : "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)")
+                          : "rgba(17, 24, 39, 0.82)",
                         border: isUser
-                          ? "none"
-                          : `1px solid ${isAdmin ? "rgba(245, 158, 11, 0.3)" : "rgba(56, 189, 248, 0.25)"}`,
-                        borderRadius: "20px",
-                        padding: "20px 24px",
+                          ? `1px solid ${isAdmin ? "rgba(245, 158, 11, 0.4)" : "rgba(96, 165, 250, 0.3)"}`
+                          : `1px solid ${isAdmin ? "rgba(245, 158, 11, 0.22)" : "rgba(59, 130, 246, 0.2)"}`,
+                        borderRadius: isUser ? "20px 20px 4px 20px" : "20px 20px 20px 4px",
+                        padding: "18px 22px",
                         boxShadow: isUser
-                          ? "0 6px 20px rgba(2, 132, 199, 0.35)"
-                          : "0 8px 30px rgba(0, 0, 0, 0.4)",
+                          ? "0 6px 20px rgba(37, 99, 235, 0.3)"
+                          : "0 8px 30px rgba(0, 0, 0, 0.45)",
                         color: "#FFFFFF",
                         position: "relative"
                       }}
@@ -1147,14 +1202,14 @@ export default function SneakPeekAiAssistant() {
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "space-between",
-                          marginBottom: "12px",
-                          borderBottom: isUser ? "1px solid rgba(255,255,255,0.2)" : "1px solid rgba(255,255,255,0.08)",
+                          marginBottom: "10px",
+                          borderBottom: isUser ? "1px solid rgba(255,255,255,0.2)" : "1px solid rgba(255,255,255,0.06)",
                           paddingBottom: "8px"
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span style={{ fontSize: "16px" }}>{isUser ? "👤" : isAdmin ? "🛡️" : "🤖"}</span>
-                          <span style={{ fontSize: "13px", fontWeight: "900", color: isUser ? "#FFFFFF" : isAdmin ? "#F59E0B" : "#38BDF8" }}>
+                          <span style={{ fontSize: "15px" }}>{isUser ? "👤" : isAdmin ? "🛡️" : "🤖"}</span>
+                          <span style={{ fontSize: "13px", fontWeight: "800", color: isUser ? "#FFFFFF" : isAdmin ? "#FBBF24" : "#60A5FA" }}>
                             {isUser ? "You" : isAdmin ? "Boss Executive AI" : "Sparky AI Assistant"}
                           </span>
                         </div>
@@ -1174,35 +1229,44 @@ export default function SneakPeekAiAssistant() {
                           whiteSpace: "pre-wrap",
                           fontWeight: isUser ? "500" : "400",
                           color: "#F8FAFC",
-                          letterSpacing: "0.2px"
+                          letterSpacing: "0.15px"
                         }}
                       >
                         {m.content || (isStreaming ? "Analyzing catalog and reasoning... ⚡" : "")}
                       </div>
 
-                      {/* VOICE SPEAKER: PLACED NATURALLY UNDER SPARKY REPLIES ONLY */}
+                      {/* VOICE SPEAKER: SLEEK COMPACT SPEAKER SYMBOL */}
                       {!isUser && m.content && (
-                        <div style={{ marginTop: "14px", paddingTop: "10px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+                        <div style={{ marginTop: "12px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: "8px" }}>
                           <button
                             onClick={() => speakTextInNaturalAccent(m.content)}
-                            title="Listen to this response in a natural English accent"
+                            title="Listen to response"
+                            aria-label="Listen"
                             style={{
-                              backgroundColor: "rgba(56, 189, 248, 0.12)",
-                              border: "1px solid rgba(56, 189, 248, 0.3)",
-                              color: "#38BDF8",
-                              borderRadius: "10px",
-                              padding: "6px 14px",
-                              fontSize: "12px",
-                              fontWeight: "700",
+                              backgroundColor: "rgba(59, 130, 246, 0.15)",
+                              border: "1px solid rgba(59, 130, 246, 0.3)",
+                              color: "#60A5FA",
+                              borderRadius: "50%",
+                              width: "32px",
+                              height: "32px",
+                              fontSize: "14px",
                               cursor: "pointer",
                               display: "inline-flex",
                               alignItems: "center",
-                              gap: "6px",
-                              transition: "all 0.15s ease"
+                              justifyContent: "center",
+                              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)"
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = "rgba(59, 130, 246, 0.28)";
+                              e.currentTarget.style.transform = "scale(1.1)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = "rgba(59, 130, 246, 0.15)";
+                              e.currentTarget.style.transform = "scale(1)";
                             }}
                           >
-                            <span>🔊</span>
-                            <span>Listen in Natural Accent</span>
+                            🔊
                           </button>
                         </div>
                       )}
@@ -1356,8 +1420,8 @@ export default function SneakPeekAiAssistant() {
                 gap: "8px",
                 overflowX: "auto",
                 whiteSpace: "nowrap",
-                borderTop: "1px solid rgba(255,255,255,0.08)",
-                backgroundColor: "rgba(15, 23, 42, 0.5)"
+                borderTop: "1px solid rgba(148, 163, 184, 0.1)",
+                backgroundColor: "rgba(11, 15, 25, 0.7)"
               }}
             >
               {getSuggestions().map((chip, idx) => (
@@ -1368,11 +1432,11 @@ export default function SneakPeekAiAssistant() {
                   style={{
                     padding: "7px 14px",
                     borderRadius: "999px",
-                    border: `1px solid ${isAdmin ? "rgba(245, 158, 11, 0.4)" : "rgba(56, 189, 248, 0.4)"}`,
-                    backgroundColor: "rgba(30, 41, 59, 0.7)",
-                    color: isAdmin ? "#FDE68A" : "#38BDF8",
+                    border: `1px solid ${isAdmin ? "rgba(245, 158, 11, 0.3)" : "rgba(148, 163, 184, 0.2)"}`,
+                    backgroundColor: "rgba(30, 41, 59, 0.55)",
+                    color: isAdmin ? "#FDE68A" : "#93C5FD",
                     fontSize: "12px",
-                    fontWeight: "700",
+                    fontWeight: "600",
                     cursor: isStreaming ? "not-allowed" : "pointer",
                     transition: "all 0.15s ease",
                     flexShrink: 0
@@ -1391,8 +1455,8 @@ export default function SneakPeekAiAssistant() {
               }}
               style={{
                 padding: "16px 24px",
-                backgroundColor: "rgba(15, 23, 42, 0.9)",
-                borderTop: "1px solid rgba(255,255,255,0.08)",
+                backgroundColor: "rgba(11, 15, 25, 0.95)",
+                borderTop: "1px solid rgba(148, 163, 184, 0.12)",
                 display: "flex",
                 alignItems: "center",
                 gap: "12px"
@@ -1406,15 +1470,16 @@ export default function SneakPeekAiAssistant() {
                   width: "46px",
                   height: "46px",
                   borderRadius: "14px",
-                  border: "none",
-                  backgroundColor: isListening ? "#EF4444" : "rgba(30, 41, 59, 0.8)",
-                  color: isListening ? "#FFFFFF" : "#38BDF8",
+                  border: isListening ? "1px solid #DC2626" : "1px solid rgba(148, 163, 184, 0.2)",
+                  backgroundColor: isListening ? "#EF4444" : "rgba(30, 41, 59, 0.7)",
+                  color: isListening ? "#FFFFFF" : "#60A5FA",
                   fontSize: "20px",
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  animation: isListening ? "pulse 1s infinite" : "none"
+                  animation: isListening ? "pulse 1s infinite" : "none",
+                  transition: "all 0.15s ease"
                 }}
               >
                 🎙️
@@ -1437,8 +1502,8 @@ export default function SneakPeekAiAssistant() {
                   flex: 1,
                   padding: "14px 18px",
                   borderRadius: "14px",
-                  border: "1px solid rgba(255, 255, 255, 0.12)",
-                  backgroundColor: "rgba(3, 7, 18, 0.8)",
+                  border: "1px solid rgba(148, 163, 184, 0.2)",
+                  backgroundColor: "rgba(17, 24, 39, 0.9)",
                   color: "#FFFFFF",
                   fontSize: "14.5px",
                   outline: "none"
@@ -1454,15 +1519,17 @@ export default function SneakPeekAiAssistant() {
                   height: "46px",
                   borderRadius: "14px",
                   border: "none",
-                  backgroundColor: isAdmin ? "#F59E0B" : "#38BDF8",
-                  color: "#030712",
+                  backgroundColor: isAdmin ? "#D97706" : "#2563EB",
+                  color: "#FFFFFF",
                   fontWeight: "900",
                   fontSize: "18px",
                   cursor: !input.trim() || isStreaming ? "not-allowed" : "pointer",
                   opacity: !input.trim() || isStreaming ? 0.4 : 1,
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center"
+                  justifyContent: "center",
+                  boxShadow: !input.trim() || isStreaming ? "none" : (isAdmin ? "0 4px 14px rgba(217, 119, 6, 0.4)" : "0 4px 14px rgba(37, 99, 235, 0.4)"),
+                  transition: "all 0.15s ease"
                 }}
               >
                 ➤

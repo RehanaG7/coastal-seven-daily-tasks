@@ -178,7 +178,7 @@ describe("Day 20 – SneakPeek Robo Assistant & Segmented Role Switcher", () => 
     expect(screen.queryByTestId("ai-chat-modal")).not.toBeInTheDocument();
   });
 
-  it("clears chat messages and shows clean confirmation when Clear Chat is clicked", async () => {
+  it("clears chat messages and shows clean assistance prompt when Clear Chat is clicked", async () => {
     render(
       <MemoryRouter>
         <SneakPeekAiAssistant />
@@ -191,7 +191,7 @@ describe("Day 20 – SneakPeek Robo Assistant & Segmented Role Switcher", () => 
     const clearBtn = screen.getByText(/Clear Chat/i);
     fireEvent.click(clearBtn);
 
-    expect(screen.getByText(/Chat cleared!/i)).toBeInTheDocument();
+    expect(screen.getByText(/How can I assist you with products, orders, or store offers today\?/i)).toBeInTheDocument();
   });
 
   it("triggers live chat handover when user says problem not resolved or wants to talk to admin", async () => {
@@ -218,6 +218,12 @@ describe("Day 20 – SneakPeek Robo Assistant & Segmented Role Switcher", () => 
     const tickets = JSON.parse(localStorage.getItem("rmart_support_tickets") || "[]");
     expect(tickets.length).toBeGreaterThan(0);
     expect(tickets[0].subject).toContain("Customer Escalation");
+
+    // Verify urgent alert logged to localStorage for Admin Boss
+    const adminNotifs = JSON.parse(localStorage.getItem("rmart_admin_notifications") || "[]");
+    expect(adminNotifs.length).toBeGreaterThan(0);
+    expect(adminNotifs[0].title).toContain("URGENT: Customer Escalation");
+    expect(adminNotifs[0].message).toContain("Admin boss, resolve this immediately!");
   });
 });
 

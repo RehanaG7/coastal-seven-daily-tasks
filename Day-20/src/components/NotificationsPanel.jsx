@@ -95,6 +95,17 @@ export default function NotificationsPanel({ isOpen, onClose }) {
     saveAdminNotifs([]);
   };
 
+  useEffect(() => {
+    if (isOpen && isAdmin) {
+      try {
+        const saved = JSON.parse(localStorage.getItem("rmart_admin_notifications") || "null");
+        if (saved) {
+          setAdminNotifs(saved);
+        }
+      } catch {}
+    }
+  }, [isOpen, isAdmin]);
+
   const [activeToast, setActiveToast] = useState(null);
   const [filter, setFilter] = useState("all");
 

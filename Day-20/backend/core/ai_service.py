@@ -33,16 +33,27 @@ class LLMProviderManager:
         ]) if context_chunks else "No specific catalog matches found for this query."
 
         return (
-            "You are Sparky, the brilliant, articulate, and highly knowledgeable AI Shopping Concierge for R-Mart! ⚡\n\n"
+            "You are Sparky, the brilliant, articulate, and highly helpful AI Shopping & Support Concierge for R-Mart! ⚡\n\n"
             "CORE OPERATIONAL GUIDELINES:\n"
-            "1. PROFESSIONAL ELOQUENCE: Never use childish robot clichés like 'beep-boop', 'bzzzt', or robotic sounds. Speak with warmth, sharp intelligence, and natural human eloquence.\n"
-            "2. DEEP REASONING: Never repeat the user's question back to them. Think through their actual intent, compare features, and deliver direct, thoughtful insights.\n"
+            "1. CONCISE & CLEAR MESSAGES (NO BIG PARAGRAPHS): Never output massive paragraphs or overwhelming walls of text. Reply simply, cleanly, and directly addressing the user's inquiry.\n"
+            "2. UNDERSTAND THE SPECIFIC QUESTION FIRST:\n"
+            "   - PRODUCT INQUIRY: If asked about a specific product, tell specifically about that product (its features, price, and stock status). Do not dump long unrelated lists.\n"
+            "   - GENERIC COMPLAINT: If the customer shares a complaint, issue, or bad experience (without specific return, damage, or delivery details), empathetically say:\n"
+            "     'We are sorry for the inconvenience! Could you please share more details about the issue so we can help you right away?'\n"
+            "   - RETURN INQUIRY & REGISTRATION: If the customer asks to return an item:\n"
+            "     a) If no reason is given yet, ask: 'We are sorry for the inconvenience! Could you please tell us the reason for returning the item?'\n"
+            "     b) Once the return reason is provided, confirm registration: 'We have registered your return complaint and are reviewing this. We will assign a delivery partner to receive it. Kindly pack it safely with your invoice, and our delivery partner will check and receive it. Would you like to place the same order again?'\n"
+            "   - NOT RECEIVED ORDER: If the customer reports they haven't received their order or it's missing, say:\n"
+            "     'We are truly sorry for the delay! We will talk to our admin boss about this right away to investigate your shipment immediately.'\n"
+            "   - DAMAGED PRODUCT COMPLAINT: If the customer reports a damaged, broken, or defective product:\n"
+            "     a) First ask: 'We are so sorry for the inconvenience! Please upload or share images/photos of the damaged product so we can verify the issue.'\n"
+            "     b) Once images/photos or proof are confirmed, confirm: 'We have reviewed the details and verified your claim as valid! Your 100% full refund will be processed promptly to your original payment method.'\n"
             "3. STRICT STORE GROUNDING: Ground your knowledge strictly in the RETRIEVED PRODUCT CATALOG below. Do not hallucinate fictitious items or inaccurate prices.\n"
             "4. OUT-OF-STOCK DIRECTIVE: If an item discussed or requested has 0 stock (stock == 0), you must reassuringly state: "
             "'I will say my boss (the admin) to add stock as soon as possible and make it available!'\n"
             "5. SOURCE CITATIONS: When mentioning or recommending a catalog product, always cite it cleanly as: "
             "[Source: Product Title (ID: #id, $price)].\n"
-            "6. WHAT'S NEW & DEALS: When asked 'What's new in R-Mart Sparkyyy?' or about promotions, present fresh store arrivals, feature promo codes FLASH50 (50% off select tech) and FREESHIP (free shipping on $99+), and reassure the user that you notified the Boss Admin of their query!\n"
+            "6. WHAT'S NEW & DEALS: When asked 'What's new in R-Mart Sparkyyy?' or about promotions, present fresh store arrivals and discount codes FLASH50 and FREESHIP in short bullet points.\n"
             "7. UNRESOLVED ISSUES & ADMIN LIVE CHAT: If the customer states their problem is not resolved or asks to speak/chat with the admin or human agent, empathetically reassure them and let them know you are connecting them directly to the human Store Administrator via Live Support Chat right away!\n"
             "8. STRICT STORE SCOPE & OFF-TOPIC REFUSAL (NO JOKES): You are exclusively an e-commerce shopping assistant for R-Mart. You must NEVER crack jokes or answer questions about general knowledge, programming, homework, politics, weather, or unrelated topics. If the user asks anything not related to our website or asks for a joke, you must immediately decline with:\n"
             "'Apologise, I only can solve queries regarding our website! What would you like to buy today? Here are some trending products and exciting offers:'\n"
@@ -168,6 +179,16 @@ class LLMProviderManager:
         ]
         is_off_topic = any(k in q_lower for k in off_topic_triggers)
 
+        is_damaged_query = any(k in q_lower for k in ["damage", "damaged", "broken", "cracked", "defect", "defective", "scratched", "faulty item"])
+        has_photo_uploaded = any(k in q_lower for k in ["photo", "image", "upload", "pic", "attached", "proof", "picture"])
+
+        is_not_received_query = any(k in q_lower for k in ["not received", "didn't receive", "did not receive", "haven't received", "have not received", "never received", "order missing", "package missing", "where is my order", "order not delivered", "not arrived", "haven't got my"])
+
+        is_return_query = any(k in q_lower for k in ["return", "want to return", "returning", "exchange item"])
+        has_return_reason = any(k in q_lower for k in ["because", "reason", "size", "not working", "don't like", "quality", "wrong item", "damaged", "broken", "defective", "mind", "changed"])
+
+        is_complaint_query = any(k in q_lower for k in ["complaint", "unhappy", "not satisfied", "bad service", "poor service", "problem with order", "issue with order", "file a complaint", "terrible service"])
+
         if is_off_topic:
             full_response = (
                 "Apologise, I only can solve queries regarding our website!\n\n"
@@ -180,6 +201,41 @@ class LLMProviderManager:
                 "• 🏷️ **FLASH50**: 50% discount on select high-demand electronics!\n"
                 "• 🚚 **FREESHIP**: Instant zero-cost express delivery on orders over $99!\n\n"
                 "What items would you like to explore or add to your shopping bag?"
+            )
+        elif is_damaged_query:
+            if has_photo_uploaded:
+                full_response = (
+                    "Thank you for sharing the photo! We have reviewed the details and verified your claim as valid. ✅\n\n"
+                    "Your 100% full refund has been approved and will be credited to your original payment method promptly!"
+                )
+            else:
+                full_response = (
+                    "We are so sorry for the inconvenience! ⚠️\n\n"
+                    "Please upload or share images/photos of the damaged product so we can verify the issue and approve your refund immediately."
+                )
+        elif is_not_received_query:
+            full_response = (
+                "We are truly sorry for the delay and inconvenience! 🚚\n\n"
+                "We will talk to our admin boss about this right away to investigate your shipment immediately. 🚨\n\n"
+                "Our store operations team has been notified to prioritize tracking your parcel."
+            )
+        elif is_return_query:
+            if has_return_reason:
+                full_response = (
+                    "Your return complaint has been registered! 📦\n\n"
+                    "We are reviewing this and will assign a delivery partner to receive it.\n\n"
+                    "Kindly pack it with your invoice, and our delivery partner will check and receive it.\n\n"
+                    "Would you like to place the same order again?"
+                )
+            else:
+                full_response = (
+                    "We are sorry for the inconvenience! 📦\n\n"
+                    "Could you please tell us the reason for returning the item so we can register your return complaint?"
+                )
+        elif is_complaint_query:
+            full_response = (
+                "We are sorry for the inconvenience! 😔\n\n"
+                "Could you please share more details about the issue so we can help you right away?"
             )
         elif "what's new" in q_lower or "whats new" in q_lower or "sparkyyy" in q_lower:
             full_response = (
@@ -197,7 +253,7 @@ class LLMProviderManager:
         elif any(k in q_lower for k in ["order", "track", "shipment", "delivery", "history", "purchased"]):
             full_response = (
                 "📦 **R-Mart Orders & Tracking System:**\n\n"
-                "I have full access to your order stream! You can view and track your recent orders, shipment stages, and download official PDF invoices directly under **My Orders** in the top navigation.\n\n"
+                "You can view and track your recent orders, shipment stages, and download official PDF invoices directly under **My Orders** in the top navigation.\n\n"
                 "If you need real-time carrier status, your order updates are pushed live via WebSocket & Celery!"
             )
         elif any(k in q_lower for k in ["address", "profile", "phone number", "my phone", "contact number", "who am i", "my account"]):
@@ -224,31 +280,38 @@ class LLMProviderManager:
             out_of_stock_items = [p for p in retrieved_products if p.get("stock", 0) <= 0]
             in_stock_items = [p for p in retrieved_products if p.get("stock", 0) > 0]
 
-            response_parts = [
-                f"Here are the most relevant catalog items matching **'{query}'**:\n\n"
-            ]
+            # If user asks specifically about a single product
+            if in_stock_items and len(in_stock_items) == 1 and not out_of_stock_items:
+                p = in_stock_items[0]
+                full_response = (
+                    f"Here are the details for **{p['title']}**:\n\n"
+                    f"• 💰 **Price:** ${p['price']:.2f}\n"
+                    f"• 📦 **Availability:** In Stock ({p['stock']} units available)\n"
+                    f"• 📝 **Highlights:** {p.get('description', '')[:140]}\n"
+                    f"• 🔗 [Source: {p['title']} (ID: #{p['id']}, ${p['price']:.2f})]\n\n"
+                    f"Would you like to add this to your shopping bag?"
+                )
+            else:
+                response_parts = [
+                    f"Here are the catalog items matching **'{query}'**:\n\n"
+                ]
 
-            if in_stock_items:
-                for idx, p in enumerate(in_stock_items, start=1):
-                    response_parts.append(
-                        f"**{idx}. {p['title']}**\n"
-                        f"- 💰 **Price**: ${p['price']:.2f}\n"
-                        f"- 📦 **Stock**: {p['stock']} units available\n"
-                        f"- 📝 **Details**: {p['description']}\n"
-                        f"- 🔗 [Source: {p['title']} (ID: #{p['id']}, ${p['price']:.2f})]\n\n"
-                    )
+                if in_stock_items:
+                    for idx, p in enumerate(in_stock_items[:2], start=1):
+                        response_parts.append(
+                            f"**{idx}. {p['title']}**\n"
+                            f"• 💰 Price: ${p['price']:.2f} | 📦 Stock: {p['stock']} units\n"
+                            f"• 🔗 [Source: {p['title']} (ID: #{p['id']}, ${p['price']:.2f})]\n\n"
+                        )
 
-            if out_of_stock_items:
-                for oos in out_of_stock_items:
-                    response_parts.append(
-                        f"⚠️ **Note on {oos['title']}**: This item currently has **0 units** in stock.\n"
-                        f"Don't worry though — **I will say my boss (the admin) to add stock as soon as possible and make it available!** 🚀\n\n"
-                    )
+                if out_of_stock_items:
+                    for oos in out_of_stock_items:
+                        response_parts.append(
+                            f"⚠️ **Note on {oos['title']}**: This item currently has **0 units** in stock.\n"
+                            f"Don't worry though — **I will say my boss (the admin) to add stock as soon as possible and make it available!** 🚀\n\n"
+                        )
 
-            response_parts.append(
-                "💡 *Sparky's Quick Tip:* All in-stock items are ready for same-day dispatch!\n"
-            )
-            full_response = "".join(response_parts)
+                full_response = "".join(response_parts)
 
         # Stream token by token (words or syllables)
         words = full_response.split(" ")

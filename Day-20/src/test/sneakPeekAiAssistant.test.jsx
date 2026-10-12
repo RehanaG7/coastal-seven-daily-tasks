@@ -328,5 +328,139 @@ describe("Day 20 – SneakPeek Robo Assistant & Segmented Role Switcher", () => 
     expect(localStorage.getItem("token")).toBeNull();
     expect(localStorage.getItem("access_token")).toBeNull();
   });
+
+  it("handles Damaged Product flow: prompts for photo upload, verifies validity on upload, and approves 100% refund", async () => {
+    render(
+      <MemoryRouter>
+        <SneakPeekAiAssistant />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId("sneakpeek-robo-container"));
+
+    const input = screen.getByTestId("ai-chat-input");
+    const sendBtn = screen.getByTestId("ai-chat-send-btn");
+
+    // 1. Report damaged product
+    fireEvent.change(input, { target: { value: "My product is damaged and cracked" } });
+    fireEvent.click(sendBtn);
+
+    // Assistant asks for photo upload and renders upload button
+    expect(screen.getByText(/We are so sorry your item arrived damaged!/i)).toBeInTheDocument();
+    expect(screen.getByText(/Please upload or share images of the damaged product/i)).toBeInTheDocument();
+    const uploadCardBtn = screen.getByTestId("upload-damage-photo-card-btn");
+    expect(uploadCardBtn).toBeInTheDocument();
+
+    // 2. Upload photo through file input
+    const fileInput = screen.getByTestId("damage-photo-input");
+    const testFile = new File(["dummy content"], "broken_screen.jpg", { type: "image/jpeg" });
+    fireEvent.change(fileInput, { target: { files: [testFile] } });
+
+    // Assistant verifies and approves refund
+    expect(screen.getByText(/Thank you for sharing the photo!/i)).toBeInTheDocument();
+    expect(screen.getByText(/confirmed your claim is valid/i)).toBeInTheDocument();
+    expect(screen.getByText(/100% full refund has been approved/i)).toBeInTheDocument();
+
+    // Urgent alert dispatched to Admin Boss
+    const adminNotifs = JSON.parse(localStorage.getItem("rmart_admin_notifications") || "[]");
+    expect(adminNotifs.length).toBeGreaterThan(0);
+    expect(adminNotifs[0].title).toContain("Damaged Item");
+    expect(adminNotifs[0].message).toContain("100% full refund approved");
+
+    // Ticket logged
+    const tickets = JSON.parse(localStorage.getItem("rmart_support_tickets") || "[]");
+    expect(tickets.some((t) => t.subject.includes("Damaged Item Verified"))).toBe(true);
+  });
+
+  it("handles Not Received Order flow: apologizes, alerts Admin Boss immediately, and offers Live Admin Chat", async () => {
+    render(
+      <MemoryRouter>
+        <SneakPeekAiAssistant />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId("sneakpeek-robo-container"));
+
+    const input = screen.getByTestId("ai-chat-input");
+    const sendBtn = screen.getByTestId("ai-chat-send-btn");
+
+    fireEvent.change(input, { target: { value: "I have not received my order yet" } });
+    fireEvent.click(sendBtn);
+
+    // Assistant message
+    expect(screen.getByText(/We are truly sorry for the delay and inconvenience!/i)).toBeInTheDocument();
+    expect(screen.getByText(/We will talk to our Admin Boss about this right away/i)).toBeInTheDocument();
+
+    // Admin alert logged
+    const adminNotifs = JSON.parse(localStorage.getItem("rmart_admin_notifications") || "[]");
+    expect(adminNotifs.some((n) => n.title.includes("Order Not Received"))).toBe(true);
+
+    // Live Admin Chat button is rendered
+    expect(screen.getByTestId("live-admin-chat-btn")).toBeInTheDocument();
+  });
+
+  it("handles Return Complaint flow: asks reason, registers pickup & invoice packing, and allows 1-click Re-order", async () => {
+    render(
+      <MemoryRouter>
+        <SneakPeekAiAssistant />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId("sneakpeek-robo-container"));
+
+    const input = screen.getByTestId("ai-chat-input");
+    const sendBtn = screen.getByTestId("ai-chat-send-btn");
+
+    // 1. Initial return request without reason
+    fireEvent.change(input, { target: { value: "I want to return my order" } });
+    fireEvent.click(sendBtn);
+
+    // Assistant asks for reason and displays reason options
+    expect(screen.getByText(/Could you please tell us the reason for returning the item/i)).toBeInTheDocument();
+    const reasonChip = screen.getByText(/Defective \/ Damaged/i);
+    expect(reasonChip).toBeInTheDocument();
+
+    // 2. User clicks reason chip
+    fireEvent.click(reasonChip);
+
+    // Assistant registers return complaint and gives invoice & delivery partner instructions
+    expect(screen.getByText(/Your return complaint has been registered!/i)).toBeInTheDocument();
+    expect(screen.getByText(/assign a delivery partner to receive it/i)).toBeInTheDocument();
+    expect(screen.getByText(/Kindly pack it with your invoice/i)).toBeInTheDocument();
+    expect(screen.getByText(/Would you like to place the same order again\?/i)).toBeInTheDocument();
+
+    // Re-order button is available
+    const reorderBtn = screen.getByTestId("reorder-item-btn");
+    expect(reorderBtn).toBeInTheDocument();
+
+    // 3. Click re-order button -> adds item to cart
+    fireEvent.click(reorderBtn);
+    expect(useCartStore.getState().cart.length).toBeGreaterThan(0);
+    expect(screen.getByText(/re-added .* to your shopping bag/i)).toBeInTheDocument();
+  });
+
+  it("handles Generic Complaint flow: responds with empathy and asks for more details", async () => {
+    render(
+      <MemoryRouter>
+        <SneakPeekAiAssistant />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId("sneakpeek-robo-container"));
+
+    const input = screen.getByTestId("ai-chat-input");
+    const sendBtn = screen.getByTestId("ai-chat-send-btn");
+
+    fireEvent.change(input, { target: { value: "I want to file a complaint about bad service" } });
+    fireEvent.click(sendBtn);
+
+    expect(screen.getByText(/We are sorry for the inconvenience!/i)).toBeInTheDocument();
+    expect(screen.getByText(/Could you please share more details about the issue so we can help you right away\?/i)).toBeInTheDocument();
+
+    // Ticket logged
+    const tickets = JSON.parse(localStorage.getItem("rmart_support_tickets") || "[]");
+    expect(tickets.some((t) => t.subject.includes("Complaint"))).toBe(true);
+  });
 });
+
 

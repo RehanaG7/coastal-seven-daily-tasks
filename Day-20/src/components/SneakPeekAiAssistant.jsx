@@ -74,6 +74,72 @@ export default function SneakPeekAiAssistant() {
   const user = useAuthStore((s) => s.user);
   const isAdmin = user?.role === "admin" || localStorage.getItem("user_role") === "admin";
 
+  const [supportFlow, setSupportFlow] = useState(null);
+  const fileInputRef = useRef(null);
+
+  // Handle image upload for damaged product complaints
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fileName = file.name || "damage_evidence.jpg";
+    const userMsgId = `user_${Date.now()}`;
+    const botMsgId = `bot_${Date.now()}`;
+
+    // 1. Alert Admin Boss immediately
+    try {
+      const existingNotifs = JSON.parse(localStorage.getItem("rmart_admin_notifications") || "[]");
+      const orderContextStr = activeSupportOrder?.orderId ? ` regarding Order #${activeSupportOrder.orderId}` : "";
+      const urgentNotif = {
+        id: `admin-photo-${Date.now()}`,
+        title: "🚨 URGENT: Damaged Item Photo Uploaded",
+        message: `Customer ${user?.name || "Shopper"} uploaded damage evidence (${fileName})${orderContextStr}. Claim verified as valid. 100% full refund approved. Admin boss confirm payout immediately.`,
+        category: "query",
+        badge: "🚨 ADMIN BOSS URGENT",
+        is_read: 0,
+        timestamp: "Just now",
+        user: user?.name || "Shopper",
+        actionRequired: "Confirm refund payout immediately"
+      };
+      localStorage.setItem("rmart_admin_notifications", JSON.stringify([urgentNotif, ...existingNotifs]));
+    } catch {}
+
+    // 2. Register refund ticket for Admin Customer Queries
+    try {
+      const existingTickets = JSON.parse(localStorage.getItem("rmart_support_tickets") || "[]");
+      const newTicket = {
+        id: `TCK-${Date.now().toString().slice(-4)}`,
+        subject: `🚨 Damaged Item Verified: ${fileName} - Refund Approved`,
+        user: `${user?.name || "Shopper"} (${user?.email || "customer@rmart.com"})`,
+        text: `Customer uploaded damage proof: ${fileName}. Claim confirmed valid by Concierge. 100% refund initiated.`,
+        status: "Approved",
+        date: new Date().toLocaleDateString()
+      };
+      localStorage.setItem("rmart_support_tickets", JSON.stringify([newTicket, ...existingTickets]));
+    } catch {}
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: userMsgId,
+        role: "user",
+        content: `📸 Uploaded damage proof: ${fileName}`,
+        isPhoto: true,
+        fileName
+      },
+      {
+        id: botMsgId,
+        role: "assistant",
+        content:
+          "Thank you for sharing the photo! We have reviewed the image and confirmed your claim is valid. ✅\n\nYour 100% full refund has been approved and will be credited to your original payment method promptly!",
+        sources: [],
+        provider: "Sparky Support Concierge",
+        isDamageResolved: true
+      }
+    ]);
+    setSupportFlow("damage_confirmed");
+    if (e.target) e.target.value = "";
+  };
+
   const messagesEndRef = useRef(null);
 
   // Close assistant, cancel speech synthesis immediately, and halt microphone
@@ -480,7 +546,9 @@ export default function SneakPeekAiAssistant() {
       "recommend", "what's new", "whats new", "sparky", "specs", "specification",
       "refund", "return", "warranty", "replace", "cancel", "payment", "checkout",
       "inquiry", "unresolved", "problem", "solve", "damaged", "damage", "missing",
-      "concierge", "customer support"
+      "concierge", "customer support", "complaint", "wrong", "broken", "cracked",
+      "defective", "scratched", "faulty", "not received", "received", "delivery partner",
+      "invoice", "photo", "image", "upload", "proof", "re-order", "reorder"
     ];
 
     if (ecommerceKeywords.some((kw) => q.includes(kw))) {
@@ -714,6 +782,258 @@ export default function SneakPeekAiAssistant() {
       }
     }
 
+    // 3. Exception Handler: Return Inquiry & Pickup / Invoice / Re-Order Registration
+    const isReturnQuery = ["return", "want to return", "returning", "exchange"].some((k) => qLower.includes(k));
+    const returnReasonKeywords = ["reason", "because", "size", "not working", "defective", "damaged", "broken", "quality", "wrong item", "mind", "changed", "color", "colour", "fit"];
+    const hasReturnReason = returnReasonKeywords.some((k) => qLower.includes(k)) || qLower.startsWith("return reason:");
+
+    if (!isAdmin && (isReturnQuery || supportFlow === "awaiting_return_reason")) {
+      if (hasReturnReason || supportFlow === "awaiting_return_reason") {
+        const returnItem =
+          activeSupportOrder?.order?.items?.[0] ||
+          activeSupportOrder?.order ||
+          (viewedProducts && viewedProducts[0]) ||
+          { id: 3, name: "Samsung Galaxy S24 Ultra", title: "Samsung Galaxy S24 Ultra", price: 1299.99, stock: 8 };
+
+        const returnReply =
+          "Your return complaint has been registered! 📦\n\n" +
+          "We are reviewing this and will assign a delivery partner to receive it.\n\n" +
+          "Kindly pack it with your invoice, and our delivery partner will check and receive it.\n\n" +
+          "Would you like to place the same order again?";
+
+        try {
+          const existingTickets = JSON.parse(localStorage.getItem("rmart_support_tickets") || "[]");
+          const newTicket = {
+            id: `TCK-${Date.now().toString().slice(-4)}`,
+            subject: `📦 Return Complaint: ${returnItem.name || returnItem.title || "Order Item"}`,
+            user: `${user?.name || "Shopper"} (${user?.email || "customer@rmart.com"})`,
+            text: `Customer Return Reason: "${query}". Delivery partner scheduled to check and receive with invoice. Re-order option presented.`,
+            status: "Registered",
+            date: new Date().toLocaleDateString()
+          };
+          localStorage.setItem("rmart_support_tickets", JSON.stringify([newTicket, ...existingTickets]));
+        } catch {}
+
+        try {
+          const existingNotifs = JSON.parse(localStorage.getItem("rmart_admin_notifications") || "[]");
+          const returnNotif = {
+            id: `admin-return-${Date.now()}`,
+            title: "📦 Return Complaint Registered",
+            message: `Customer ${user?.name || "Shopper"} registered return for ${returnItem.name || returnItem.title}. Delivery partner assigned to receive with invoice check.`,
+            category: "order",
+            badge: "RETURN REGISTERED",
+            is_read: 0,
+            timestamp: "Just now",
+            user: user?.name || "Shopper"
+          };
+          localStorage.setItem("rmart_admin_notifications", JSON.stringify([returnNotif, ...existingNotifs]));
+        } catch {}
+
+        setMessages((prev) => [
+          ...prev,
+          { id: userMsgId, role: "user", content: query },
+          {
+            id: botMsgId,
+            role: "assistant",
+            content: returnReply,
+            sources: [],
+            provider: "Sparky Support Concierge",
+            isReturnRegistered: true,
+            returnItem
+          }
+        ]);
+        setSupportFlow("return_registered");
+        return;
+      } else {
+        const askReasonReply =
+          "We are sorry for the inconvenience! 📦\n\n" +
+          "Could you please tell us the reason for returning the item so we can register your return complaint?";
+
+        setMessages((prev) => [
+          ...prev,
+          { id: userMsgId, role: "user", content: query },
+          {
+            id: botMsgId,
+            role: "assistant",
+            content: askReasonReply,
+            sources: [],
+            provider: "Sparky Support Concierge",
+            returnReasonPrompt: true
+          }
+        ]);
+        setSupportFlow("awaiting_return_reason");
+        return;
+      }
+    }
+
+    // 4. Exception Handler: Damaged Product Complaint
+    const isDamagedQuery = !isReturnQuery && supportFlow !== "awaiting_return_reason" && ["damage", "damaged", "broken", "cracked", "defect", "defective", "scratched", "faulty"].some((k) => qLower.includes(k));
+    const hasPhotoIndicator = ["photo", "image", "upload", "pic", "attached", "proof", "picture"].some((k) => qLower.includes(k));
+
+    if (!isAdmin && isDamagedQuery) {
+      if (hasPhotoIndicator || supportFlow === "damage_confirmed") {
+        const replyText =
+          "Thank you for sharing the photo! We have reviewed the details and verified your claim as valid. ✅\n\n" +
+          "Your 100% full refund has been approved and will be credited to your original payment method promptly!";
+
+        try {
+          const existingNotifs = JSON.parse(localStorage.getItem("rmart_admin_notifications") || "[]");
+          const urgentNotif = {
+            id: `admin-damage-${Date.now()}`,
+            title: "🚨 URGENT: Damaged Item Claim Validated",
+            message: `Customer ${user?.name || "Shopper"} reported damaged item: "${query}". Claim validated. 100% refund approved. Admin boss confirm payout immediately.`,
+            category: "query",
+            badge: "🚨 ADMIN BOSS URGENT",
+            is_read: 0,
+            timestamp: "Just now",
+            user: user?.name || "Shopper"
+          };
+          localStorage.setItem("rmart_admin_notifications", JSON.stringify([urgentNotif, ...existingNotifs]));
+        } catch {}
+
+        try {
+          const existingTickets = JSON.parse(localStorage.getItem("rmart_support_tickets") || "[]");
+          const newTicket = {
+            id: `TCK-${Date.now().toString().slice(-4)}`,
+            subject: "🚨 Damaged Item Verified - Refund Approved",
+            user: `${user?.name || "Shopper"} (${user?.email || "customer@rmart.com"})`,
+            text: `Customer Claim: "${query}". Verified valid. 100% refund initiated.`,
+            status: "Approved",
+            date: new Date().toLocaleDateString()
+          };
+          localStorage.setItem("rmart_support_tickets", JSON.stringify([newTicket, ...existingTickets]));
+        } catch {}
+
+        setMessages((prev) => [
+          ...prev,
+          { id: userMsgId, role: "user", content: query },
+          {
+            id: botMsgId,
+            role: "assistant",
+            content: replyText,
+            sources: [],
+            provider: "Sparky Support Concierge",
+            isDamageResolved: true
+          }
+        ]);
+        setSupportFlow("damage_confirmed");
+        return;
+      } else {
+        const replyText =
+          "We are so sorry your item arrived damaged! ⚠️\n\n" +
+          "Please upload or share images of the damaged product so we can verify the issue and approve your refund immediately.";
+
+        setMessages((prev) => [
+          ...prev,
+          { id: userMsgId, role: "user", content: query },
+          {
+            id: botMsgId,
+            role: "assistant",
+            content: replyText,
+            sources: [],
+            provider: "Sparky Support Concierge",
+            isDamageAwaiting: true
+          }
+        ]);
+        setSupportFlow("awaiting_damage_photo");
+        return;
+      }
+    }
+
+    // 5. Exception Handler: Not Received Order
+    const isNotReceivedQuery = [
+      "not received", "didn't receive", "did not receive", "haven't received",
+      "have not received", "never received", "order missing", "package missing",
+      "order not delivered", "not arrived", "haven't got my"
+    ].some((k) => qLower.includes(k));
+
+    if (!isAdmin && isNotReceivedQuery) {
+      const replyText =
+        "We are truly sorry for the delay and inconvenience! 🚚\n\n" +
+        "We will talk to our Admin Boss about this right away to investigate your shipment immediately. 🚨";
+
+      try {
+        const existingNotifs = JSON.parse(localStorage.getItem("rmart_admin_notifications") || "[]");
+        const urgentNotif = {
+          id: `admin-not-received-${Date.now()}`,
+          title: "🚨 URGENT: Order Not Received",
+          message: `Customer ${user?.name || "Shopper"} reported order not received: "${query}". Admin boss, investigate shipment immediately!`,
+          category: "query",
+          badge: "🚨 ADMIN BOSS URGENT",
+          is_read: 0,
+          timestamp: "Just now",
+          user: user?.name || "Shopper",
+          actionRequired: "Investigate shipment immediately"
+        };
+        localStorage.setItem("rmart_admin_notifications", JSON.stringify([urgentNotif, ...existingNotifs]));
+      } catch {}
+
+      try {
+        const existingTickets = JSON.parse(localStorage.getItem("rmart_support_tickets") || "[]");
+        const newTicket = {
+          id: `TCK-${Date.now().toString().slice(-4)}`,
+          subject: "🚨 Order Not Received Escalation",
+          user: `${user?.name || "Shopper"} (${user?.email || "customer@rmart.com"})`,
+          text: `Customer reported order not received: "${query}". Admin boss alerted to investigate shipment immediately.`,
+          status: "Urgent",
+          date: new Date().toLocaleDateString()
+        };
+        localStorage.setItem("rmart_support_tickets", JSON.stringify([newTicket, ...existingTickets]));
+      } catch {}
+
+      setMessages((prev) => [
+        ...prev,
+        { id: userMsgId, role: "user", content: query },
+        {
+          id: botMsgId,
+          role: "assistant",
+          content: replyText,
+          sources: [],
+          provider: "Sparky Escalation Concierge",
+          isAdminHandover: true
+        }
+      ]);
+      return;
+    }
+
+    // 6. Exception Handler: Generic Complaint
+    const isComplaintQuery = [
+      "complaint", "bad service", "poor service", "unhappy", "terrible", "disappointed",
+      "problem with order", "issue with order", "file a complaint", "not satisfied"
+    ].some((k) => qLower.includes(k));
+
+    if (!isAdmin && isComplaintQuery) {
+      const complaintReply =
+        "We are sorry for the inconvenience! 😔\n\n" +
+        "Could you please share more details about the issue so we can help you right away?";
+
+      try {
+        const existingTickets = JSON.parse(localStorage.getItem("rmart_support_tickets") || "[]");
+        const newTicket = {
+          id: `TCK-${Date.now().toString().slice(-4)}`,
+          subject: "Customer Feedback / Complaint Filed",
+          user: `${user?.name || "Shopper"} (${user?.email || "customer@rmart.com"})`,
+          text: query,
+          status: "Open",
+          date: new Date().toLocaleDateString()
+        };
+        localStorage.setItem("rmart_support_tickets", JSON.stringify([newTicket, ...existingTickets]));
+      } catch {}
+
+      setMessages((prev) => [
+        ...prev,
+        { id: userMsgId, role: "user", content: query },
+        {
+          id: botMsgId,
+          role: "assistant",
+          content: complaintReply,
+          sources: [],
+          provider: "Sparky Support Concierge"
+        }
+      ]);
+      return;
+    }
+
     const newMessages = [
       ...messages,
       { id: userMsgId, role: "user", content: query }
@@ -855,20 +1175,20 @@ export default function SneakPeekAiAssistant() {
             `• **Fulfillment Telemetry:** Nominal — express dispatch confirmed.\n\n` +
             `You can also open the live satellite telemetry view by clicking 'Track Order' in your Orders tab.\n\n` +
             `If your delivery is delayed past expectations or you want human escalation, simply reply *"Problem not resolved"* or click *"Talk to Admin"* below!`;
-        } else if (activeSupportOrder?.orderId && (qLower.includes("damage") || qLower.includes("broken") || qLower.includes("missing") || qLower.includes("wrong") || qLower.includes("defect") || qLower.includes("fault") || qLower.includes("problem") || qLower.includes("issue"))) {
+        } else if (qLower.includes("damage") || qLower.includes("broken") || qLower.includes("cracked") || qLower.includes("defect")) {
           fallbackReply =
-            `I am so sorry to hear that you encountered a problem with **Order #${activeSupportOrder.orderId}**! ⚠️\n\n` +
-            `Under R-Mart's **100% Shopper Protection Guarantee**:\n` +
-            `1. 🔄 **Free Immediate Replacement:** We can dispatch a brand new unit with expedited 24h shipping.\n` +
-            `2. 💵 **Full Refund:** 100% refund credited to your original payment method.\n\n` +
-            `Would you prefer a replacement or refund? If this does not resolve your problem, say *"Problem not resolved"* or *"Talk to admin"* to connect directly to our Store Admin Boss via Live Chat!`;
-        } else if (activeSupportOrder?.orderId && (qLower.includes("refund") || qLower.includes("cancel") || qLower.includes("return") || qLower.includes("money back"))) {
+            `We are so sorry your item arrived damaged! ⚠️\n\n` +
+            `Please upload or share images of the damaged product so we can verify the issue and approve your refund immediately.`;
+        } else if (qLower.includes("not received") || qLower.includes("didn't receive") || qLower.includes("never received")) {
           fallbackReply =
-            `Resolution guidelines for **Order #${activeSupportOrder.orderId}** ($${activeSupportOrder.total}):\n\n` +
-            `• **Hassle-Free Returns:** 30-day full coverage return policy.\n` +
-            `• **Refund Processing:** Automatically processed to your card within 2-3 business days.\n` +
-            `• **Return Shipping:** Zero-cost prepaid return pickup arranged at your doorstep.\n\n` +
-            `Has this resolved your concern? If not, reply *"Problem not resolved"* and I will immediately bridge you with our Store Admin Boss on Live Chat!`;
+            `We are truly sorry for the delay and inconvenience! 🚚\n\n` +
+            `We will talk to our Admin Boss about this right away to investigate your shipment immediately. 🚨`;
+        } else if (qLower.includes("return") || qLower.includes("exchange")) {
+          fallbackReply =
+            `Your return complaint has been registered! 📦\n\n` +
+            `We are reviewing this and will assign a delivery partner to receive it.\n\n` +
+            `Kindly pack it with your invoice, and our delivery partner will check and receive it.\n\n` +
+            `Would you like to place the same order again?`;
         } else if (qLower.includes("order") || qLower.includes("track") || qLower.includes("shipment") || qLower.includes("delivery") || qLower.includes("purchased") || qLower.includes("receipt") || qLower.includes("history")) {
           const localOrders = JSON.parse(localStorage.getItem("rmart_orders") || "[]");
           if (localOrders.length > 0) {
@@ -1441,9 +1761,10 @@ export default function SneakPeekAiAssistant() {
                       )}
 
                       {/* Live Admin Handover Direct Action Button */}
-                      {!isUser && m.isAdminHandover && (
+                      {!isUser && (m.isAdminHandover || m.showLiveChatBtn) && (
                         <div style={{ marginTop: "14px", paddingTop: "10px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
                           <button
+                            data-testid="live-admin-chat-btn"
                             onClick={() => {
                               handleCloseChat();
                               useUIStore.getState().openLiveChat("general");
@@ -1466,8 +1787,142 @@ export default function SneakPeekAiAssistant() {
                             }}
                           >
                             <span>👨‍💼</span>
-                            <span>Open Live Admin Chat Now</span>
+                            <span>Talk to Admin on Live Chat</span>
                           </button>
+                        </div>
+                      )}
+
+                      {/* Upload Damaged Product Photo Action Button */}
+                      {!isUser && m.isDamageAwaiting && (
+                        <div style={{ marginTop: "14px", paddingTop: "10px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+                          <button
+                            data-testid="upload-damage-photo-card-btn"
+                            onClick={() => fileInputRef.current?.click()}
+                            style={{
+                              backgroundColor: "#2563EB",
+                              color: "#FFFFFF",
+                              border: "none",
+                              borderRadius: "10px",
+                              padding: "9px 18px",
+                              fontSize: "13px",
+                              fontWeight: "800",
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              boxShadow: "0 4px 14px rgba(37, 99, 235, 0.4)",
+                              transition: "all 0.15s ease"
+                            }}
+                          >
+                            <span>📸</span>
+                            <span>Upload Photos of Damaged Item</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Clickable Return Reason Options */}
+                      {!isUser && m.returnReasonPrompt && (
+                        <div style={{ marginTop: "14px", paddingTop: "10px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+                          <div style={{ fontSize: "11px", fontWeight: "700", color: "#94A3B8", marginBottom: "8px" }}>
+                            Select return reason:
+                          </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                            {[
+                              "Defective / Damaged",
+                              "Wrong Item / Size",
+                              "Item Not as Described",
+                              "Changed Mind",
+                              "Other Reason"
+                            ].map((reason, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => handleSendMessage(`Return reason: ${reason}`)}
+                                style={{
+                                  backgroundColor: "rgba(30, 41, 59, 0.7)",
+                                  border: "1px solid rgba(148, 163, 184, 0.3)",
+                                  color: "#93C5FD",
+                                  borderRadius: "8px",
+                                  padding: "6px 12px",
+                                  fontSize: "12px",
+                                  fontWeight: "600",
+                                  cursor: "pointer",
+                                  transition: "all 0.15s ease"
+                                }}
+                              >
+                                {reason}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Return Registered Item Card & Place Same Order Again Button */}
+                      {!isUser && m.isReturnRegistered && m.returnItem && (
+                        <div style={{ marginTop: "16px", paddingTop: "12px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+                          <div style={{ fontSize: "11.5px", fontWeight: "700", color: "#FDE68A", marginBottom: "8px" }}>
+                            📦 Registered Return Item:
+                          </div>
+                          <div
+                            style={{
+                              backgroundColor: "rgba(30, 41, 59, 0.6)",
+                              border: "1px solid rgba(245, 158, 11, 0.3)",
+                              borderRadius: "14px",
+                              padding: "12px 14px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              gap: "10px"
+                            }}
+                          >
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: "13px", fontWeight: "800", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                {m.returnItem.name || m.returnItem.title}
+                              </div>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+                                <span style={{ color: "#F59E0B", fontWeight: "900", fontSize: "13px" }}>
+                                  ${Number(m.returnItem.price || 0).toFixed(2)}
+                                </span>
+                                <span style={{ fontSize: "10px", fontWeight: "800", color: "#10B981" }}>
+                                  Pickup Partner Assigned
+                                </span>
+                              </div>
+                            </div>
+
+                            <button
+                              data-testid="reorder-item-btn"
+                              onClick={() => {
+                                addToCart({ id: m.returnItem.id, name: m.returnItem.name || m.returnItem.title, price: m.returnItem.price, stock: m.returnItem.stock || 10 }, 1);
+                                setMessages((prev) => [
+                                  ...prev,
+                                  {
+                                    id: `bot_reorder_${Date.now()}`,
+                                    role: "assistant",
+                                    content: `Great! I have re-added **${m.returnItem.name || m.returnItem.title}** to your shopping bag. 🛒 You can review your cart or checkout whenever you are ready!`,
+                                    sources: [],
+                                    provider: "Sparky Support Concierge"
+                                  }
+                                ]);
+                              }}
+                              style={{
+                                backgroundColor: "#F59E0B",
+                                color: "#030712",
+                                border: "none",
+                                padding: "8px 14px",
+                                borderRadius: "10px",
+                                fontSize: "12px",
+                                fontWeight: "900",
+                                cursor: "pointer",
+                                whiteSpace: "nowrap",
+                                boxShadow: "0 3px 10px rgba(245, 158, 11, 0.4)",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px"
+                              }}
+                            >
+                              <span>🔄</span>
+                              <span>Place Same Order Again (+ Cart)</span>
+                            </button>
+                          </div>
                         </div>
                       )}
 
@@ -1620,7 +2075,7 @@ export default function SneakPeekAiAssistant() {
               ))}
             </div>
 
-            {/* Input Bar with Voice Mic */}
+            {/* Input Bar with Voice Mic & Photo Attachment */}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -1635,6 +2090,38 @@ export default function SneakPeekAiAssistant() {
                 gap: "12px"
               }}
             >
+              <input
+                data-testid="damage-photo-input"
+                type="file"
+                ref={fileInputRef}
+                onChange={handlePhotoUpload}
+                accept="image/*"
+                style={{ display: "none" }}
+              />
+
+              <button
+                type="button"
+                data-testid="upload-photo-btn"
+                onClick={() => fileInputRef.current?.click()}
+                title="Upload photo / proof of damaged item"
+                style={{
+                  width: "46px",
+                  height: "46px",
+                  borderRadius: "14px",
+                  border: "1px solid rgba(148, 163, 184, 0.2)",
+                  backgroundColor: "rgba(30, 41, 59, 0.7)",
+                  color: "#60A5FA",
+                  fontSize: "18px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.15s ease"
+                }}
+              >
+                📸
+              </button>
+
               <button
                 type="button"
                 onClick={handleToggleMic}

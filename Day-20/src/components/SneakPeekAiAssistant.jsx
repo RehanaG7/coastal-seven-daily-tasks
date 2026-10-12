@@ -19,6 +19,7 @@ export default function SneakPeekAiAssistant() {
   const [activeProvider, setActiveProvider] = useState("Store Knowledge Engine");
   const [viewedProducts, setViewedProducts] = useState([]);
   const [isHovered, setIsHovered] = useState(false);
+  const [activeSupportOrder, setActiveSupportOrder] = useState(null);
 
   // Speech Recognition (Mic) & Speech Synthesis (Voice)
   const [isListening, setIsListening] = useState(false);
@@ -103,9 +104,49 @@ export default function SneakPeekAiAssistant() {
     refreshWatchHistory();
   }, [isOpen]);
 
-  // Listen for top navbar chat button trigger
+  // Handle incoming order support or external trigger
+  const handleIncomingTrigger = (detail) => {
+    if (!detail) return;
+    if (detail.orderId || detail.type === "order_support") {
+      setActiveSupportOrder(detail);
+      const userMsgId = `user_${Date.now()}`;
+      const botMsgId = `bot_${Date.now()}`;
+      const userText = detail.message || `Customer Support: Reporting problem with Order #${detail.orderId}`;
+      const orderSummaryReply =
+        `Hello! I am Sparky, your dedicated customer support concierge. I have retrieved your records for **Order #${detail.orderId}**! 📦\n\n` +
+        `• **Current Status:** **${detail.status || "In Transit"}**\n` +
+        `• **Order Total:** **$${detail.total || "0.00"}**\n\n` +
+        `I am here to resolve any issues with this order immediately. What would you like assistance with?\n` +
+        `1️⃣ **Track Delivery & ETA** — Live courier updates & telemetry\n` +
+        `2️⃣ **Report Damaged or Missing Item** — Free expedited replacement or 100% full refund\n` +
+        `3️⃣ **Cancel or Return Order** — Hassle-free 30-day return policy\n` +
+        `4️⃣ **Connect to Store Admin Boss** — Direct live escalation\n\n` +
+        `💡 *If my solution doesn't resolve your issue, simply reply "Problem not resolved" or click "Talk to Admin" and I will immediately connect you with our Admin Boss via Live Chat!*`;
+
+      setMessages((prev) => [
+        ...prev,
+        { id: userMsgId, role: "user", content: userText },
+        {
+          id: botMsgId,
+          role: "assistant",
+          content: orderSummaryReply,
+          sources: [],
+          provider: "R-Mart Order Concierge",
+          orderId: detail.orderId,
+          orderData: detail.order
+        }
+      ]);
+    }
+  };
+
+  // Listen for top navbar chat button trigger and orders customer support trigger
   useEffect(() => {
-    const handleOpen = () => setIsOpen(true);
+    const handleOpen = (e) => {
+      setIsOpen(true);
+      if (e?.detail) {
+        handleIncomingTrigger(e.detail);
+      }
+    };
     window.addEventListener("rmart:open_chat", handleOpen);
     return () => window.removeEventListener("rmart:open_chat", handleOpen);
   }, []);
@@ -338,6 +379,9 @@ export default function SneakPeekAiAssistant() {
       "contact admin",
       "call admin",
       "ask admin",
+      "talk with admin",
+      "admin live chat",
+      "admin support",
       "human support",
       "human agent",
       "human admin",
@@ -393,7 +437,8 @@ export default function SneakPeekAiAssistant() {
       "admin", "boss", "support", "ticket", "hello", "hi", "hey", "help",
       "recommend", "what's new", "whats new", "sparky", "specs", "specification",
       "refund", "return", "warranty", "replace", "cancel", "payment", "checkout",
-      "inquiry", "unresolved", "problem", "solve"
+      "inquiry", "unresolved", "problem", "solve", "damaged", "damage", "missing",
+      "concierge", "customer support"
     ];
 
     if (ecommerceKeywords.some((kw) => q.includes(kw))) {
@@ -418,6 +463,17 @@ export default function SneakPeekAiAssistant() {
         "Review all customers orders 🚚",
         "Restock depleted inventory ⚡",
         "Review catalogue metrics 📊"
+      ];
+    }
+
+    if (activeSupportOrder?.orderId) {
+      const oid = activeSupportOrder.orderId;
+      return [
+        `Where is Order #${oid}? 🚚`,
+        `Report Damaged Item for #${oid} ⚠️`,
+        `Request Refund for #${oid} 💵`,
+        `Problem not resolved - Talk to Admin 👨‍💼`,
+        `What offers are active today? 🏷️`
       ];
     }
 
@@ -516,10 +572,11 @@ export default function SneakPeekAiAssistant() {
       // 1. Dispatch urgent alert to Admin Boss in rmart_admin_notifications
       try {
         const existingAdminNotifs = JSON.parse(localStorage.getItem("rmart_admin_notifications") || "[]");
+        const orderContextStr = activeSupportOrder?.orderId ? ` regarding Order #${activeSupportOrder.orderId}` : "";
         const urgentAdminNotif = {
           id: `admin-urgent-${Date.now()}`,
           title: "🚨 URGENT: Customer Escalation to Admin Boss!",
-          message: `Customer ${customerName} (${customerEmail}) problem not resolved: "${query}". Sparky attempted: "${sparkyAttempt}". Status: Unresolved. Admin boss, resolve this immediately!`,
+          message: `Customer ${customerName} (${customerEmail})${orderContextStr} problem not resolved: "${query}". Sparky attempted: "${sparkyAttempt}". Status: Unresolved. Admin boss, resolve this immediately!`,
           category: "query",
           badge: "🚨 ADMIN BOSS URGENT",
           is_read: 0,
@@ -539,9 +596,11 @@ export default function SneakPeekAiAssistant() {
         const existing = JSON.parse(localStorage.getItem("rmart_support_tickets") || "[]");
         const newTicket = {
           id: `TCK-${Date.now().toString().slice(-4)}`,
-          subject: "🚨 Unresolved Issue: Customer Escalation to Admin Boss",
+          subject: activeSupportOrder?.orderId
+            ? `🚨 Unresolved Issue: Order #${activeSupportOrder.orderId} Escalation to Admin Boss`
+            : "🚨 Unresolved Issue: Customer Escalation to Admin Boss",
           user: `${customerName} (${customerEmail})`,
-          text: `Customer Problem: "${query}"\n\nSparky AI Attempted Solution: "${sparkyAttempt}"\n\nStatus: Unresolved - Shopper requested live human admin assistance.\n\n⚠️ URGENT INSTRUCTION: Admin boss, resolve this immediately via Live Support Chat!`,
+          text: `Customer Problem: "${query}"\n\n${activeSupportOrder?.orderId ? `Order Context: #${activeSupportOrder.orderId} (Status: ${activeSupportOrder.status}, Total: $${activeSupportOrder.total})\n\n` : ""}Sparky AI Attempted Solution: "${sparkyAttempt}"\n\nStatus: Unresolved - Shopper requested live human admin assistance.\n\n⚠️ URGENT INSTRUCTION: Admin boss, resolve this immediately via Live Support Chat!`,
           status: "Urgent",
           date: new Date().toLocaleDateString()
         };
@@ -745,8 +804,30 @@ export default function SneakPeekAiAssistant() {
             `You can review individual orders and restock inventory directly through this console.`;
         }
       } else {
-        // Customer Shopping Intelligence with Full State Access
-        if (qLower.includes("order") || qLower.includes("track") || qLower.includes("shipment") || qLower.includes("delivery") || qLower.includes("purchased") || qLower.includes("receipt") || qLower.includes("history")) {
+        // Customer Shopping & Order Support Intelligence with Full State Access
+        if (activeSupportOrder?.orderId && (qLower.includes("where") || qLower.includes("track") || qLower.includes("delivery") || qLower.includes("status") || qLower.includes("delayed") || qLower.includes("when"))) {
+          fallbackReply =
+            `Here is the latest live status for **Order #${activeSupportOrder.orderId}**:\n\n` +
+            `• **Current Stage:** **${activeSupportOrder.status || "In Transit"}** 🚚\n` +
+            `• **Order Total:** **$${activeSupportOrder.total || "0.00"}**\n` +
+            `• **Fulfillment Telemetry:** Nominal — express dispatch confirmed.\n\n` +
+            `You can also open the live satellite telemetry view by clicking 'Track Order' in your Orders tab.\n\n` +
+            `If your delivery is delayed past expectations or you want human escalation, simply reply *"Problem not resolved"* or click *"Talk to Admin"* below!`;
+        } else if (activeSupportOrder?.orderId && (qLower.includes("damage") || qLower.includes("broken") || qLower.includes("missing") || qLower.includes("wrong") || qLower.includes("defect") || qLower.includes("fault") || qLower.includes("problem") || qLower.includes("issue"))) {
+          fallbackReply =
+            `I am so sorry to hear that you encountered a problem with **Order #${activeSupportOrder.orderId}**! ⚠️\n\n` +
+            `Under R-Mart's **100% Shopper Protection Guarantee**:\n` +
+            `1. 🔄 **Free Immediate Replacement:** We can dispatch a brand new unit with expedited 24h shipping.\n` +
+            `2. 💵 **Full Refund:** 100% refund credited to your original payment method.\n\n` +
+            `Would you prefer a replacement or refund? If this does not resolve your problem, say *"Problem not resolved"* or *"Talk to admin"* to connect directly to our Store Admin Boss via Live Chat!`;
+        } else if (activeSupportOrder?.orderId && (qLower.includes("refund") || qLower.includes("cancel") || qLower.includes("return") || qLower.includes("money back"))) {
+          fallbackReply =
+            `Resolution guidelines for **Order #${activeSupportOrder.orderId}** ($${activeSupportOrder.total}):\n\n` +
+            `• **Hassle-Free Returns:** 30-day full coverage return policy.\n` +
+            `• **Refund Processing:** Automatically processed to your card within 2-3 business days.\n` +
+            `• **Return Shipping:** Zero-cost prepaid return pickup arranged at your doorstep.\n\n` +
+            `Has this resolved your concern? If not, reply *"Problem not resolved"* and I will immediately bridge you with our Store Admin Boss on Live Chat!`;
+        } else if (qLower.includes("order") || qLower.includes("track") || qLower.includes("shipment") || qLower.includes("delivery") || qLower.includes("purchased") || qLower.includes("receipt") || qLower.includes("history")) {
           const localOrders = JSON.parse(localStorage.getItem("rmart_orders") || "[]");
           if (localOrders.length > 0) {
             const recent = localOrders.slice(0, 3);

@@ -101,6 +101,24 @@ export default function OrdersPage() {
     }
   };
 
+  const handleCustomerSupport = (ord) => {
+    const orderId = ord.orderId || ord.id || "ORD-000";
+    const status = ord.status || "Order Placed";
+    const total = Number(ord.totalAmount || ord.total || 0).toFixed(2);
+    window.dispatchEvent(
+      new CustomEvent("rmart:open_chat", {
+        detail: {
+          type: "order_support",
+          orderId,
+          status,
+          total,
+          order: ord,
+          message: `I need customer support and want to report a problem with Order #${orderId} (${status}, $${total}).`,
+        },
+      })
+    );
+  };
+
   const updateOrderStatus = (orderId, newStatus) => {
     const updated = orders.map((o) =>
       o.orderId === orderId || o.id === orderId ? { ...o, status: newStatus } : o
@@ -258,76 +276,112 @@ export default function OrdersPage() {
 
           return (
             <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-              {/* Segmented Filter: All | Recent Orders | Order History */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  backgroundColor: isDark ? "#0F1420" : "#F1F5F9",
-                  padding: "6px",
-                  borderRadius: "14px",
-                  border: `1px solid ${c.border}`,
-                  width: "fit-content",
-                }}
-              >
-                <button
-                  onClick={() => setOrderTab("all")}
+              {/* Filter Tabs & Customer Support Header Bar */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+                <div
                   style={{
-                    padding: "8px 16px",
-                    borderRadius: "10px",
-                    border: "none",
-                    fontSize: "13px",
-                    fontWeight: "800",
-                    cursor: "pointer",
-                    backgroundColor: orderTab === "all" ? (isDark ? "#1E293B" : "#FFFFFF") : "transparent",
-                    color: orderTab === "all" ? c.accent : c.subtext,
-                    boxShadow: orderTab === "all" ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
-                  }}
-                >
-                  All Orders ({orders.length})
-                </button>
-
-                <button
-                  onClick={() => setOrderTab("recent")}
-                  style={{
-                    padding: "8px 16px",
-                    borderRadius: "10px",
-                    border: "none",
-                    fontSize: "13px",
-                    fontWeight: "800",
-                    cursor: "pointer",
-                    backgroundColor: orderTab === "recent" ? (isDark ? "#1E293B" : "#FFFFFF") : "transparent",
-                    color: orderTab === "recent" ? c.accent : c.subtext,
-                    boxShadow: orderTab === "recent" ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
                     display: "flex",
                     alignItems: "center",
-                    gap: "6px",
+                    gap: "8px",
+                    backgroundColor: isDark ? "#0F1420" : "#F1F5F9",
+                    padding: "6px",
+                    borderRadius: "14px",
+                    border: `1px solid ${c.border}`,
+                    width: "fit-content",
                   }}
                 >
-                  <span>⚡</span>
-                  <span>Recent Orders ({recentOrders.length})</span>
-                </button>
+                  <button
+                    onClick={() => setOrderTab("all")}
+                    style={{
+                      padding: "8px 16px",
+                      borderRadius: "10px",
+                      border: "none",
+                      fontSize: "13px",
+                      fontWeight: "800",
+                      cursor: "pointer",
+                      backgroundColor: orderTab === "all" ? (isDark ? "#1E293B" : "#FFFFFF") : "transparent",
+                      color: orderTab === "all" ? c.accent : c.subtext,
+                      boxShadow: orderTab === "all" ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
+                    }}
+                  >
+                    All Orders ({orders.length})
+                  </button>
+
+                  <button
+                    onClick={() => setOrderTab("recent")}
+                    style={{
+                      padding: "8px 16px",
+                      borderRadius: "10px",
+                      border: "none",
+                      fontSize: "13px",
+                      fontWeight: "800",
+                      cursor: "pointer",
+                      backgroundColor: orderTab === "recent" ? (isDark ? "#1E293B" : "#FFFFFF") : "transparent",
+                      color: orderTab === "recent" ? c.accent : c.subtext,
+                      boxShadow: orderTab === "recent" ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <span>⚡</span>
+                    <span>Recent Orders ({recentOrders.length})</span>
+                  </button>
+
+                  <button
+                    onClick={() => setOrderTab("history")}
+                    style={{
+                      padding: "8px 16px",
+                      borderRadius: "10px",
+                      border: "none",
+                      fontSize: "13px",
+                      fontWeight: "800",
+                      cursor: "pointer",
+                      backgroundColor: orderTab === "history" ? (isDark ? "#1E293B" : "#FFFFFF") : "transparent",
+                      color: orderTab === "history" ? c.accent : c.subtext,
+                      boxShadow: orderTab === "history" ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <span>📜</span>
+                    <span>Order History ({historyOrders.length})</span>
+                  </button>
+                </div>
 
                 <button
-                  onClick={() => setOrderTab("history")}
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(
+                      new CustomEvent("rmart:open_chat", {
+                        detail: {
+                          type: "order_support",
+                          message: "Hi Sparky, I need customer support regarding my store orders. Can you help me?",
+                        },
+                      })
+                    );
+                  }}
+                  data-testid="orders-top-support-btn"
+                  title="Directs to Sparky AI Chatbot for 24/7 Orders Support & Escalations"
                   style={{
-                    padding: "8px 16px",
-                    borderRadius: "10px",
-                    border: "none",
+                    backgroundColor: isDark ? "rgba(99, 102, 241, 0.16)" : "rgba(79, 70, 229, 0.1)",
+                    color: isDark ? "#A5B4FC" : "#4F46E5",
+                    border: isDark ? "1px solid rgba(99, 102, 241, 0.35)" : "1px solid rgba(79, 70, 229, 0.25)",
+                    padding: "9px 18px",
+                    borderRadius: "12px",
                     fontSize: "13px",
                     fontWeight: "800",
                     cursor: "pointer",
-                    backgroundColor: orderTab === "history" ? (isDark ? "#1E293B" : "#FFFFFF") : "transparent",
-                    color: orderTab === "history" ? c.accent : c.subtext,
-                    boxShadow: orderTab === "history" ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
                     display: "flex",
                     alignItems: "center",
-                    gap: "6px",
+                    gap: "8px",
+                    boxShadow: "0 2px 10px rgba(79, 70, 229, 0.18)",
+                    transition: "all 0.15s ease",
                   }}
                 >
-                  <span>📜</span>
-                  <span>Order History ({historyOrders.length})</span>
+                  <span>🎧</span>
+                  <span>Customer Support Concierge</span>
                 </button>
               </div>
 
@@ -611,7 +665,32 @@ export default function OrdersPage() {
                       — {ord.address || "123 Coastal Way"}, {ord.city || "Hub"} {ord.pincode ? `(${ord.pincode})` : ""}
                     </div>
 
-                    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+                      <button
+                        type="button"
+                        onClick={() => handleCustomerSupport(ord)}
+                        data-testid={`order-support-btn-${orderId}`}
+                        title="Report an issue or get customer support with Sparky AI"
+                        style={{
+                          backgroundColor: isDark ? "rgba(99, 102, 241, 0.16)" : "rgba(79, 70, 229, 0.1)",
+                          color: isDark ? "#A5B4FC" : "#4F46E5",
+                          border: isDark ? "1px solid rgba(99, 102, 241, 0.35)" : "1px solid rgba(79, 70, 229, 0.25)",
+                          padding: "8px 14px",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                          fontWeight: "800",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          boxShadow: "0 2px 8px rgba(79, 70, 229, 0.16)",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <span>🎧</span>
+                        <span>Customer Support</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => handleGenerateInvoice(ord)}

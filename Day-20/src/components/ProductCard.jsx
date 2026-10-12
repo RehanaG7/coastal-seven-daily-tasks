@@ -337,9 +337,9 @@ export const ProductCard = memo(({ product }) => {
                 }}
                 style={{
                   flex: 1,
-                  backgroundColor: "#10B981",
-                  color: "#FFFFFF",
-                  border: "none",
+                  backgroundColor: isDark ? "rgba(16, 185, 129, 0.16)" : "rgba(16, 185, 129, 0.1)",
+                  color: isDark ? "#34D399" : "#059669",
+                  border: isDark ? "1px solid rgba(16, 185, 129, 0.35)" : "1px solid rgba(16, 185, 129, 0.25)",
                   padding: "10px 12px",
                   borderRadius: "10px",
                   fontSize: "12px",
@@ -349,7 +349,7 @@ export const ProductCard = memo(({ product }) => {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: "6px",
-                  boxShadow: "0 2px 8px rgba(16, 185, 129, 0.25)",
+                  transition: "all 0.15s ease",
                 }}
               >
                 <span>➕</span>
@@ -364,9 +364,9 @@ export const ProductCard = memo(({ product }) => {
                 disabled={deleteMutation.isPending}
                 style={{
                   flex: 1,
-                  backgroundColor: "#DC2626",
-                  color: "#FFFFFF",
-                  border: "none",
+                  backgroundColor: isDark ? "rgba(239, 68, 68, 0.16)" : "rgba(239, 68, 68, 0.1)",
+                  color: isDark ? "#F87171" : "#DC2626",
+                  border: isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid rgba(239, 68, 68, 0.25)",
                   padding: "10px 12px",
                   borderRadius: "10px",
                   fontSize: "12px",
@@ -376,10 +376,9 @@ export const ProductCard = memo(({ product }) => {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: "6px",
-                  boxShadow: "0 2px 8px rgba(220, 38, 38, 0.25)",
+                  transition: "all 0.15s ease",
                 }}
               >
-                <span>🗑️</span>
                 <span>Delete Product</span>
               </button>
             </div>

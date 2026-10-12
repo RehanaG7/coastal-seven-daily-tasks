@@ -582,11 +582,14 @@ export default function AdminDashboard() {
 
 
   const c = {
-    bg: isDark ? "#080C14" : "#F8FAFC",
-    cardBg: isDark ? "#0F172A" : "#FFFFFF",
-    border: isDark ? "#1E293B" : "#E2E8F0",
-    text: isDark ? "#F8FAFB" : "#0F172A",
-    subtext: isDark ? "#94A3B8" : "#64748B",
+    bg: isDark ? "#0A0E17" : "#F8FAFC",
+    cardBg: isDark ? "#111827" : "#FFFFFF",
+    border: isDark ? "#1F2937" : "#E2E8F0",
+    text: isDark ? "#F9FAFB" : "#0F172A",
+    subtext: isDark ? "#9CA3AF" : "#64748B",
+    primary: "#6366F1",
+    primaryDark: "#4F46E5",
+    accent: isDark ? "#818CF8" : "#4F46E5",
   };
 
   return (
@@ -606,10 +609,11 @@ export default function AdminDashboard() {
             borderRadius: "14px",
             padding: "16px 20px",
             marginBottom: "20px",
+            boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.3)" : "0 2px 10px rgba(0,0,0,0.04)",
           }}
         >
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <span style={{ fontSize: "20px" }}>🛡️</span>
               <h1 style={{ fontSize: "20px", fontWeight: "900", color: c.text, margin: 0 }}>
                 R-Mart Admin Portal
@@ -617,15 +621,18 @@ export default function AdminDashboard() {
               <span
                 style={{
                   fontSize: "11px",
-                  fontWeight: "900",
-                  backgroundColor: "rgba(245, 158, 11, 0.15)",
-                  color: "#F59E0B",
-                  padding: "3px 8px",
-                  borderRadius: "6px",
-                  border: "1px solid rgba(245, 158, 11, 0.4)",
+                  fontWeight: "800",
+                  backgroundColor: isDark ? "rgba(99, 102, 241, 0.14)" : "rgba(79, 70, 229, 0.08)",
+                  color: isDark ? "#A5B4FC" : "#4F46E5",
+                  padding: "4px 10px",
+                  borderRadius: "20px",
+                  border: isDark ? "1px solid rgba(99, 102, 241, 0.3)" : "1px solid rgba(79, 70, 229, 0.2)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
                 }}
               >
-                PASSCODE VERIFIED (ADMIN-2026)
+                <span>🔒</span> PASSCODE VERIFIED (ADMIN-2026)
               </span>
             </div>
             <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: c.subtext }}>
@@ -637,9 +644,9 @@ export default function AdminDashboard() {
             <button
               onClick={() => navigate("/catalog")}
               style={{
-                backgroundColor: "rgba(56, 189, 248, 0.15)",
-                color: "#38BDF8",
-                border: "1px solid #38BDF8",
+                backgroundColor: isDark ? "#1F2937" : "#F1F5F9",
+                color: isDark ? "#F3F4F6" : "#0F172A",
+                border: `1px solid ${c.border}`,
                 padding: "8px 16px",
                 borderRadius: "8px",
                 fontWeight: "800",
@@ -648,6 +655,7 @@ export default function AdminDashboard() {
                 display: "flex",
                 alignItems: "center",
                 gap: "6px",
+                transition: "all 0.15s ease",
               }}
             >
               <span>🪐</span>
@@ -662,17 +670,19 @@ export default function AdminDashboard() {
             onClick={() => handleTabSelect("orders")}
             data-testid="admin-orders-tab"
             style={{
-              backgroundColor: activeTab === "orders" ? "#3B82F6" : c.cardBg,
-              color: activeTab === "orders" ? "#FFF" : c.text,
-              border: `1px solid ${activeTab === "orders" ? "#3B82F6" : c.border}`,
+              backgroundColor: activeTab === "orders" ? (isDark ? "#4F46E5" : "#4338CA") : c.cardBg,
+              color: activeTab === "orders" ? "#FFFFFF" : c.text,
+              border: `1px solid ${activeTab === "orders" ? (isDark ? "#6366F1" : "#4338CA") : c.border}`,
               padding: "10px 18px",
-              borderRadius: "8px",
+              borderRadius: "10px",
               fontWeight: "800",
               fontSize: "13px",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               gap: "6px",
+              boxShadow: activeTab === "orders" ? "0 4px 14px rgba(79, 70, 229, 0.3)" : "none",
+              transition: "all 0.15s ease",
             }}
           >
             <span>📋</span>
@@ -683,17 +693,19 @@ export default function AdminDashboard() {
             onClick={() => handleTabSelect("add_product")}
             data-testid="admin-add-product-tab"
             style={{
-              backgroundColor: activeTab === "add_product" ? "#3B82F6" : c.cardBg,
-              color: activeTab === "add_product" ? "#FFF" : c.text,
-              border: `1px solid ${activeTab === "add_product" ? "#3B82F6" : c.border}`,
+              backgroundColor: activeTab === "add_product" ? (isDark ? "#4F46E5" : "#4338CA") : c.cardBg,
+              color: activeTab === "add_product" ? "#FFFFFF" : c.text,
+              border: `1px solid ${activeTab === "add_product" ? (isDark ? "#6366F1" : "#4338CA") : c.border}`,
               padding: "10px 18px",
-              borderRadius: "8px",
+              borderRadius: "10px",
               fontWeight: "800",
               fontSize: "13px",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               gap: "6px",
+              boxShadow: activeTab === "add_product" ? "0 4px 14px rgba(79, 70, 229, 0.3)" : "none",
+              transition: "all 0.15s ease",
             }}
           >
             <span>➕</span>
@@ -704,17 +716,19 @@ export default function AdminDashboard() {
             onClick={() => handleTabSelect("bulk_import")}
             data-testid="admin-bulk-import-tab"
             style={{
-              backgroundColor: activeTab === "bulk_import" ? "#3B82F6" : c.cardBg,
-              color: activeTab === "bulk_import" ? "#FFF" : c.text,
-              border: `1px solid ${activeTab === "bulk_import" ? "#3B82F6" : c.border}`,
+              backgroundColor: activeTab === "bulk_import" ? (isDark ? "#4F46E5" : "#4338CA") : c.cardBg,
+              color: activeTab === "bulk_import" ? "#FFFFFF" : c.text,
+              border: `1px solid ${activeTab === "bulk_import" ? (isDark ? "#6366F1" : "#4338CA") : c.border}`,
               padding: "10px 18px",
-              borderRadius: "8px",
+              borderRadius: "10px",
               fontWeight: "800",
               fontSize: "13px",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               gap: "6px",
+              boxShadow: activeTab === "bulk_import" ? "0 4px 14px rgba(79, 70, 229, 0.3)" : "none",
+              transition: "all 0.15s ease",
             }}
           >
             <span>📤</span>
@@ -906,9 +920,9 @@ export default function AdminDashboard() {
                           onClick={() => handleDeleteProduct(p.id, p.name)}
                           style={{
                             flex: 1,
-                            backgroundColor: "#DC2626",
-                            color: "#FFFFFF",
-                            border: "none",
+                            backgroundColor: isDark ? "rgba(239, 68, 68, 0.16)" : "rgba(239, 68, 68, 0.1)",
+                            color: isDark ? "#F87171" : "#DC2626",
+                            border: isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid rgba(239, 68, 68, 0.25)",
                             padding: "9px 12px",
                             borderRadius: "8px",
                             fontSize: "12px",
@@ -918,10 +932,9 @@ export default function AdminDashboard() {
                             alignItems: "center",
                             justifyContent: "center",
                             gap: "6px",
-                            boxShadow: "0 2px 8px rgba(220, 38, 38, 0.25)",
+                            transition: "all 0.15s ease",
                           }}
                         >
-                          <span>🗑️</span>
                           <span>Delete Product</span>
                         </button>
                       </div>
@@ -999,7 +1012,7 @@ export default function AdminDashboard() {
                       {/* 1. Order Header: ID, Date, Amount, Payment */}
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", borderBottom: `1px solid ${c.border}`, paddingBottom: "14px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                          <span style={{ fontFamily: "monospace", fontWeight: "900", fontSize: "16px", color: "#3B82F6", backgroundColor: "rgba(59, 130, 246, 0.12)", padding: "4px 10px", borderRadius: "8px" }}>
+                          <span style={{ fontFamily: "monospace", fontWeight: "900", fontSize: "15px", color: isDark ? "#A5B4FC" : "#4F46E5", backgroundColor: isDark ? "rgba(99, 102, 241, 0.14)" : "rgba(79, 70, 229, 0.08)", border: isDark ? "1px solid rgba(99, 102, 241, 0.25)" : "1px solid rgba(79, 70, 229, 0.15)", padding: "4px 10px", borderRadius: "8px" }}>
                             {ord.orderId || ord.id || `#ORD-${1000 + idx}`}
                           </span>
                           <span style={{ fontSize: "12px", color: c.subtext }}>
@@ -1008,10 +1021,10 @@ export default function AdminDashboard() {
                         </div>
 
                         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                          <span style={{ fontSize: "18px", fontWeight: "900", color: "#10B981" }}>
+                          <span style={{ fontSize: "18px", fontWeight: "900", color: isDark ? "#34D399" : "#059669" }}>
                             ${Number(ord.totalAmount || ord.total || 0).toFixed(2)}
                           </span>
-                          <span style={{ fontSize: "11px", fontWeight: "800", padding: "4px 8px", borderRadius: "6px", backgroundColor: isDark ? "#1E293B" : "#F1F5F9", color: c.text }}>
+                          <span style={{ fontSize: "11px", fontWeight: "800", padding: "4px 8px", borderRadius: "6px", backgroundColor: isDark ? "#1E293B" : "#F1F5F9", color: c.text, border: `1px solid ${c.border}` }}>
                             💳 {ord.paymentMethod?.toUpperCase() || "PAID"}
                           </span>
                         </div>
@@ -1098,7 +1111,7 @@ export default function AdminDashboard() {
                             <span style={{ fontSize: "13px", fontWeight: "900", color: c.text }}>
                               Order Tracker Stage:
                             </span>
-                            <span style={{ fontSize: "12px", fontWeight: "900", color: "#3B82F6", backgroundColor: "rgba(59, 130, 246, 0.15)", padding: "3px 8px", borderRadius: "6px" }}>
+                            <span style={{ fontSize: "12px", fontWeight: "900", color: isDark ? "#A5B4FC" : "#4F46E5", backgroundColor: isDark ? "rgba(99, 102, 241, 0.15)" : "rgba(79, 70, 229, 0.1)", padding: "3px 8px", borderRadius: "6px", border: isDark ? "1px solid rgba(99, 102, 241, 0.3)" : "1px solid rgba(79, 70, 229, 0.2)" }}>
                               {currentStatus}
                             </span>
                           </div>
@@ -1107,14 +1120,15 @@ export default function AdminDashboard() {
                             type="button"
                             onClick={() => setSelectedTrackingOrder(ord)}
                             style={{
-                              backgroundColor: "transparent",
-                              color: "#38BDF8",
-                              border: "1px solid #38BDF8",
-                              padding: "4px 10px",
+                              backgroundColor: isDark ? "rgba(99, 102, 241, 0.12)" : "rgba(79, 70, 229, 0.08)",
+                              color: isDark ? "#A5B4FC" : "#4F46E5",
+                              border: isDark ? "1px solid rgba(99, 102, 241, 0.3)" : "1px solid rgba(79, 70, 229, 0.2)",
+                              padding: "5px 12px",
                               borderRadius: "6px",
                               fontSize: "11px",
                               fontWeight: "800",
                               cursor: "pointer",
+                              transition: "all 0.15s ease",
                             }}
                           >
                             🔍 Open Live Tracker Simulation
@@ -1133,20 +1147,20 @@ export default function AdminDashboard() {
                                     width: "28px",
                                     height: "28px",
                                     borderRadius: "50%",
-                                    backgroundColor: isCurrent ? "#3B82F6" : isDone ? "#10B981" : isDark ? "#1E293B" : "#CBD5E1",
+                                    backgroundColor: isCurrent ? (isDark ? "#6366F1" : "#4F46E5") : isDone ? "#10B981" : isDark ? "#1E293B" : "#CBD5E1",
                                     color: isDone || isCurrent ? "#FFF" : c.subtext,
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "center",
                                     fontSize: "11px",
                                     fontWeight: "900",
-                                    boxShadow: isCurrent ? "0 0 10px rgba(59, 130, 246, 0.6)" : "none",
+                                    boxShadow: isCurrent ? "0 0 10px rgba(99, 102, 241, 0.5)" : "none",
                                     transition: "all 0.2s ease",
                                   }}
                                 >
                                   {isDone && !isCurrent ? "✓" : sIdx + 1}
                                 </div>
-                                <span style={{ fontSize: "11px", fontWeight: isCurrent ? "900" : "700", color: isCurrent ? "#3B82F6" : isDone ? "#10B981" : c.subtext, marginTop: "6px", textAlign: "center" }}>
+                                <span style={{ fontSize: "11px", fontWeight: isCurrent ? "900" : "700", color: isCurrent ? (isDark ? "#818CF8" : "#4F46E5") : isDone ? "#10B981" : c.subtext, marginTop: "6px", textAlign: "center" }}>
                                   {st}
                                 </span>
                               </div>
@@ -1172,7 +1186,7 @@ export default function AdminDashboard() {
                               onClick={() => handleUpdateOrderStatus(ord.orderId || ord.id, btn.status)}
                               style={{
                                 backgroundColor: currentStatus.toLowerCase().includes(btn.status.toLowerCase().split(" ")[0])
-                                  ? "#3B82F6"
+                                  ? (isDark ? "#4F46E5" : "#4338CA")
                                   : isDark
                                   ? "#1E293B"
                                   : "#FFFFFF",
@@ -1185,6 +1199,7 @@ export default function AdminDashboard() {
                                 fontSize: "11px",
                                 fontWeight: "800",
                                 cursor: "pointer",
+                                boxShadow: currentStatus.toLowerCase().includes(btn.status.toLowerCase().split(" ")[0]) ? "0 2px 8px rgba(79, 70, 229, 0.3)" : "none",
                                 transition: "all 0.15s ease",
                               }}
                             >

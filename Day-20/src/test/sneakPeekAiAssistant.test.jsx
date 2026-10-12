@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import SneakPeekAiAssistant from "../components/SneakPeekAiAssistant";
 import Navbar from "../components/Navbar";
@@ -233,6 +233,47 @@ describe("Day 20 – SneakPeek Robo Assistant & Segmented Role Switcher", () => 
     const adminNotifs = JSON.parse(localStorage.getItem("rmart_admin_notifications") || "[]");
     expect(adminNotifs.length).toBeGreaterThan(0);
     expect(adminNotifs[0].title).toContain("URGENT: Customer Escalation");
+    expect(adminNotifs[0].message).toContain("Admin boss, resolve this immediately!");
+  });
+
+  it("handles Customer Support from Orders tab, answers order query, and routes to Admin Live Chat if problem not resolved", async () => {
+    render(
+      <MemoryRouter>
+        <SneakPeekAiAssistant />
+      </MemoryRouter>
+    );
+
+    // Simulate clicking 'Customer Support' button on an order in Orders tab
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent("rmart:open_chat", {
+          detail: {
+            type: "order_support",
+            orderId: "ORD-9999",
+            status: "Out for Delivery",
+            total: "249.99"
+          }
+        })
+      );
+    });
+
+    // Chatbot opens and displays order details
+    expect(screen.getByTestId("ai-chat-modal")).toBeInTheDocument();
+    expect(screen.getAllByText(/Order #ORD-9999/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Out for Delivery/i).length).toBeGreaterThan(0);
+
+    // User reports problem is not resolved
+    const input = screen.getByTestId("ai-chat-input");
+    const sendBtn = screen.getByTestId("ai-chat-send-btn");
+    fireEvent.change(input, { target: { value: "Package damaged, problem not resolved, talk to admin" } });
+    fireEvent.click(sendBtn);
+
+    // Directly connects to Admin Live Chat
+    expect(screen.getByText(/connecting you directly to our human Store Administrator right away via Live Support Chat/i)).toBeInTheDocument();
+
+    // Verify urgent alert logged with order ID context
+    const adminNotifs = JSON.parse(localStorage.getItem("rmart_admin_notifications") || "[]");
+    expect(adminNotifs[0].message).toContain("ORD-9999");
     expect(adminNotifs[0].message).toContain("Admin boss, resolve this immediately!");
   });
 });

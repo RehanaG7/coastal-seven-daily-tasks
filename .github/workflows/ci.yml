@@ -1,4 +1,4 @@
-name: E-Commerce CI Automated Test Matrix (Days 10-19)
+name: E-Commerce CI Automated Test Matrix (Days 10-20)
 
 on:
   push:
@@ -139,4 +139,53 @@ jobs:
 
       - name: Build Production Frontend
         working-directory: ./Day-19
+        run: npm run build
+
+  day20-backend-test:
+    name: Day-20 FastAPI Backend & AI RAG Suite (44 Tests)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Backend Dependencies
+        working-directory: ./Day-20/backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install "bcrypt==4.0.1" pytest httpx
+
+      - name: Run Day-20 Pytest Suite
+        working-directory: ./Day-20/backend
+        env:
+          PYTHONPATH: .
+        run: python -m pytest -v tests
+
+  day20-frontend-test:
+    name: Day-20 Frontend Vitest & Build Suite (55 Tests)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        working-directory: ./Day-20
+        run: npm install --legacy-peer-deps
+
+      - name: Run Vitest Suite (55 Tests)
+        working-directory: ./Day-20
+        run: npx vitest run
+
+      - name: Build Production Frontend
+        working-directory: ./Day-20
         run: npm run build

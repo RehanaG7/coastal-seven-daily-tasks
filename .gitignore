@@ -39,6 +39,8 @@ build/
 *.db.backup
 *.sqlite
 *.sqlite3
+chroma_db/
+static/
 
 # Logs & Debugging
 *.log

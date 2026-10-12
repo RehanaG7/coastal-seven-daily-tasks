@@ -58,18 +58,29 @@ export const useCartStore = create(
       closeCart: () => set({ isOpen: false }),
       toggleCart: () => set((state) => ({ isOpen: !state.isOpen })),
 
-      // Cart Actions (Enforcing strict stock limits)
+      // Cart Actions (Enforcing strict stock limits & guaranteed product image)
       addToCart: (product, qty = 1) =>
         set((state) => {
           const maxStock = product.stock !== undefined && product.stock !== null ? Number(product.stock) : 999;
           const existing = state.cart.find((item) => item.id === product.id);
+          const imgSrc = product.image || product.image_url || `https://picsum.photos/seed/product-${product.id || 1}/400/300`;
+          const title = product.name || product.title || product.product_name || "Product";
+          const normalizedProduct = {
+            ...product,
+            name: title,
+            title,
+            product_name: title,
+            image: imgSrc,
+            image_url: imgSrc,
+            stock: maxStock,
+          };
           if (existing) {
             const desiredQty = existing.quantity + qty;
             const cappedQty = Math.min(maxStock, desiredQty);
             return {
               cart: state.cart.map((item) =>
                 item.id === product.id
-                  ? { ...item, quantity: cappedQty, stock: maxStock }
+                  ? { ...item, ...normalizedProduct, quantity: cappedQty }
                   : item
               ),
               isOpen: true,
@@ -77,7 +88,7 @@ export const useCartStore = create(
           }
           const cappedQty = Math.min(maxStock, Math.max(1, qty));
           return {
-            cart: [...state.cart, { ...product, quantity: cappedQty, stock: maxStock }],
+            cart: [...state.cart, { ...normalizedProduct, quantity: cappedQty }],
             isOpen: state.isOpen,
           };
         }),

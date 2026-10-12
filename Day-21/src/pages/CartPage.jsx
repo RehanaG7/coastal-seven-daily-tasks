@@ -99,9 +99,15 @@ export default function CartPage() {
           {cartItems.map((item) => (
             <div key={item.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fff", padding: "1.25rem", borderRadius: "10px", boxShadow: "0 1px 3px rgba(0,0,0,0.08)", flexWrap: "wrap", gap: "1rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                {item.image_url && (
-                  <img src={item.image_url} alt={item.product_name} style={{ width: "70px", height: "70px", objectFit: "cover", borderRadius: "8px" }} />
-                )}
+                <img
+                  src={item.image || item.image_url || `https://picsum.photos/seed/product-${item.id || 1}/400/300`}
+                  alt={item.product_name || item.name || "Product"}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = `https://picsum.photos/seed/product-${item.id || 1}/400/300`;
+                  }}
+                  style={{ width: "70px", height: "70px", objectFit: "cover", borderRadius: "8px" }}
+                />
                 <div>
                   <h4 style={{ margin: "0 0 0.25rem 0", fontSize: "1.1rem" }}>{item.product_name}</h4>
                   <div style={{ color: "#2563eb", fontWeight: "bold" }}>${Number(item.price).toFixed(2)} each</div>

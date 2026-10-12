@@ -26,7 +26,7 @@
 
 ## 📖 Executive Summary
 
-**Coastal Seven Daily Tasks** is a complete, production-grade enterprise full-stack software engineering curriculum tracking progress from **Day 01 through Day 18**. 
+**Coastal Seven Daily Tasks** is a complete, production-grade enterprise full-stack software engineering curriculum tracking progress from **Day 01 through Day 20**. 
 
 The repository demonstrates a scalable journey from core algorithmic Python scripting and relational database architecture to an asynchronous, distributed full-stack E-Commerce platform (**R-Mart**) featuring **FastAPI**, **SQLAlchemy 2.0**, **PostgreSQL (Neon)**, **Redis Cache & Pub/Sub**, **Celery Asynchronous Workers**, **ReportLab PDF Invoices**, **Chunked Bulk CSV Import Pipelines**, **React 19 + TypeScript**, **Zustand State Management**, **TanStack React Query v5**, **Bidirectional WebSockets**, and automated quality assurance across **Pytest**, **Vitest**, and **Playwright**.
 
@@ -136,6 +136,7 @@ flowchart TD
 | **Day 17** | **Full-Stack Real-Time WebSockets & Tracking**| Bidirectional WebSockets, Redis Pub/Sub broadcast, `useWebSocket` hook | Live delivery tracking stepper, 24/7 customer support chat, alerts drawer | `feature/day-17-fullstack-websockets-tracking` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
 | **Day 18** | **Background Tasks, PDF Invoices & Bulk CSV** | Celery polling, ReportLab PDF invoices, 500-row chunked CSV imports | Multi-token search, N+1 query optimization, 34-test Pytest suite | `feature/day-18` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
 | **Day 19** | **API Security, Performance & Load Testing** | `slowapi` rate limiting, OWASP Top 10 hardening, GZip compression, Rollup code splitting, Lighthouse 90+ | 38 backend Pytest tests, 50 Vitest tests, 50-user Locust load test (0.00% fails) | `feature/day-19-security-performance-loadtest` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
+| **Day 20** | **AI Shopping Concierge, ChromaDB Vector RAG & SSE Streaming** | ChromaDB dense vectors (`all-MiniLM-L6-v2`), multi-provider LLMs (Groq Llama-3.3-70B, Gemini 2.0 Flash), SSE token streaming, support exception training | 44 backend Pytest tests, 67 Vitest tests (100% passed) | `feature/day-20-ai-rag-streaming` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
 
 ---
 
@@ -164,6 +165,7 @@ Every milestone in this repository is isolated into its own cleanly structured f
 | **Day 17** | `feature/day-17-fullstack-websockets-tracking` | `git checkout feature/day-17-fullstack-websockets-tracking` |
 | **Day 18** | `feature/day-18` | `git checkout feature/day-18` |
 | **Day 19** | `feature/day-19-security-performance-loadtest` | `git checkout feature/day-19-security-performance-loadtest` |
+| **Day 20** | `feature/day-20-ai-rag-streaming` | `git checkout feature/day-20-ai-rag-streaming` |
 
 ---
 
@@ -195,7 +197,8 @@ coastal-seven-daily-tasks/
 ├── Day-16/                 # Frontend Part 2, Zustand cart & 40-test quality matrix
 ├── Day-17/                 # Full-stack real-time WebSockets, live tracking & chat
 ├── Day-18/                 # Celery async polling, ReportLab PDF, bulk CSV, 34 Pytests
-└── Day-19/                 # API security, slowapi, OWASP, GZip, Locust load test, bundle splitting
+├── Day-19/                 # API security, slowapi, OWASP, GZip, Locust load test, bundle splitting
+└── Day-20/                 # AI shopping assistant, ChromaDB RAG, multi-provider LLMs, SSE streaming
 ```
 
 ---

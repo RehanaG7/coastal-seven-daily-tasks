@@ -727,14 +727,23 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
           </form>
         )}
 
-        {/* Footer with Sign Out and Close */}
+        {/* Footer with Log Out and Close */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "14px", borderTop: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}` }}>
           <button
             onClick={() => {
               logout();
+              localStorage.removeItem("token");
+              localStorage.removeItem("access_token");
+              localStorage.removeItem("user_role");
+              localStorage.removeItem("user_email");
+              localStorage.removeItem("rmart_user");
+              localStorage.removeItem("rmart-auth-storage");
+              window.dispatchEvent(new Event("storage"));
               handleClose();
-              navigate("/catalog");
+              navigate("/auth");
             }}
+            data-testid="logout-button"
+            title="Log Out of R-Mart"
             style={{
               background: "none",
               border: "none",
@@ -748,7 +757,7 @@ export default function RightMenuDrawer({ isOpen, onClose }) {
             }}
           >
             <span>🚪</span>
-            <span>Sign Out</span>
+            <span>Log Out</span>
           </button>
 
           <button

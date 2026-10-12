@@ -81,6 +81,7 @@ class LLMProviderManager:
                     "relevance": p.get("relevance_score", 0.9)
                 }
                 for p in retrieved_products
+                if not any(k in (p.get("title") or "").lower() for k in ["n+1", "invoice test", "test"]) or "test" in query.lower()
             ],
             "query": query,
         }

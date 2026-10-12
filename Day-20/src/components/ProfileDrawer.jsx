@@ -252,10 +252,23 @@ export default function ProfileDrawer({ isOpen, onClose }) {
 
         <div style={{ borderTop: `1px solid ${c.border}`, paddingTop: "14px", marginTop: "14px" }}>
           <button
-            onClick={() => { logout(); onClose(); navigate("/auth"); }}
+            onClick={() => {
+              logout();
+              localStorage.removeItem("token");
+              localStorage.removeItem("access_token");
+              localStorage.removeItem("user_role");
+              localStorage.removeItem("user_email");
+              localStorage.removeItem("rmart_user");
+              localStorage.removeItem("rmart-auth-storage");
+              window.dispatchEvent(new Event("storage"));
+              onClose();
+              navigate("/auth");
+            }}
+            data-testid="logout-button"
+            title="Log Out of R-Mart"
             style={{ width: "100%", padding: "12px", backgroundColor: "#EF444420", border: "1px solid #EF4444", color: "#EF4444", fontWeight: "900", borderRadius: "8px", cursor: "pointer" }}
           >
-            Sign Out of R-Mart
+            Log Out of R-Mart
           </button>
         </div>
       </div>

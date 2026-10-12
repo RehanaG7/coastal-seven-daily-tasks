@@ -94,28 +94,39 @@ class VectorStoreService:
         if self.collection.count() == 0 and db is not None:
             self.index_products(db)
 
+        def is_test_item(t: str) -> bool:
+            t_low = (t or "").lower()
+            return bool(re.search(r"\bn\+1\b|\binvoice test\b|\btest\b", t_low))
+
+        query_is_test = is_test_item(query)
+
         # 1. Semantic Vector Search via ChromaDB
         try:
             results = self.collection.query(
                 query_texts=[query],
-                n_results=min(top_k, max(self.collection.count(), 1))
+                n_results=min(top_k * 2, max(self.collection.count(), 1))
             )
 
             hits = []
             if results and results.get("ids") and results["ids"][0]:
                 for idx, doc_id in enumerate(results["ids"][0]):
                     metadata = results["metadatas"][0][idx] if results.get("metadatas") else {}
+                    title = metadata.get("title", "")
+                    if is_test_item(title) and not query_is_test:
+                        continue
                     document = results["documents"][0][idx] if results.get("documents") else ""
                     distance = results["distances"][0][idx] if results.get("distances") else 0.5
                     hits.append({
                         "id": metadata.get("id"),
-                        "title": metadata.get("title", ""),
+                        "title": title,
                         "price": metadata.get("price", 0.0),
                         "stock": metadata.get("stock", 0),
                         "description": metadata.get("description", ""),
                         "snippet": document,
                         "relevance_score": round(max(0.0, 1.0 - float(distance)), 3),
                     })
+                    if len(hits) >= top_k:
+                        break
                 if hits:
                     return hits
         except Exception as e:
@@ -131,12 +142,19 @@ class VectorStoreService:
         """
         Fuzzy keyword token search to ensure 100% availability even in edge cases.
         """
+        def is_test_item(t: str) -> bool:
+            t_low = (t or "").lower()
+            return bool(re.search(r"\bn\+1\b|\binvoice test\b|\btest\b", t_low))
+
+        query_is_test = is_test_item(query)
         tokens = [t.lower() for t in re.findall(r"\w+", query) if len(t) > 2]
         products = db.query(Product).all()
         scored = []
 
         for p in products:
             p_title = getattr(p, "name", getattr(p, "title", "Product"))
+            if is_test_item(p_title) and not query_is_test:
+                continue
             p_desc = getattr(p, "description", "") or ""
             text = f"{p_title} {p_desc}".lower()
             score = sum(1 for token in tokens if token in text)

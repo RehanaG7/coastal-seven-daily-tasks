@@ -33,8 +33,11 @@ export const useAuthStore = create(
       },
       logout: () => {
         localStorage.removeItem("token");
+        localStorage.removeItem("access_token");
         localStorage.removeItem("user_role");
+        localStorage.removeItem("user_email");
         localStorage.removeItem("rmart_user");
+        localStorage.removeItem("rmart-auth-storage");
         set({ user: null, token: null });
       },
     }),

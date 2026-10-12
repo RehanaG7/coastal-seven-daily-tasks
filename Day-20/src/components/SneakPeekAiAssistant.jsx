@@ -11,6 +11,48 @@ const DEFAULT_SUGGESTIONS = [
   "What offers are active today? 🏷️"
 ];
 
+// Helper to filter out synthetic test fixtures (e.g. N+1 Item 2, Invoice Test Laptop)
+export const isLegitimateProduct = (item) => {
+  if (!item) return false;
+  const name = (item.title || item.name || "").toLowerCase().trim();
+  if (!name) return false;
+  if (
+    name.includes("n+1") ||
+    name.includes("test") ||
+    name.includes("dummy") ||
+    name.includes("mock") ||
+    name.startsWith("item ") ||
+    name === "product"
+  ) {
+    return false;
+  }
+  return true;
+};
+
+// Formatter to clearly display which AI model/engine is actively responding or analyzing
+export const getDisplayAiEngine = (provider) => {
+  if (!provider || provider === "Connecting..." || provider === "Store Intelligence") {
+    return "Grok & Gemini RAG Intelligence";
+  }
+  const p = provider.toLowerCase();
+  if (p.includes("groq") || p.includes("llama")) {
+    return "Grok & Llama-3.3-70B AI Engine";
+  }
+  if (p.includes("gemini")) {
+    return "Google Gemini 2.0 Flash AI";
+  }
+  if (p.includes("boss")) {
+    return "Boss Executive AI Intelligence";
+  }
+  if (p.includes("local") || p.includes("rag") || p.includes("knowledge")) {
+    return "Grok & Gemini RAG Intelligence";
+  }
+  if (p.includes("concierge") || p.includes("support")) {
+    return "Sparky AI Support Concierge";
+  }
+  return provider;
+};
+
 export default function SneakPeekAiAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -727,7 +769,7 @@ export default function SneakPeekAiAssistant() {
             if (nextLine?.startsWith("data:")) {
               try {
                 const data = JSON.parse(nextLine.slice(5).trim());
-                if (data.sources) collectedSources = data.sources;
+                if (data.sources) collectedSources = data.sources.filter(isLegitimateProduct);
               } catch {}
             }
           } else if (line.startsWith("event: provider")) {
@@ -1299,7 +1341,7 @@ export default function SneakPeekAiAssistant() {
 
                         {!isUser && (
                           <span style={{ fontSize: "11px", color: "#94A3B8" }}>
-                            {m.provider || "Store Intelligence"}
+                            {getDisplayAiEngine(m.provider || activeProvider)}
                           </span>
                         )}
                       </div>
@@ -1315,42 +1357,86 @@ export default function SneakPeekAiAssistant() {
                           letterSpacing: "0.15px"
                         }}
                       >
-                        {m.content || (isStreaming ? "Analyzing catalog and reasoning... ⚡" : "")}
+                        {m.content ? (
+                          m.content
+                        ) : isStreaming ? (
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "6px 0", color: "#93C5FD" }}>
+                            <span style={{ fontSize: "16px" }}>⚡</span>
+                            <span>
+                              Analyzing catalog via <strong style={{ color: "#FBBF24" }}>{getDisplayAiEngine(m.provider || activeProvider)}</strong>...
+                            </span>
+                          </div>
+                        ) : (
+                          ""
+                        )}
                       </div>
 
-                      {/* VOICE SPEAKER: SLEEK COMPACT SPEAKER SYMBOL */}
-                      {!isUser && m.content && (
-                        <div style={{ marginTop: "12px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: "8px" }}>
-                          <button
-                            onClick={() => speakTextInNaturalAccent(m.content)}
-                            title="Listen to response"
-                            aria-label="Listen"
+                      {/* AI MODEL STATUS BADGE & VOICE SPEAKER (UNDER MESSAGE) */}
+                      {!isUser && (
+                        <div
+                          style={{
+                            marginTop: "12px",
+                            paddingTop: "8px",
+                            borderTop: "1px solid rgba(255,255,255,0.06)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            flexWrap: "wrap",
+                            gap: "8px"
+                          }}
+                        >
+                          <div
+                            data-testid="ai-provider-badge"
                             style={{
-                              backgroundColor: "rgba(59, 130, 246, 0.15)",
-                              border: "1px solid rgba(59, 130, 246, 0.3)",
-                              color: "#60A5FA",
-                              borderRadius: "50%",
-                              width: "32px",
-                              height: "32px",
-                              fontSize: "14px",
-                              cursor: "pointer",
                               display: "inline-flex",
                               alignItems: "center",
-                              justifyContent: "center",
-                              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)"
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = "rgba(59, 130, 246, 0.28)";
-                              e.currentTarget.style.transform = "scale(1.1)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = "rgba(59, 130, 246, 0.15)";
-                              e.currentTarget.style.transform = "scale(1)";
+                              gap: "6px",
+                              backgroundColor: "rgba(59, 130, 246, 0.12)",
+                              border: "1px solid rgba(59, 130, 246, 0.28)",
+                              borderRadius: "20px",
+                              padding: "3px 10px",
+                              fontSize: "11.5px",
+                              fontWeight: "700",
+                              color: "#93C5FD",
+                              letterSpacing: "0.2px"
                             }}
                           >
-                            🔊
-                          </button>
+                            <span style={{ fontSize: "12px" }}>⚡</span>
+                            <span>Powered by: {getDisplayAiEngine(m.provider || activeProvider)}</span>
+                          </div>
+
+                          {m.content && (
+                            <button
+                              onClick={() => speakTextInNaturalAccent(m.content)}
+                              title="Listen to response"
+                              aria-label="Listen"
+                              style={{
+                                backgroundColor: "rgba(59, 130, 246, 0.15)",
+                                border: "1px solid rgba(59, 130, 246, 0.3)",
+                                color: "#60A5FA",
+                                borderRadius: "50%",
+                                width: "30px",
+                                height: "30px",
+                                fontSize: "13px",
+                                cursor: "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)"
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = "rgba(59, 130, 246, 0.28)";
+                                e.currentTarget.style.transform = "scale(1.1)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = "rgba(59, 130, 246, 0.15)";
+                                e.currentTarget.style.transform = "scale(1)";
+                              }}
+                            >
+                              🔊
+                            </button>
+                          )}
                         </div>
                       )}
 
@@ -1414,80 +1500,84 @@ export default function SneakPeekAiAssistant() {
                         </div>
                       )}
 
-                      {/* Interactive Product Source Citations */}
-                      {!isUser && m.sources && m.sources.length > 0 && (
-                        <div style={{ marginTop: "16px", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "12px" }}>
-                          <div style={{ fontSize: "11px", fontWeight: "800", color: "#94A3B8", marginBottom: "8px" }}>
-                            🏷️ Referenced Catalog Items ({m.sources.length}):
-                          </div>
-                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "10px" }}>
-                            {m.sources.map((src) => (
-                              <div
-                                key={src.id}
-                                style={{
-                                  backgroundColor: "rgba(30, 41, 59, 0.6)",
-                                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                                  borderRadius: "14px",
-                                  padding: "12px 14px",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "space-between",
-                                  gap: "10px"
-                                }}
-                              >
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontSize: "13px", fontWeight: "800", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                    {src.title}
+                      {/* Interactive Product Source Citations (Cleaned of synthetic fixtures) */}
+                      {!isUser && (() => {
+                        const cleanSources = (m.sources || []).filter(isLegitimateProduct);
+                        if (cleanSources.length === 0) return null;
+                        return (
+                          <div style={{ marginTop: "16px", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "12px" }}>
+                            <div style={{ fontSize: "11px", fontWeight: "800", color: "#94A3B8", marginBottom: "8px" }}>
+                              🏷️ Referenced Catalog Items ({cleanSources.length}):
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "10px" }}>
+                              {cleanSources.map((src) => (
+                                <div
+                                  key={src.id}
+                                  style={{
+                                    backgroundColor: "rgba(30, 41, 59, 0.6)",
+                                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                                    borderRadius: "14px",
+                                    padding: "12px 14px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    gap: "10px"
+                                  }}
+                                >
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: "13px", fontWeight: "800", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                      {src.title || src.name}
+                                    </div>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+                                      <span style={{ color: "#F59E0B", fontWeight: "900", fontSize: "13px" }}>
+                                        ${Number(src.price || 0).toFixed(2)}
+                                      </span>
+                                      <span style={{ fontSize: "10px", fontWeight: "800", color: src.stock > 0 ? "#10B981" : "#EF4444" }}>
+                                        {src.stock > 0 ? `In Stock (${src.stock})` : "Out of Stock"}
+                                      </span>
+                                    </div>
                                   </div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
-                                    <span style={{ color: "#F59E0B", fontWeight: "900", fontSize: "13px" }}>
-                                      ${src.price?.toFixed(2)}
-                                    </span>
-                                    <span style={{ fontSize: "10px", fontWeight: "800", color: src.stock > 0 ? "#10B981" : "#EF4444" }}>
-                                      {src.stock > 0 ? `In Stock (${src.stock})` : "Out of Stock"}
-                                    </span>
-                                  </div>
-                                </div>
 
-                                {src.stock > 0 ? (
-                                  <button
-                                    onClick={() => addToCart({ id: src.id, name: src.title, price: src.price, stock: src.stock }, 1)}
-                                    style={{
-                                      backgroundColor: "#F59E0B",
-                                      color: "#030712",
-                                      border: "none",
-                                      padding: "6px 12px",
-                                      borderRadius: "8px",
-                                      fontSize: "11px",
-                                      fontWeight: "900",
-                                      cursor: "pointer",
-                                      whiteSpace: "nowrap"
-                                    }}
-                                  >
-                                    + Cart
-                                  </button>
-                                ) : isAdmin ? (
-                                  <button
-                                    onClick={() => handleQuickRestock(src.title, 20)}
-                                    style={{
-                                      backgroundColor: "#10B981",
-                                      color: "#FFFFFF",
-                                      border: "none",
-                                      padding: "6px 10px",
-                                      borderRadius: "8px",
-                                      fontSize: "11px",
-                                      fontWeight: "800",
-                                      cursor: "pointer"
-                                    }}
-                                  >
-                                    + Restock
-                                  </button>
-                                ) : null}
-                              </div>
-                            ))}
+                                  {src.stock > 0 ? (
+                                    <button
+                                      onClick={() => addToCart({ id: src.id, name: src.title || src.name, price: src.price, stock: src.stock }, 1)}
+                                      style={{
+                                        backgroundColor: "#F59E0B",
+                                        color: "#030712",
+                                        border: "none",
+                                        padding: "6px 12px",
+                                        borderRadius: "8px",
+                                        fontSize: "11px",
+                                        fontWeight: "900",
+                                        cursor: "pointer",
+                                        whiteSpace: "nowrap"
+                                      }}
+                                    >
+                                      + Cart
+                                    </button>
+                                  ) : isAdmin ? (
+                                    <button
+                                      onClick={() => handleQuickRestock(src.title || src.name, 20)}
+                                      style={{
+                                        backgroundColor: "#10B981",
+                                        color: "#FFFFFF",
+                                        border: "none",
+                                        padding: "6px 10px",
+                                        borderRadius: "8px",
+                                        fontSize: "11px",
+                                        fontWeight: "800",
+                                        cursor: "pointer"
+                                      }}
+                                    >
+                                      + Restock
+                                    </button>
+                                  ) : null}
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   </div>
                 );

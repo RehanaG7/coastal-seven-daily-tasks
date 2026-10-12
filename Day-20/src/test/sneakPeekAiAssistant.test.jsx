@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import React from "react";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import SneakPeekAiAssistant from "../components/SneakPeekAiAssistant";
+import SneakPeekAiAssistant, { isLegitimateProduct, getDisplayAiEngine } from "../components/SneakPeekAiAssistant";
 import Navbar from "../components/Navbar";
+import RightMenuDrawer from "../components/RightMenuDrawer";
 import { useAuthStore, useUIStore, useCartStore } from "../store/useStore";
 
 describe("Day 20 – SneakPeek Robo Assistant & Segmented Role Switcher", () => {
@@ -275,6 +276,57 @@ describe("Day 20 – SneakPeek Robo Assistant & Segmented Role Switcher", () => 
     const adminNotifs = JSON.parse(localStorage.getItem("rmart_admin_notifications") || "[]");
     expect(adminNotifs[0].message).toContain("ORD-9999");
     expect(adminNotifs[0].message).toContain("Admin boss, resolve this immediately!");
+  });
+
+  it("filters out synthetic test fixtures (N+1 Item, Invoice Test) and formats AI provider names properly", () => {
+    // 1. Verify test fixture filter
+    expect(isLegitimateProduct({ title: "N+1 Item 2" })).toBe(false);
+    expect(isLegitimateProduct({ title: "N+1 Item 0" })).toBe(false);
+    expect(isLegitimateProduct({ title: "Invoice Test Laptop" })).toBe(false);
+    expect(isLegitimateProduct({ title: "Mock Item 4" })).toBe(false);
+    expect(isLegitimateProduct({ title: "Dummy Product" })).toBe(false);
+    expect(isLegitimateProduct({ title: "Samsung Galaxy S24 Ultra" })).toBe(true);
+    expect(isLegitimateProduct({ title: "Sony WH-1000XM5 Wireless Headphones" })).toBe(true);
+    expect(isLegitimateProduct({ title: "Apple iPhone 15 Pro Max 256GB" })).toBe(true);
+
+    // 2. Verify AI Provider formatter
+    expect(getDisplayAiEngine("Groq (Llama-3.3-70b)")).toContain("Llama-3.3-70B");
+    expect(getDisplayAiEngine("Google Gemini 2.0 Flash")).toContain("Gemini 2.0 Flash");
+    expect(getDisplayAiEngine("R-Mart Intelligent RAG Engine (Local Safety Net)")).toContain("RAG Intelligence");
+    expect(getDisplayAiEngine("")).toBe("Grok & Gemini RAG Intelligence");
+  });
+
+  it("renders AI provider badge under each assistant message and executes thorough Log Out", async () => {
+    render(
+      <MemoryRouter>
+        <SneakPeekAiAssistant />
+        <RightMenuDrawer isOpen={true} />
+      </MemoryRouter>
+    );
+
+    // 1. Open AI Assistant and submit an off-topic query
+    fireEvent.click(screen.getByTestId("sneakpeek-robo-container"));
+    const input = screen.getByTestId("ai-chat-input");
+    const sendBtn = screen.getByTestId("ai-chat-send-btn");
+    fireEvent.change(input, { target: { value: "Tell me a joke" } });
+    fireEvent.click(sendBtn);
+
+    // AI Provider Badge is rendered under the message
+    const badges = screen.getAllByTestId("ai-provider-badge");
+    expect(badges.length).toBeGreaterThan(0);
+    expect(badges[0]).toHaveTextContent(/Powered by:/i);
+
+    // 2. Test Log Out button
+    const logoutBtn = screen.getByTestId("logout-button");
+    expect(logoutBtn).toBeInTheDocument();
+    expect(logoutBtn).toHaveTextContent("Log Out");
+
+    // Click Log Out
+    fireEvent.click(logoutBtn);
+    expect(useAuthStore.getState().user).toBeNull();
+    expect(useAuthStore.getState().token).toBeNull();
+    expect(localStorage.getItem("token")).toBeNull();
+    expect(localStorage.getItem("access_token")).toBeNull();
   });
 });
 

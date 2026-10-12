@@ -291,6 +291,81 @@ export default function AdminDashboard() {
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Day 21 - Magic Pencil Auto-Description Generator State
+  const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
+  const [magicPencilRateLimit, setMagicPencilRateLimit] = useState(false);
+  const [magicPencilModeration, setMagicPencilModeration] = useState(false);
+  const [aiDescStatus, setAiDescStatus] = useState("");
+
+  const handleGenerateWithMagicPencil = async () => {
+    if (!newProduct.name || newProduct.name.trim().length < 2) {
+      alert("Please enter a product title first so the Magic Pencil can craft a description!");
+      return;
+    }
+
+    setIsGeneratingDesc(true);
+    setMagicPencilRateLimit(false);
+    setMagicPencilModeration(false);
+    setAiDescStatus("⏳ Generating eye-catching description with AI...");
+
+    const apiBase = env.API_BASE_URL || (env.API_URL || "http://localhost:8000").replace(/\/api\/v1\/?$/, "");
+    const token = localStorage.getItem("token") || localStorage.getItem("access_token");
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    try {
+      let res;
+      const payload = {
+        title: newProduct.name.trim(),
+        category: newProduct.category || "General",
+        tone: "persuasive",
+        features: ["Premium quality", "E-commerce bestseller", "Fast express delivery"],
+        target_audience: "Online Shoppers",
+      };
+
+      try {
+        res = await fetch(`${apiBase}/api/v1/ai/generate-description`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload),
+        });
+      } catch (err) {
+        res = await fetch("/api/v1/ai/generate-description", {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload),
+        });
+      }
+
+      if (res.status === 429) {
+        setMagicPencilRateLimit(true);
+        setAiDescStatus("🛑 Rate Limit Exceeded (HTTP 429)");
+        return;
+      }
+
+      if (res.status === 422) {
+        setMagicPencilModeration(true);
+        setAiDescStatus("🛡️ Flagged by Safety Policy (HTTP 422)");
+        return;
+      }
+
+      if (res.ok) {
+        const json = await res.json();
+        const fullText = json?.data?.full_text || json?.data?.description || "";
+        if (fullText) {
+          setNewProduct((prev) => ({ ...prev, description: fullText }));
+          setAiDescStatus(json.cached ? "⚡ AI Generated (Redis Cache <3ms)" : "✨ AI Generated & Applied");
+          setTimeout(() => setAiDescStatus(""), 4000);
+        }
+      }
+    } catch (e) {
+      console.error("[Magic Pencil Error]", e);
+      setAiDescStatus("⚠️ Generation error. Type manually.");
+    } finally {
+      setIsGeneratingDesc(false);
+    }
+  };
+
   // Products state backed by localStorage + MOCK_CATALOG
   const [products, setProductsState] = useState(() => {
     try {
@@ -1299,21 +1374,123 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label style={{ fontSize: "12px", fontWeight: "800", color: c.subtext, display: "block", marginBottom: "6px" }}>Description</label>
-                <AiErrorBoundary componentName="Admin Description Generator">
-                  <AiDescriptionGenerator
-                    productTitle={newProduct.name}
-                    productCategory={newProduct.category}
-                    onApplyDescription={(desc) => setNewProduct((prev) => ({ ...prev, description: desc }))}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: "800", color: c.subtext }}>Description</label>
+                  {aiDescStatus && (
+                    <span style={{ fontSize: "11px", fontWeight: "700", color: aiDescStatus.includes("Error") || aiDescStatus.includes("429") ? "#EF4444" : "#10B981" }}>
+                      {aiDescStatus}
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ position: "relative" }}>
+                  <textarea
+                    rows="4"
+                    placeholder="Enter product description or click ✏️ Magic Pencil at bottom-right to auto-generate..."
+                    value={newProduct.description}
+                    onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                    style={{
+                      width: "100%",
+                      padding: "10px 42px 10px 12px",
+                      borderRadius: "10px",
+                      border: `1px solid ${c.border}`,
+                      background: c.bg,
+                      color: c.text,
+                      boxSizing: "border-box",
+                      fontSize: "13px",
+                      lineHeight: "1.5",
+                      resize: "vertical",
+                    }}
                   />
-                </AiErrorBoundary>
-                <textarea
-                  rows="3"
-                  placeholder="Detailed specifications and key features (use AI Copywriter above or type manually)..."
-                  value={newProduct.description}
-                  onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: `1px solid ${c.border}`, background: c.bg, color: c.text, boxSizing: "border-box" }}
-                />
+
+                  {/* Magic Pencil Button positioned at bottom-right of Description Box */}
+                  <button
+                    type="button"
+                    data-testid="magic-pencil-btn"
+                    title="Auto-generate professional, eye-catching e-commerce description that drives sales"
+                    onClick={handleGenerateWithMagicPencil}
+                    disabled={isGeneratingDesc}
+                    style={{
+                      position: "absolute",
+                      right: "10px",
+                      bottom: "12px",
+                      backgroundColor: isGeneratingDesc ? "#475569" : "#7C3AED",
+                      background: isGeneratingDesc ? "#475569" : "linear-gradient(135deg, #8B5CF6, #6366F1)",
+                      color: "#FFFFFF",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "6px 12px",
+                      fontSize: "12px",
+                      fontWeight: "800",
+                      cursor: isGeneratingDesc ? "wait" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      boxShadow: "0 2px 8px rgba(124, 58, 237, 0.4)",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <span>{isGeneratingDesc ? "⏳" : "✏️✨"}</span>
+                    <span style={{ fontSize: "11px" }}>{isGeneratingDesc ? "Writing..." : "Magic Pencil"}</span>
+                  </button>
+                </div>
+
+                {/* 429 Rate Limit Banner */}
+                {magicPencilRateLimit && (
+                  <div
+                    data-testid="magic-pencil-rate-limit-banner"
+                    style={{
+                      marginTop: "8px",
+                      padding: "10px 14px",
+                      borderRadius: "10px",
+                      backgroundColor: "rgba(239, 68, 68, 0.15)",
+                      border: "1px solid #EF4444",
+                      color: "#FCA5A5",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <span>🛑 Too Many Requests (HTTP 429): You have exceeded your AI request limit. Please wait a moment before trying again.</span>
+                    <button
+                      type="button"
+                      onClick={() => setMagicPencilRateLimit(false)}
+                      style={{ background: "none", border: "none", color: "#FCA5A5", cursor: "pointer", fontWeight: "900" }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+
+                {/* 422 Moderation Banner */}
+                {magicPencilModeration && (
+                  <div
+                    style={{
+                      marginTop: "8px",
+                      padding: "10px 14px",
+                      borderRadius: "10px",
+                      backgroundColor: "rgba(245, 158, 11, 0.15)",
+                      border: "1px solid #F59E0B",
+                      color: "#FDE68A",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <span>🛡️ Content Moderation Guardrail: Product title or details violated safety policy.</span>
+                    <button
+                      type="button"
+                      onClick={() => setMagicPencilModeration(false)}
+                      style={{ background: "none", border: "none", color: "#FDE68A", cursor: "pointer", fontWeight: "900" }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div>

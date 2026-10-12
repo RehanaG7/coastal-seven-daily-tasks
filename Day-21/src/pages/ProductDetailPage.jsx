@@ -5,6 +5,7 @@ import { useOptimisticStockUpdate, MOCK_CATALOG } from "../hooks/useProducts";
 import Footer from "../components/Footer";
 
 import { env } from "../config/env";
+import { checkContentSafety, logAdminModerationAlert } from "../utils/moderationGuardrail";
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -36,6 +37,7 @@ export default function ProductDetailPage() {
   ]);
   const [newReviewText, setNewReviewText] = useState("");
   const [newReviewAuthor, setNewReviewAuthor] = useState("");
+  const [reviewModerationError, setReviewModerationError] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -215,12 +217,25 @@ export default function ProductDetailPage() {
     e.preventDefault();
     if (!newReviewText.trim()) return;
     const author = newReviewAuthor.trim() || user?.name || "Verified Customer";
+    const text = newReviewText.trim();
+
+    // AI Content Moderation & Guardrails: Block toxic, offensive, or abusive reviews
+    const safety = checkContentSafety(text);
+    if (!safety.isSafe) {
+      setReviewModerationError(
+        safety.reason || "🛡️ Content Moderation Guardrail: Your review contains inappropriate or offensive language and cannot be published."
+      );
+      logAdminModerationAlert("Customer Review", text, author);
+      return;
+    }
+
+    setReviewModerationError("");
     const rev = {
       id: Date.now(),
       author,
       rating: 5,
       date: "Just now",
-      text: newReviewText.trim(),
+      text,
     };
     setReviews([rev, ...reviews]);
     setNewReviewText("");
@@ -413,6 +428,35 @@ export default function ProductDetailPage() {
                     </div>
                   ))}
                 </div>
+
+                {/* Moderation Error Banner */}
+                {reviewModerationError && (
+                  <div
+                    data-testid="review-moderation-warning"
+                    style={{
+                      padding: "10px 14px",
+                      backgroundColor: "rgba(239, 68, 68, 0.15)",
+                      border: "1px solid #EF4444",
+                      borderRadius: "8px",
+                      color: "#EF4444",
+                      fontSize: "12px",
+                      fontWeight: "800",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginTop: "6px",
+                    }}
+                  >
+                    <span>{reviewModerationError}</span>
+                    <button
+                      type="button"
+                      onClick={() => setReviewModerationError("")}
+                      style={{ background: "none", border: "none", color: "#EF4444", fontWeight: "900", cursor: "pointer", marginLeft: "10px" }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
 
                 {/* Add Review Input Form */}
                 <form onSubmit={handleAddReview} style={{ display: "flex", gap: "8px", marginTop: "8px" }}>

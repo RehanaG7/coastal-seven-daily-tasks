@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useCartStore, useUIStore, useAuthStore } from "../store/useStore";
 import { env } from "../config/env";
+import { checkContentSafety, logAdminModerationAlert } from "../utils/moderationGuardrail";
 
 const DEFAULT_SUGGESTIONS = [
   "What's new in R-Mart Sparkyyy? 🎁",
@@ -664,6 +665,31 @@ export default function SneakPeekAiAssistant() {
 
     const userMsgId = `user_${Date.now()}`;
     const botMsgId = `bot_${Date.now()}`;
+
+    // AI Content Moderation & Guardrails: Block harassing, abusive, or offensive comments
+    const safety = checkContentSafety(query);
+    if (!safety.isSafe) {
+      logAdminModerationAlert("AI Bot Chat (Sparky)", query, user?.name || "Shopper");
+      const warningReply =
+        "🛡️ **Content Moderation Warning:**\n\n" +
+        "Harassing, offensive, or abusive comments are strictly prohibited on R-Mart. " +
+        "Your message has been blocked and flagged for store administration.\n\n" +
+        "Please keep all queries respectful and focused on shopping, orders, or customer service.";
+
+      setMessages((prev) => [
+        ...prev,
+        { id: userMsgId, role: "user", content: query },
+        {
+          id: botMsgId,
+          role: "assistant",
+          content: warningReply,
+          sources: [],
+          provider: "AI Content Moderation Guardrail",
+          isModerationWarning: true,
+        },
+      ]);
+      return;
+    }
 
     // 2. Off-Topic & Joke Guardrail: Strictly E-Commerce Shopping Answers Only
     if (!isAdmin && isOffTopicQuery(query)) {
@@ -1882,18 +1908,18 @@ export default function SneakPeekAiAssistant() {
                               display: "inline-flex",
                               alignItems: "center",
                               gap: "6px",
-                              backgroundColor: "rgba(59, 130, 246, 0.12)",
-                              border: "1px solid rgba(59, 130, 246, 0.28)",
+                              backgroundColor: m.isModerationWarning ? "rgba(239, 68, 68, 0.2)" : "rgba(59, 130, 246, 0.12)",
+                              border: m.isModerationWarning ? "1px solid rgba(239, 68, 68, 0.4)" : "1px solid rgba(59, 130, 246, 0.28)",
                               borderRadius: "20px",
                               padding: "3px 10px",
                               fontSize: "11.5px",
                               fontWeight: "700",
-                              color: "#93C5FD",
+                              color: m.isModerationWarning ? "#FCA5A5" : "#93C5FD",
                               letterSpacing: "0.2px"
                             }}
                           >
-                            <span style={{ fontSize: "12px" }}>⚡</span>
-                            <span>Powered by: {getDisplayAiEngine(m.provider || activeProvider)}</span>
+                            <span style={{ fontSize: "12px" }}>{m.isModerationWarning ? "🛡️" : "⚡"}</span>
+                            <span>{m.isModerationWarning ? "Safety Moderation Guardrail Active" : `Powered by: ${getDisplayAiEngine(m.provider || activeProvider)}`}</span>
                           </div>
 
                           {m.content && (

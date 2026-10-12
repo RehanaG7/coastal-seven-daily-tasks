@@ -625,35 +625,7 @@ export default function ProductsPage() {
                 </div>
               )}
 
-              {/* Quick Semantic Intent Query Suggestion Pills (Amazon-style intent discovery) */}
-              <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap", marginTop: "4px" }}>
-                <span style={{ fontSize: "11px", fontWeight: "800", color: "#A855F7" }}>🧠 Try AI Intent Search:</span>
-                {[
-                  "🎧 Noise Cancelling",
-                  "💻 Programming Laptops",
-                  "📱 5G Smartphones",
-                  "🎮 Gaming Gear",
-                  "👟 Running Shoes"
-                ].map((promptText) => (
-                  <button
-                    key={promptText}
-                    type="button"
-                    onClick={() => setQuery(promptText.replace(/^[^a-zA-Z0-9\s]+/, "").trim())}
-                    style={{
-                      background: isDark ? "rgba(147, 51, 234, 0.15)" : "#F3E8FF",
-                      border: "1px solid rgba(147, 51, 234, 0.4)",
-                      color: isDark ? "#E9D5FF" : "#7E22CE",
-                      padding: "3px 8px",
-                      borderRadius: "8px",
-                      fontSize: "11px",
-                      fontWeight: "700",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {promptText}
-                  </button>
-                ))}
-              </div>
+
 
               {/* Safety Moderation 422 Alert Notification Only */}
               {aiAlertMessage && !aiAlertMessage.includes("429") && (

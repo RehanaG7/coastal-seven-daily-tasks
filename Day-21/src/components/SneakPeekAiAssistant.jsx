@@ -1748,7 +1748,7 @@ export default function SneakPeekAiAssistant() {
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "800", letterSpacing: "-0.2px", color: "#FFFFFF" }}>
-                      {isAdmin ? "Boss Store Command Intelligence" : "Sparky AI Assistant • Amazon Rufus"}
+                      {isAdmin ? "Boss Store Command Intelligence" : "Sparky AI Assistant"}
                     </h3>
                     <span
                       style={{
@@ -2109,7 +2109,13 @@ export default function SneakPeekAiAssistant() {
                             <button
                               data-testid="reorder-item-btn"
                               onClick={() => {
-                                addToCart({ id: m.returnItem.id, name: m.returnItem.name || m.returnItem.title, price: m.returnItem.price, stock: m.returnItem.stock || 10 }, 1);
+                                addToCart({
+                                  id: m.returnItem.id,
+                                  name: m.returnItem.name || m.returnItem.title,
+                                  price: m.returnItem.price,
+                                  stock: m.returnItem.stock || 10,
+                                  image: m.returnItem.image || m.returnItem.image_url || `https://picsum.photos/seed/product-${m.returnItem.id}/400/300`,
+                                }, 1);
                                 setMessages((prev) => [
                                   ...prev,
                                   {
@@ -2239,7 +2245,13 @@ export default function SneakPeekAiAssistant() {
 
                                   {src.stock > 0 ? (
                                     <button
-                                      onClick={() => addToCart({ id: src.id, name: src.title || src.name, price: src.price, stock: src.stock }, 1)}
+                                      onClick={() => addToCart({
+                                        id: src.id,
+                                        name: src.title || src.name,
+                                        price: src.price,
+                                        stock: src.stock,
+                                        image: src.image || src.image_url || `https://picsum.photos/seed/product-${src.id}/400/300`,
+                                      }, 1)}
                                       style={{
                                         backgroundColor: "#F59E0B",
                                         color: "#030712",

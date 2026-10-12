@@ -393,8 +393,12 @@ export default function CartDrawer({ isOpen, onClose }) {
                         }}
                       >
                         <img
-                          src={item.image}
-                          alt={item.name}
+                          src={item.image || item.image_url || `https://picsum.photos/seed/product-${item.id || 1}/400/300`}
+                          alt={item.name || item.title || "Product"}
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = `https://picsum.photos/seed/product-${item.id || 1}/400/300`;
+                          }}
                           style={{
                             width: "80px",
                             height: "80px",

@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 from core.database import get_db
 from core.ai_service import ai_service
 from core.vector_store import vector_store
+from core.ai_rate_limiter import ai_rate_limit_dep
+from core.moderation_service import moderation_service
 
 
 router = APIRouter()
@@ -27,18 +29,37 @@ class ChatStreamRequest(BaseModel):
     history: Optional[List[ChatMessagePayload]] = Field(default=[], description="Recent conversation turns")
 
 
-@router.post("/chat/stream", summary="Stream RAG-grounded AI shopping assistant responses via SSE")
+@router.post(
+    "/chat/stream",
+    summary="Stream RAG-grounded AI shopping assistant responses via SSE",
+    dependencies=[Depends(ai_rate_limit_dep)]
+)
 async def stream_ai_chat_endpoint(
     req: ChatStreamRequest,
     db: Session = Depends(get_db)
 ):
     """
     Server-Sent Events (SSE) streaming endpoint:
+    - Enforces sliding window rate limit (anonymous: 5, user: 20, admin: 60)
+    - Enforces Content Moderation Guardrails against toxic & prompt injection inputs
     - Performs ChromaDB semantic vector search against store catalog.
     - Grounded prompt injection with stock enforcement and e-commerce guardrails.
     - Multi-provider fallback: Groq -> Gemini -> Local RAG Engine.
     - Yields SSE tokens with source citations metadata.
     """
+    # 1. Moderation Guardrail Check
+    mod_result = moderation_service.check_content(req.message)
+    if not mod_result.is_safe:
+        async def mod_stream():
+            yield "event: provider\ndata: {\"provider\": \"🛡️ Safety Moderation Guardrail\"}\n\n"
+            yield f"event: token\ndata: {{\"token\": \"🛡️ Content Moderation Guardrail: Your message was blocked for violating safety policies ({mod_result.reason}). Please ask a relevant shopping question.\"}}\n\n"
+            yield "event: done\ndata: {}\n\n"
+        return StreamingResponse(
+            mod_stream(),
+            media_type="text/event-stream",
+            headers={"Content-Type": "text/event-stream; charset=utf-8"}
+        )
+
     history_dicts = [h.model_dump() for h in (req.history or [])]
     return StreamingResponse(
         ai_service.stream_chat(query=req.message, history=history_dicts, db=db),

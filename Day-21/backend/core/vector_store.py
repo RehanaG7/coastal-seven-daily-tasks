@@ -119,9 +119,12 @@ class VectorStoreService:
                     hits.append({
                         "id": metadata.get("id"),
                         "title": title,
+                        "name": title,
                         "price": metadata.get("price", 0.0),
                         "stock": metadata.get("stock", 0),
+                        "category": metadata.get("category", "General"),
                         "description": metadata.get("description", ""),
+                        "image": f"https://picsum.photos/seed/product-{metadata.get('id', 1)}/400/300",
                         "snippet": document,
                         "relevance_score": round(max(0.0, 1.0 - float(distance)), 3),
                     })
@@ -162,9 +165,12 @@ class VectorStoreService:
                 scored.append((score, {
                     "id": p.id,
                     "title": p_title,
+                    "name": p_title,
                     "price": float(p.price),
                     "stock": int(p.stock),
+                    "category": getattr(p, "category", "General") or "General",
                     "description": p_desc,
+                    "image": getattr(p, "image", getattr(p, "image_url", f"https://picsum.photos/seed/product-{p.id}/400/300")),
                     "snippet": f"Product: {p_title} (${p.price}) - Stock: {p.stock}",
                     "relevance_score": 0.85 if score > 0 else 0.5,
                 }))

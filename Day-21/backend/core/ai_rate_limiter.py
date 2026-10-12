@@ -78,7 +78,7 @@ class AIRateLimiter:
             if current_count >= limit:
                 raise HTTPException(
                     status_code=429,
-                    detail=f"AI rate limit exceeded ({limit} requests/min). Please try again in {reset_time}s.",
+                    detail=f"Too Many Requests (HTTP 429): You have exceeded your AI request limit. Please wait a moment before trying again. (Limit: {limit}/min, retry in {reset_time}s)",
                     headers={
                         "Retry-After": str(reset_time),
                         "X-RateLimit-Limit": str(limit),

@@ -19,6 +19,10 @@ class ModerationResult(BaseModel):
     reason: Optional[str] = None
     sanitized_text: str
 
+    @property
+    def is_safe(self) -> bool:
+        return not self.flagged
+
 
 class ContentModerationService:
     """
@@ -52,6 +56,10 @@ class ContentModerationService:
         r"die\s+(?:in\s+a\s+fire|you\s+idiot)",
         r"go\s+kill\s+yourself",
     ]
+
+    def check_content(self, text: str) -> ModerationResult:
+        """Alias for check_text."""
+        return self.check_text(text)
 
     def check_text(self, text: str) -> ModerationResult:
         if not text or not text.strip():

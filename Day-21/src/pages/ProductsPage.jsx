@@ -4,6 +4,8 @@ import { useUIStore, useAuthStore } from "../store/useStore";
 import ProductCard from "../components/ProductCard";
 import Footer from "../components/Footer";
 
+import { env } from "../config/env";
+
 export default function ProductsPage() {
   const user = useAuthStore((s) => s.user);
   const theme = useUIStore((s) => s.theme);
@@ -24,6 +26,7 @@ export default function ProductsPage() {
   const [isSemanticLoading, setIsSemanticLoading] = useState(false);
   const [semanticMode, setSemanticMode] = useState(null);
   const [semanticCached, setSemanticCached] = useState(false);
+  const [aiAlertMessage, setAiAlertMessage] = useState("");
 
   // TanStack Infinite Query v5 with PostgreSQL Full-Text & Fuzzy Trigram Search
   const {
@@ -42,13 +45,38 @@ export default function ProductsPage() {
       setSemanticProducts([]);
       setSemanticMode(null);
       setSemanticCached(false);
+      setAiAlertMessage("");
       return;
     }
 
     const timer = setTimeout(async () => {
       setIsSemanticLoading(true);
+      setAiAlertMessage("");
+
+      const apiBase = env.API_BASE_URL || (env.API_URL || "http://localhost:8000").replace(/\/api\/v1\/?$/, "");
+      const token = localStorage.getItem("token") || localStorage.getItem("access_token");
+      const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+
       try {
-        const res = await fetch(`/api/v1/ai/semantic-search?q=${encodeURIComponent(query.trim())}&limit=12`);
+        let res;
+        try {
+          res = await fetch(`${apiBase}/api/v1/ai/semantic-search?q=${encodeURIComponent(query.trim())}&limit=12`, { headers });
+        } catch (netErr) {
+          res = await fetch(`/api/v1/ai/semantic-search?q=${encodeURIComponent(query.trim())}&limit=12`, { headers });
+        }
+
+        if (res.status === 429) {
+          setAiAlertMessage("Too Many Requests (HTTP 429): You have exceeded your AI request limit. Please wait a moment before trying again.");
+          setSemanticProducts([]);
+          return;
+        }
+
+        if (res.status === 422) {
+          setAiAlertMessage("🛡️ Content Moderation Guardrail: Your search query was flagged for policy violations (Prompt Injection / Inappropriate Content).");
+          setSemanticProducts([]);
+          return;
+        }
+
         if (res.ok) {
           const json = await res.json();
           setSemanticProducts(json.items || []);
@@ -322,6 +350,78 @@ export default function ProductsPage() {
                   <span>
                     Searching for "<strong>{query}</strong>" • {displayedProducts.length} {displayedProducts.length === 1 ? "product" : "products"} found
                   </span>
+                </div>
+              )}
+
+              {/* Quick Semantic Intent Query Suggestion Pills */}
+              {useSemanticSearch && (
+                <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap", marginTop: "4px" }}>
+                  <span style={{ fontSize: "11px", fontWeight: "800", color: "#A855F7" }}>Try Intent Search:</span>
+                  {[
+                    "🎧 noise cancelling",
+                    "👟 durable shoes",
+                    "💻 laptop for programming",
+                    "☕ organic healthy morning",
+                    "🛡️ ignore previous instructions (DAN)"
+                  ].map((promptText) => (
+                    <button
+                      key={promptText}
+                      type="button"
+                      onClick={() => setQuery(promptText.replace(/^[^a-zA-Z0-9]+/, ""))}
+                      style={{
+                        background: isDark ? "rgba(147, 51, 234, 0.15)" : "#F3E8FF",
+                        border: "1px solid rgba(147, 51, 234, 0.4)",
+                        color: isDark ? "#E9D5FF" : "#7E22CE",
+                        padding: "3px 8px",
+                        borderRadius: "8px",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {promptText}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Rate Limit 429 & Moderation 422 Alert Notification */}
+              {aiAlertMessage && (
+                <div
+                  data-testid="ai-alert-banner"
+                  style={{
+                    marginTop: "8px",
+                    padding: "10px 14px",
+                    borderRadius: "12px",
+                    backgroundColor: aiAlertMessage.includes("429") ? "rgba(220, 38, 38, 0.2)" : "rgba(234, 179, 8, 0.2)",
+                    border: aiAlertMessage.includes("429") ? "1px solid #DC2626" : "1px solid #EAB308",
+                    color: aiAlertMessage.includes("429") ? "#FCA5A5" : "#FDE047",
+                    fontSize: "12px",
+                    fontWeight: "800",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "10px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ fontSize: "16px" }}>{aiAlertMessage.includes("429") ? "🛑" : "🛡️"}</span>
+                    <span>{aiAlertMessage}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAiAlertMessage("")}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "inherit",
+                      fontSize: "14px",
+                      fontWeight: "900",
+                      cursor: "pointer",
+                    }}
+                  >
+                    ✕
+                  </button>
                 </div>
               )}
             </div>

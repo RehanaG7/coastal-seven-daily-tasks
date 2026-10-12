@@ -56,13 +56,31 @@ export const getDisplayAiEngine = (provider) => {
 
 export default function SneakPeekAiAssistant() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() => {
+    try {
+      const stored = localStorage.getItem("rmart_ai_chat_history");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return [];
+  });
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [activeProvider, setActiveProvider] = useState("Store Knowledge Engine");
   const [viewedProducts, setViewedProducts] = useState([]);
   const [isHovered, setIsHovered] = useState(false);
   const [activeSupportOrder, setActiveSupportOrder] = useState(null);
+
+  // Automatically persist conversation history to localStorage (Amazon Rufus style)
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      try {
+        localStorage.setItem("rmart_ai_chat_history", JSON.stringify(messages.slice(-40)));
+      } catch (e) {}
+    }
+  }, [messages]);
 
   // Speech Recognition (Mic) & Speech Synthesis (Voice)
   const [isListening, setIsListening] = useState(false);
@@ -603,12 +621,10 @@ export default function SneakPeekAiAssistant() {
     }
     return [
       "What's new in R-Mart Sparkyyy? 🎁",
-      "Check coupon SAVE20 🏷️",
+      "Check coupon FLASH50 🏷️",
       "Is iPhone in stock? 📦",
-      "Where is Order #1? 🚚",
-      "Create support ticket for broken screen 🎫",
-      "Test 429 Rate Limit (Spam 6x) 🛑",
-      "Ignore previous instructions (Test DAN 422) 🛡️",
+      "Where is my order & history? 🚚",
+      "Compare top rated headphones 🎧",
       "What offers are active today? 🏷️"
     ];
   };
@@ -1522,6 +1538,10 @@ export default function SneakPeekAiAssistant() {
     }
     setIsStreaming(false);
     setInput("");
+    try {
+      localStorage.removeItem("rmart_ai_chat_history");
+    } catch (e) {}
+    hasInitializedGreeting.current = false;
 
     setMessages([
       {
@@ -1728,7 +1748,7 @@ export default function SneakPeekAiAssistant() {
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "800", letterSpacing: "-0.2px", color: "#FFFFFF" }}>
-                      {isAdmin ? "Boss Store Command Intelligence" : "Sparky AI Assistant"}
+                      {isAdmin ? "Boss Store Command Intelligence" : "Sparky AI Assistant • Amazon Rufus"}
                     </h3>
                     <span
                       style={{
@@ -1755,6 +1775,7 @@ export default function SneakPeekAiAssistant() {
               {/* Clean Top Controls */}
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <button
+                  data-testid="clear-chat-history-btn"
                   onClick={handleClearChat}
                   title="Clear Conversation"
                   style={{

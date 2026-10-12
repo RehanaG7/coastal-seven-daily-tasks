@@ -6,6 +6,79 @@ import Footer from "../components/Footer";
 
 import { env } from "../config/env";
 
+// Lightweight Levenshtein Distance for typo tolerance
+export function levenshteinDistance(s1 = "", s2 = "") {
+  const a = (s1 || "").toLowerCase();
+  const b = (s2 || "").toLowerCase();
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+
+  const matrix = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
+  for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
+
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      );
+    }
+  }
+  return matrix[a.length][b.length];
+}
+
+export const COMMON_TYPOS = {
+  "tv": "tv television monitor display screen",
+  "televison": "tv television",
+  "telivision": "tv television",
+  "televisn": "tv television",
+  "smarttv": "tv television",
+  "headfones": "headphones audio",
+  "hedphones": "headphones audio",
+  "headphon": "headphones audio",
+  "hedphone": "headphones audio",
+  "earfones": "headphones earphones",
+  "samung": "samsung galaxy",
+  "samsng": "samsung galaxy",
+  "samusng": "samsung galaxy",
+  "ipone": "iphone apple",
+  "iphne": "iphone apple",
+  "iphon": "iphone apple",
+  "aple": "apple iphone",
+  "appel": "apple iphone",
+  "labtop": "laptop macbook",
+  "lapotp": "laptop macbook",
+  "laptp": "laptop macbook",
+  "macbok": "macbook apple",
+  "computr": "computer pc laptop",
+  "shose": "shoes sneaker running",
+  "shooes": "shoes sneaker running",
+  "sneekers": "sneakers shoes",
+  "sneker": "sneakers shoes",
+  "runing": "running shoes",
+  "snoy": "sony audio headphones",
+  "soony": "sony audio headphones",
+  "keybord": "keyboard mechanical",
+  "keybaord": "keyboard mechanical",
+  "moniter": "monitor gaming display",
+  "monitr": "monitor gaming display",
+  "wirless": "wireless bluetooth",
+  "wireles": "wireless bluetooth",
+  "blutooth": "bluetooth wireless",
+  "bluetoth": "bluetooth wireless",
+  "camer": "camera sony photo",
+  "camra": "camera sony photo",
+  "coffe": "coffee nespresso",
+  "espreso": "espresso coffee nespresso",
+  "nespreso": "nespresso coffee",
+  "logitec": "logitech mouse keyboard",
+  "logtech": "logitech mouse keyboard"
+};
+
 export default function ProductsPage() {
   const user = useAuthStore((s) => s.user);
   const theme = useUIStore((s) => s.theme);
@@ -19,6 +92,49 @@ export default function ProductsPage() {
   const [category, setCategory] = useState("All");
   const [sortBy, setSortBy] = useState("default");
   const [searchMode, setSearchMode] = useState("auto"); // "auto" | "fts" | "fuzzy"
+
+  // Voice Search (Speech Recognition Mic) State
+  const [isVoiceListening, setIsVoiceListening] = useState(false);
+  const recognitionRef = useRef(null);
+
+  const handleToggleVoiceSearch = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in this browser. Please use Chrome or Edge!");
+      return;
+    }
+
+    if (isVoiceListening) {
+      recognitionRef.current?.stop();
+      setIsVoiceListening(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = "en-US";
+      recognition.continuous = false;
+      recognition.interimResults = true;
+
+      recognition.onstart = () => setIsVoiceListening(true);
+      recognition.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .map((r) => r[0].transcript)
+          .join("");
+        if (transcript) {
+          setQuery(transcript);
+        }
+      };
+      recognition.onerror = () => setIsVoiceListening(false);
+      recognition.onend = () => setIsVoiceListening(false);
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.warn("Voice search error:", err);
+      setIsVoiceListening(false);
+    }
+  };
 
   // Day 21 - Dense Vector Semantic Search State (Native to search input)
   const [semanticProducts, setSemanticProducts] = useState([]);
@@ -136,7 +252,7 @@ export default function ProductsPage() {
     return prods;
   }, [allProducts, sortBy]);
 
-  // Integrated Amazon-Grade Fast Semantic & Intent Search (Zero Ghost / Deleted Products)
+  // Integrated Amazon-Grade Fast Semantic, Typo-Tolerant & Fuzzy Intent Search (Zero Ghost / Deleted Products)
   const displayedProducts = useMemo(() => {
     let deletedIds = new Set();
     try {
@@ -150,7 +266,7 @@ export default function ProductsPage() {
     }
 
     const q = query.trim().toLowerCase();
-    const qWords = q.split(/\s+/).filter(Boolean);
+    const qWords = q.split(/\s+/).filter((w) => w.length > 0);
     const validSemantic = (semanticProducts || []).filter((it) => it && !deletedIds.has(String(it.id)));
 
     const scoredList = baseList.map((p) => {
@@ -159,30 +275,69 @@ export default function ProductsPage() {
       const desc = (p.description || "").toLowerCase();
       const cat = (p.category || "").toLowerCase();
       const fullText = `${title} ${desc} ${cat}`;
+      const productWords = fullText.split(/[^a-zA-Z0-9]+/).filter((w) => w.length > 1);
 
-      if (title.includes(q)) score += 100;
-      if (cat.includes(q)) score += 50;
-      if (desc.includes(q)) score += 30;
+      // 1. Direct Substring Match
+      if (title.includes(q)) score += 120;
+      if (cat.includes(q)) score += 60;
+      if (desc.includes(q)) score += 35;
 
-      qWords.forEach((w) => {
-        if (title.includes(w)) score += 20;
-        if (desc.includes(w)) score += 10;
-        if (cat.includes(w)) score += 15;
+      // 2. Word Token & Fuzzy Levenshtein Match
+      qWords.forEach((qw) => {
+        // Direct word hit
+        if (title.includes(qw)) score += 30;
+        if (desc.includes(qw)) score += 15;
+        if (cat.includes(qw)) score += 20;
+
+        // Check dictionary typo expansion
+        const typoExpansion = COMMON_TYPOS[qw];
+        if (typoExpansion) {
+          typoExpansion.split(" ").forEach((expWord) => {
+            if (fullText.includes(expWord)) score += 40;
+          });
+        }
+
+        // Fuzzy Levenshtein comparison against words in title and category
+        if (qw.length >= 3) {
+          for (const pw of productWords) {
+            if (pw.length >= 3) {
+              const maxDist = qw.length <= 4 ? 1 : 2;
+              const dist = levenshteinDistance(qw, pw);
+              if (dist <= maxDist) {
+                // Closer distance gets higher score
+                score += dist === 0 ? 30 : 25 - dist * 5;
+                break;
+              }
+            }
+          }
+        }
       });
 
-      // Semantic Intent Synonyms (Amazon Search behavior)
-      if ((q.includes("noise") || q.includes("cancelling") || q.includes("anc") || q.includes("audio")) && (fullText.includes("headphone") || fullText.includes("sony") || fullText.includes("bose") || fullText.includes("audio"))) {
-        score += 45;
+      // 3. Semantic Intent Synonyms (Amazon Search behavior)
+      // TV & Display intent
+      if ((q.includes("tv") || q.includes("television") || q.includes("screen") || q.includes("display") || q.includes("oled") || q.includes("qled") || q.includes("bravia")) && (fullText.includes("tv") || fullText.includes("television") || fullText.includes("monitor") || fullText.includes("display"))) {
+        score += 55;
       }
-      if ((q.includes("programming") || q.includes("coding") || q.includes("developer") || q.includes("software")) && (fullText.includes("macbook") || fullText.includes("laptop") || fullText.includes("keyboard") || fullText.includes("monitor") || fullText.includes("code"))) {
-        score += 45;
+      // Audio & Headphones
+      if ((q.includes("noise") || q.includes("cancelling") || q.includes("anc") || q.includes("audio") || q.includes("sound") || q.includes("headphone") || q.includes("earphone") || q.includes("buds")) && (fullText.includes("headphone") || fullText.includes("sony") || fullText.includes("bose") || fullText.includes("audio") || fullText.includes("earphone"))) {
+        score += 50;
       }
-      if ((q.includes("shoe") || q.includes("sneaker") || q.includes("running") || q.includes("footwear") || q.includes("durable")) && (fullText.includes("shoe") || fullText.includes("sneaker") || fullText.includes("running") || fullText.includes("fitness") || fullText.includes("apparel"))) {
-        score += 45;
+      // Programming & Laptops
+      if ((q.includes("programming") || q.includes("coding") || q.includes("developer") || q.includes("software") || q.includes("laptop") || q.includes("macbook") || q.includes("pc")) && (fullText.includes("macbook") || fullText.includes("laptop") || fullText.includes("keyboard") || fullText.includes("monitor") || fullText.includes("computer"))) {
+        score += 50;
+      }
+      // Shoes & Footwear
+      if ((q.includes("shoe") || q.includes("sneaker") || q.includes("running") || q.includes("footwear") || q.includes("durable") || q.includes("athletic")) && (fullText.includes("shoe") || fullText.includes("sneaker") || fullText.includes("running") || fullText.includes("fitness") || fullText.includes("apparel"))) {
+        score += 50;
+      }
+      // Phones & 5G
+      if ((q.includes("phone") || q.includes("smartphone") || q.includes("5g") || q.includes("mobile") || q.includes("galaxy") || q.includes("iphone")) && (fullText.includes("iphone") || fullText.includes("galaxy") || fullText.includes("phone") || fullText.includes("s24") || fullText.includes("mobile"))) {
+        score += 50;
       }
 
+      // ChromaDB Vector Search Semantic Hit
       if (validSemantic.some((s) => String(s.id) === String(p.id))) {
-        score += 60;
+        score += 70;
       }
 
       return { product: p, score };
@@ -203,6 +358,24 @@ export default function ProductsPage() {
 
     return [];
   }, [query, semanticProducts, sortedProducts]);
+
+  // Detected typo auto-correction suggestion
+  const typoCorrection = useMemo(() => {
+    if (!query.trim()) return null;
+    const words = query.trim().toLowerCase().split(/\s+/);
+    let hasCorrection = false;
+    const correctedWords = words.map((w) => {
+      if (COMMON_TYPOS[w]) {
+        hasCorrection = true;
+        return COMMON_TYPOS[w].split(" ")[0];
+      }
+      return w;
+    });
+    if (hasCorrection) {
+      return correctedWords.join(" ");
+    }
+    return null;
+  }, [query]);
 
   // Infinite Scroll Intersection Observer
   const loadMoreRef = useRef(null);
@@ -258,22 +431,25 @@ export default function ProductsPage() {
                 <div style={{ position: "relative", flex: 1 }}>
                   <input
                     type="text"
-                    placeholder="Search products by title, category, or brand..."
+                    placeholder={isVoiceListening ? "🎙️ Listening... Speak now to search..." : "Search products by title, category, or brand..."}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     style={{
                       width: "100%",
                       backgroundColor: isDark ? "#0B0F19" : "#FFFFFF",
-                      border: isDark ? "1px solid #1E293B" : "1px solid #CBD5E1",
+                      border: isVoiceListening
+                        ? "2px solid #EF4444"
+                        : (isDark ? "1px solid #1E293B" : "1px solid #CBD5E1"),
                       borderRadius: "12px",
-                      padding: "12px 16px 12px 40px",
+                      padding: "12px 72px 12px 40px",
                       color: isDark ? "#FFFFFF" : "#0F172A",
                       fontSize: "14px",
                       outline: "none",
                       boxSizing: "border-box",
-                      boxShadow: isDark
-                        ? "inset 0 1px 3px rgba(0,0,0,0.6)"
-                        : "0 2px 6px rgba(0,0,0,0.03)",
+                      boxShadow: isVoiceListening
+                        ? "0 0 12px rgba(239, 68, 68, 0.4)"
+                        : (isDark ? "inset 0 1px 3px rgba(0,0,0,0.6)" : "0 2px 6px rgba(0,0,0,0.03)"),
+                      transition: "all 0.2s ease",
                     }}
                   />
                   <span
@@ -288,13 +464,44 @@ export default function ProductsPage() {
                   >
                     🔍
                   </span>
+
+                  {/* Mic Button: Voice Search with Speech Recognition */}
+                  <button
+                    type="button"
+                    data-testid="voice-search-mic-btn"
+                    title={isVoiceListening ? "Listening... Click to stop" : "Speak to search (Voice Input)"}
+                    onClick={handleToggleVoiceSearch}
+                    style={{
+                      position: "absolute",
+                      right: query ? "36px" : "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      backgroundColor: isVoiceListening ? "rgba(239, 68, 68, 0.2)" : "transparent",
+                      border: isVoiceListening ? "1px solid #EF4444" : "none",
+                      borderRadius: "50%",
+                      width: "28px",
+                      height: "28px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: isVoiceListening ? "#EF4444" : (isDark ? "#94A3B8" : "#64748B"),
+                      cursor: "pointer",
+                      fontSize: "15px",
+                      padding: 0,
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <span>{isVoiceListening ? "🔴" : "🎤"}</span>
+                  </button>
+
                   {query && (
                     <button
                       type="button"
                       onClick={() => setQuery("")}
+                      title="Clear search"
                       style={{
                         position: "absolute",
-                        right: "12px",
+                        right: "10px",
                         top: "50%",
                         transform: "translateY(-50%)",
                         background: "none",
@@ -322,6 +529,47 @@ export default function ProductsPage() {
                   <option value="fuzzy">🎯 Typo-Tolerant Trigram (pg_trgm)</option>
                 </select>
               </div>
+
+              {/* Voice Listening Active Message */}
+              {isVoiceListening && (
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#EF4444", fontWeight: "700" }}>
+                  <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#EF4444" }}></span>
+                  <span>Listening... Speak product name now (e.g. "Smart TV", "Sony Headphones")</span>
+                </div>
+              )}
+
+              {/* Did you mean typo auto-correction pill */}
+              {typoCorrection && typoCorrection !== query.trim().toLowerCase() && (
+                <div
+                  data-testid="typo-correction-hint"
+                  style={{
+                    fontSize: "12px",
+                    color: isDark ? "#94A3B8" : "#64748B",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    marginTop: "2px",
+                  }}
+                >
+                  <span>💡 Did you mean:</span>
+                  <button
+                    type="button"
+                    onClick={() => setQuery(typoCorrection)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#60A5FA",
+                      fontWeight: "800",
+                      cursor: "pointer",
+                      padding: 0,
+                      textDecoration: "underline",
+                      fontSize: "12px",
+                    }}
+                  >
+                    "{typoCorrection}"
+                  </button>
+                </div>
+              )}
 
               {/* Search Engine & Vector Telemetry Indicator */}
               {query.trim() && (

@@ -78,8 +78,77 @@ class LLMProviderManager:
         groq_key = os.getenv("GROQ_API_KEY") or getattr(settings, "GROQ_API_KEY", "") or self.groq_api_key
         gemini_key = os.getenv("GEMINI_API_KEY") or getattr(settings, "GEMINI_API_KEY", "") or self.gemini_api_key
 
-        # 1. Retrieve Top-K products via ChromaDB vector store
-        retrieved_products = vector_store.search_similar_products(query=query, top_k=4, db=db)
+        # Determine intent: Customer Support/Exception vs Specific Product Shopping Inquiry
+        q_lower = query.lower().strip()
+
+        is_damaged_query = any(k in q_lower for k in [
+            "damage", "damaged", "broken", "cracked", "defect", "defective",
+            "scratched", "faulty item", "faulty", "ruined", "torn"
+        ])
+        is_not_received_query = any(k in q_lower for k in [
+            "not received", "didn't receive", "did not receive", "haven't received",
+            "have not received", "never received", "order missing", "package missing",
+            "where is my order", "order not delivered", "not arrived", "haven't got my"
+        ])
+        is_return_query = any(k in q_lower for k in [
+            "return", "want to return", "returning", "exchange item", "send back"
+        ])
+        is_complaint_query = any(k in q_lower for k in [
+            "complaint", "unhappy", "not satisfied", "bad service", "poor service",
+            "problem with order", "issue with order", "file a complaint", "terrible service",
+            "disappointed", "worst experience", "bad experience"
+        ])
+        is_admin_handover = any(k in q_lower for k in [
+            "talk to admin", "speak to admin", "talk to human", "speak to human",
+            "human agent", "live support", "connect to admin", "problem not resolved",
+            "not resolved"
+        ])
+        is_greeting = q_lower in [
+            "hi", "hello", "hey", "hola", "good morning", "good afternoon",
+            "good evening", "howdy", "sup", "yo"
+        ] or q_lower.startswith(("hi ", "hello ", "hey "))
+        is_off_topic = any(k in q_lower for k in [
+            "joke", "funny", "laugh", "humor", "riddle", "comedy",
+            "who is ", "who was ", "what is the capital", "how do airplanes",
+            "solve ", "write python", "write code", "write an essay", "write a poem",
+            "weather", "sing a song", "tell a story", "what is photosynthesis",
+            "quantum", "president of", "cricket match", "football match"
+        ])
+        is_general_support = (
+            any(k in q_lower for k in ["refund", "cancel order", "cancellation", "order status", "invoice"])
+            and not any(k in q_lower for k in ["buy", "recommend", "suggest", "search", "looking for", "item", "product"])
+        )
+
+        is_support_or_non_product = (
+            is_damaged_query or is_not_received_query or is_return_query or
+            is_complaint_query or is_admin_handover or is_greeting or is_off_topic or is_general_support
+        )
+
+        retrieved_products = []
+        if not is_support_or_non_product:
+            # 1. Retrieve Candidate products via ChromaDB vector store
+            raw_candidates = vector_store.search_similar_products(query=query, top_k=4, db=db)
+            filtered_candidates = [
+                p for p in raw_candidates
+                if not any(k in (p.get("title") or "").lower() for k in ["n+1", "invoice test", "test"]) or "test" in query.lower()
+            ]
+
+            # Check if query specifically targets a particular product
+            exact_title_matches = [
+                p for p in filtered_candidates
+                if any(word in q_lower for word in (p.get("title") or "").lower().split() if len(word) > 3)
+            ]
+
+            if exact_title_matches:
+                retrieved_products = exact_title_matches[:1]
+            else:
+                # General shopping intent - only include high-relevance items (up to top 2)
+                retrieved_products = [
+                    p for p in filtered_candidates
+                    if p.get("relevance_score", 1.0) >= 0.55
+                ][:2]
+                if not retrieved_products and filtered_candidates:
+                    retrieved_products = filtered_candidates[:1]
 
         # Emit metadata event first (Sources citation data for the UI)
         meta_payload = {
@@ -92,7 +161,6 @@ class LLMProviderManager:
                     "relevance": p.get("relevance_score", 0.9)
                 }
                 for p in retrieved_products
-                if not any(k in (p.get("title") or "").lower() for k in ["n+1", "invoice test", "test"]) or "test" in query.lower()
             ],
             "query": query,
         }
@@ -179,6 +247,17 @@ class LLMProviderManager:
         ]
         is_off_topic = any(k in q_lower for k in off_topic_triggers)
 
+        is_greeting = q_lower in [
+            "hi", "hello", "hey", "hola", "good morning", "good afternoon",
+            "good evening", "howdy", "sup", "yo"
+        ] or q_lower.startswith(("hi ", "hello ", "hey "))
+
+        is_admin_handover = any(k in q_lower for k in [
+            "talk to admin", "speak to admin", "talk to human", "speak to human",
+            "human agent", "live support", "connect to admin", "problem not resolved",
+            "not resolved"
+        ])
+
         is_damaged_query = any(k in q_lower for k in ["damage", "damaged", "broken", "cracked", "defect", "defective", "scratched", "faulty item"])
         has_photo_uploaded = any(k in q_lower for k in ["photo", "image", "upload", "pic", "attached", "proof", "picture"])
 
@@ -201,6 +280,16 @@ class LLMProviderManager:
                 "• 🏷️ **FLASH50**: 50% discount on select high-demand electronics!\n"
                 "• 🚚 **FREESHIP**: Instant zero-cost express delivery on orders over $99!\n\n"
                 "What items would you like to explore or add to your shopping bag?"
+            )
+        elif is_greeting:
+            full_response = (
+                "Hello! I am Sparky, your R-Mart assistant. ⚡\n\n"
+                "How can I help you today? You can ask me about our products, check order status, or get support with returns and refunds."
+            )
+        elif is_admin_handover:
+            full_response = (
+                "I understand and I'm connecting you directly to our Store Administrator right away! 🫡\n\n"
+                "Please click the 'Talk to Admin' button or hold on while we initiate the Live Support session."
             )
         elif is_damaged_query:
             if has_photo_uploaded:

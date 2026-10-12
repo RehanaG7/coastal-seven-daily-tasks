@@ -20,8 +20,7 @@ export default function ProductsPage() {
   const [sortBy, setSortBy] = useState("default");
   const [searchMode, setSearchMode] = useState("auto"); // "auto" | "fts" | "fuzzy"
 
-  // Day 21 - Dense Vector Semantic Search State
-  const [useSemanticSearch, setUseSemanticSearch] = useState(false);
+  // Day 21 - Dense Vector Semantic Search State (Native to search input)
   const [semanticProducts, setSemanticProducts] = useState([]);
   const [isSemanticLoading, setIsSemanticLoading] = useState(false);
   const [semanticMode, setSemanticMode] = useState(null);
@@ -39,9 +38,9 @@ export default function ProductsPage() {
     refetch,
   } = useInfiniteProducts({ query, category, searchMode });
 
-  // Debounced Semantic Search Hook
+  // Debounced Semantic Search Hook: natively executes vector search when query is entered
   useEffect(() => {
-    if (!useSemanticSearch || !query.trim()) {
+    if (!query.trim()) {
       setSemanticProducts([]);
       setSemanticMode(null);
       setSemanticCached(false);
@@ -91,7 +90,7 @@ export default function ProductsPage() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query, useSemanticSearch]);
+  }, [query]);
 
 
   // Flattened products with useMemo and instant blacklist exclusion
@@ -137,11 +136,11 @@ export default function ProductsPage() {
 
   // Integrated Semantic AI Search vs Standard Filtered Products
   const displayedProducts = useMemo(() => {
-    if (useSemanticSearch && query.trim() && semanticProducts.length > 0) {
+    if (query.trim() && semanticProducts.length > 0) {
       return semanticProducts;
     }
     return sortedProducts;
-  }, [useSemanticSearch, query, semanticProducts, sortedProducts]);
+  }, [query, semanticProducts, sortedProducts]);
 
   // Infinite Scroll Intersection Observer
   const loadMoreRef = useRef(null);
@@ -248,38 +247,6 @@ export default function ProductsPage() {
                     </button>
                   )}
                 </div>
-
-                {/* Day 21 Semantic AI Search Toggle Button */}
-                <button
-                  type="button"
-                  data-testid="semantic-search-toggle"
-                  onClick={() => setUseSemanticSearch(!useSemanticSearch)}
-                  title="Toggle AI Semantic Intent Search vs Exact Keywords"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    padding: "10px 14px",
-                    borderRadius: "12px",
-                    border: useSemanticSearch
-                      ? "1px solid #A855F7"
-                      : isDark ? "1px solid #1E293B" : "1px solid #CBD5E1",
-                    background: useSemanticSearch
-                      ? "linear-gradient(135deg, #7E22CE, #6366F1)"
-                      : isDark ? "#0B0F19" : "#FFFFFF",
-                    color: useSemanticSearch ? "#FFFFFF" : isDark ? "#94A3B8" : "#475569",
-                    fontWeight: "800",
-                    fontSize: "12px",
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    boxShadow: useSemanticSearch ? "0 4px 12px rgba(126, 34, 206, 0.35)" : "none",
-                    transition: "all 0.2s ease",
-                  }}
-                >
-                  <span>🧠</span>
-                  <span>{useSemanticSearch ? "Semantic AI Active" : "Semantic Search"}</span>
-                </button>
-
                 {/* Advanced Search is applied automatically under the hood (FTS + Typo Fuzzy) */}
                 <select
                   value={searchMode}
@@ -297,56 +264,51 @@ export default function ProductsPage() {
               {/* Search Engine & Vector Telemetry Indicator */}
               {query.trim() && (
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: isDark ? "#94A3B8" : "#64748B", flexWrap: "wrap" }}>
-                  {useSemanticSearch ? (
-                    <>
-                      <span
-                        data-testid="semantic-search-telemetry-badge"
-                        style={{
-                          backgroundColor: "rgba(147, 51, 234, 0.2)",
-                          color: "#C084FC",
-                          padding: "2px 8px",
-                          borderRadius: "6px",
-                          fontWeight: "800",
-                          fontSize: "11px",
-                          border: "1px solid rgba(147, 51, 234, 0.4)",
-                        }}
-                      >
-                        {isSemanticLoading ? "⏳ ChromaDB Vector Embedding..." : `🧠 Semantic Vector Search (${semanticMode || "cosine"})`}
-                      </span>
-                      {semanticCached && (
-                        <span
-                          style={{
-                            backgroundColor: "rgba(16, 185, 129, 0.15)",
-                            color: "#34D399",
-                            padding: "2px 6px",
-                            borderRadius: "6px",
-                            fontWeight: "700",
-                            fontSize: "10px",
-                          }}
-                        >
-                          ⚡ Redis Cache Hit (&lt;3ms)
-                        </span>
-                      )}
-                    </>
-                  ) : (
+                  <span
+                    data-testid="semantic-search-telemetry-badge"
+                    style={{
+                      backgroundColor: "rgba(147, 51, 234, 0.2)",
+                      color: "#C084FC",
+                      padding: "2px 8px",
+                      borderRadius: "6px",
+                      fontWeight: "800",
+                      fontSize: "11px",
+                      border: "1px solid rgba(147, 51, 234, 0.4)",
+                    }}
+                  >
+                    {isSemanticLoading ? "⏳ ChromaDB Vector Embedding..." : `🧠 Semantic Vector Search (${semanticMode || "all-MiniLM-L6-v2"})`}
+                  </span>
+                  {semanticCached && (
                     <span
-                      data-testid="search-telemetry-badge"
                       style={{
-                        backgroundColor: "rgba(56, 189, 248, 0.15)",
-                        color: "#38BDF8",
-                        padding: "2px 8px",
+                        backgroundColor: "rgba(16, 185, 129, 0.15)",
+                        color: "#34D399",
+                        padding: "2px 6px",
                         borderRadius: "6px",
-                        fontWeight: "800",
-                        fontSize: "11px",
+                        fontWeight: "700",
+                        fontSize: "10px",
                       }}
                     >
-                      {searchMode === "fts"
-                        ? "PostgreSQL tsvector + GIN Ranking"
-                        : searchMode === "fuzzy"
-                        ? "pg_trgm Trigram Similarity Match"
-                        : "PostgreSQL Auto FTS & pg_trgm Typo Fallback"}
+                      ⚡ Redis Cache Hit (&lt;3ms)
                     </span>
                   )}
+                  <span
+                    data-testid="search-telemetry-badge"
+                    style={{
+                      backgroundColor: "rgba(56, 189, 248, 0.15)",
+                      color: "#38BDF8",
+                      padding: "2px 8px",
+                      borderRadius: "6px",
+                      fontWeight: "800",
+                      fontSize: "11px",
+                    }}
+                  >
+                    {searchMode === "fts"
+                      ? "PostgreSQL tsvector + GIN Ranking"
+                      : searchMode === "fuzzy"
+                      ? "pg_trgm Trigram Similarity Match"
+                      : "PostgreSQL Auto FTS & pg_trgm Typo Fallback"}
+                  </span>
                   <span>
                     Searching for "<strong>{query}</strong>" • {displayedProducts.length} {displayedProducts.length === 1 ? "product" : "products"} found
                   </span>
@@ -354,36 +316,34 @@ export default function ProductsPage() {
               )}
 
               {/* Quick Semantic Intent Query Suggestion Pills */}
-              {useSemanticSearch && (
-                <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap", marginTop: "4px" }}>
-                  <span style={{ fontSize: "11px", fontWeight: "800", color: "#A855F7" }}>Try Intent Search:</span>
-                  {[
-                    "🎧 noise cancelling",
-                    "👟 durable shoes",
-                    "💻 laptop for programming",
-                    "☕ organic healthy morning",
-                    "🛡️ ignore previous instructions (DAN)"
-                  ].map((promptText) => (
-                    <button
-                      key={promptText}
-                      type="button"
-                      onClick={() => setQuery(promptText.replace(/^[^a-zA-Z0-9]+/, ""))}
-                      style={{
-                        background: isDark ? "rgba(147, 51, 234, 0.15)" : "#F3E8FF",
-                        border: "1px solid rgba(147, 51, 234, 0.4)",
-                        color: isDark ? "#E9D5FF" : "#7E22CE",
-                        padding: "3px 8px",
-                        borderRadius: "8px",
-                        fontSize: "11px",
-                        fontWeight: "700",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {promptText}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap", marginTop: "4px" }}>
+                <span style={{ fontSize: "11px", fontWeight: "800", color: "#A855F7" }}>🧠 Try AI Intent Search:</span>
+                {[
+                  "🎧 noise cancelling",
+                  "👟 durable shoes",
+                  "💻 laptop for programming",
+                  "☕ organic healthy morning",
+                  "🛡️ ignore previous instructions (DAN)"
+                ].map((promptText) => (
+                  <button
+                    key={promptText}
+                    type="button"
+                    onClick={() => setQuery(promptText.replace(/^[^a-zA-Z0-9]+/, ""))}
+                    style={{
+                      background: isDark ? "rgba(147, 51, 234, 0.15)" : "#F3E8FF",
+                      border: "1px solid rgba(147, 51, 234, 0.4)",
+                      color: isDark ? "#E9D5FF" : "#7E22CE",
+                      padding: "3px 8px",
+                      borderRadius: "8px",
+                      fontSize: "11px",
+                      fontWeight: "700",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {promptText}
+                  </button>
+                ))}
+              </div>
 
               {/* Rate Limit 429 & Moderation 422 Alert Notification */}
               {aiAlertMessage && (

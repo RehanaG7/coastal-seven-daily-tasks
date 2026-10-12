@@ -1437,6 +1437,14 @@ export default function SneakPeekAiAssistant() {
             `• Features built-in S Pen, Titanium chassis, and on-device AI live translation.\n\n` +
             `[Source: Samsung Galaxy S24 Ultra (ID: #3, $1299.99)]`;
           fallbackSources = [{ id: 3, title: "Samsung Galaxy S24 Ultra", price: 1299.99, stock: 8 }];
+        } else if (
+          qLower === "hi" || qLower === "hello" || qLower === "hey" ||
+          qLower.startsWith("hi ") || qLower.startsWith("hello ") || qLower.startsWith("hey ")
+        ) {
+          fallbackReply =
+            "Hello! I am Sparky, your R-Mart assistant. ⚡\n\n" +
+            "How can I help you today? You can ask me about our products, check order status, or get support with returns and refunds.";
+          fallbackSources = [];
         } else {
           fallbackReply =
             "Apologise, I only can solve queries regarding our website!\n\n" +
@@ -1449,11 +1457,7 @@ export default function SneakPeekAiAssistant() {
             "• 🏷️ **FLASH50**: 50% discount on select high-demand electronics!\n" +
             "• 🚚 **FREESHIP**: Instant zero-cost express delivery on orders over $99!\n\n" +
             "What would you like to buy or explore in our store today?";
-          fallbackSources = [
-            { id: 3, title: "Samsung Galaxy S24 Ultra", price: 1299.99, stock: 8 },
-            { id: 2, title: "Sony WH-1000XM5 Wireless Headphones", price: 349.99, stock: 15 },
-            { id: 1, title: "Apple iPhone 15 Pro Max 256GB", price: 1199.99, stock: 0 }
-          ];
+          fallbackSources = [];
         }
       }
 

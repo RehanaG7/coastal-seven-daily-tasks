@@ -647,7 +647,7 @@ export default function TaskProgressModal({
         >
           {status === "SUCCESS" && task?.result?.download_url && (
             <a
-              href={`http://127.0.0.1:8000${task.result.download_url}`}
+              href={`https://e-commerce-backend-texz.onrender.com${task.result.download_url}`}
               target="_blank"
               rel="noopener noreferrer"
               download

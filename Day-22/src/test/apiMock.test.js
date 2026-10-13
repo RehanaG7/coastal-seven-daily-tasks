@@ -1,8 +1,8 @@
-﻿import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vitest";
 
 describe("MSW API Mocking Layer", () => {
   it("intercepts product fetch requests and returns mocked payloads", async () => {
-    const res = await fetch("http://127.0.0.1:8000/api/v1/products");
+    const res = await fetch("https://e-commerce-backend-texz.onrender.com/api/v1/products");
     const data = await res.json();
 
     expect(res.status).toBe(200);

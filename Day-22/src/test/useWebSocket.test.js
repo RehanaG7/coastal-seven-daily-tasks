@@ -64,7 +64,7 @@ describe("Day 17 - useWebSocket Hook & Exponential Backoff Reconnection", () => 
 
   it("initializes in CONNECTING state and reaches OPEN on socket connect", () => {
     const { result } = renderHook(() =>
-      useWebSocket("ws://127.0.0.1:8000/ws/live", { autoConnect: true })
+      useWebSocket("wss://e-commerce-backend-texz.onrender.com/ws/live", { autoConnect: true })
     );
 
     expect(result.current.status).toBe(ReadyState.CONNECTING);
@@ -82,7 +82,7 @@ describe("Day 17 - useWebSocket Hook & Exponential Backoff Reconnection", () => 
 
   it("serializes and transmits payloads via sendMessage when OPEN", () => {
     const { result } = renderHook(() =>
-      useWebSocket("ws://127.0.0.1:8000/ws/live")
+      useWebSocket("wss://e-commerce-backend-texz.onrender.com/ws/live")
     );
 
     act(() => {
@@ -105,7 +105,7 @@ describe("Day 17 - useWebSocket Hook & Exponential Backoff Reconnection", () => 
   it("receives and deserializes JSON messages reactively", () => {
     const onMessageMock = vi.fn();
     const { result } = renderHook(() =>
-      useWebSocket("ws://127.0.0.1:8000/ws/live", { onMessage: onMessageMock })
+      useWebSocket("wss://e-commerce-backend-texz.onrender.com/ws/live", { onMessage: onMessageMock })
     );
 
     act(() => {
@@ -129,7 +129,7 @@ describe("Day 17 - useWebSocket Hook & Exponential Backoff Reconnection", () => 
 
   it("triggers exponential backoff reconnection on unexpected connection interruption", () => {
     const { result } = renderHook(() =>
-      useWebSocket("ws://127.0.0.1:8000/ws/live", {
+      useWebSocket("wss://e-commerce-backend-texz.onrender.com/ws/live", {
         reconnect: true,
         baseDelay: 1000,
         maxReconnectAttempts: 3,
@@ -161,7 +161,7 @@ describe("Day 17 - useWebSocket Hook & Exponential Backoff Reconnection", () => 
 
   it("disconnect() cleanly closes connection without triggering auto-reconnect", () => {
     const { result } = renderHook(() =>
-      useWebSocket("ws://127.0.0.1:8000/ws/live", { reconnect: true })
+      useWebSocket("wss://e-commerce-backend-texz.onrender.com/ws/live", { reconnect: true })
     );
 
     act(() => {

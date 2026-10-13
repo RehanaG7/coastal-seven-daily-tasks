@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { useUIStore } from "../store/useStore";
 
 describe("Day 16: UI & Dark/Light Mode Theme Store Suite", () => {

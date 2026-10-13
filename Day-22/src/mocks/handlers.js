@@ -1,7 +1,7 @@
-﻿import { http, HttpResponse } from "msw";
+import { http, HttpResponse } from "msw";
 
 export const handlers = [
-  http.get("http://127.0.0.1:8000/api/v1/products", () => {
+  http.get("https://e-commerce-backend-texz.onrender.com/api/v1/products", () => {
     return HttpResponse.json({
       items: [
         {
@@ -21,7 +21,7 @@ export const handlers = [
     });
   }),
 
-  http.get("http://127.0.0.1:8000/products", () => {
+  http.get("https://e-commerce-backend-texz.onrender.com/products", () => {
     return HttpResponse.json({
       items: [
         {

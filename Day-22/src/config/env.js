@@ -5,11 +5,11 @@
 
 export const env = {
   // REST API Endpoints
-  API_URL: import.meta.env?.VITE_API_URL || "http://localhost:8000/api/v1",
-  API_BASE_URL: (import.meta.env?.VITE_API_URL || "http://localhost:8000/api/v1").replace(/\/api\/v1\/?$/, ""),
+  API_URL: import.meta.env?.VITE_API_URL || "https://e-commerce-backend-texz.onrender.com/api/v1",
+  API_BASE_URL: (import.meta.env?.VITE_API_URL || "https://e-commerce-backend-texz.onrender.com/api/v1").replace(/\/api\/v1\/?$/, ""),
 
   // WebSocket Endpoints
-  WS_URL: import.meta.env?.VITE_WS_URL || "ws://127.0.0.1:8000/ws",
+  WS_URL: import.meta.env?.VITE_WS_URL || "wss://e-commerce-backend-texz.onrender.com/ws",
 
   // Environment Metas
   APP_ENV: import.meta.env?.VITE_APP_ENV || "development",

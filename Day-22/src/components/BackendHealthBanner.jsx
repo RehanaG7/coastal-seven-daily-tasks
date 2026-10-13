@@ -12,7 +12,7 @@ export default function BackendHealthBanner() {
     setStatus("checking");
     const start = performance.now();
     try {
-      const res = await fetch("http://127.0.0.1:8000/", { method: "GET" });
+      const res = await fetch("https://e-commerce-backend-texz.onrender.com/", { method: "GET" });
       const elapsed = Math.round(performance.now() - start);
       if (res.ok) {
         setStatus("online");

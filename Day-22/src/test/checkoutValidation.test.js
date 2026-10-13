@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vitest";
 import { checkoutSchema } from "../schemas/checkoutSchema";
 
 describe("Day 16: Checkout Zod Schema Validation Suite", () => {

@@ -228,16 +228,16 @@ class LLMProviderManager:
                 prompt_content = f"{system_prompt}\n\nUser Question: {query}"
                 try:
                     response = client.models.generate_content_stream(
+                        model="gemini-3.5-flash-lite",
+                        contents=prompt_content,
+                    )
+                    gemini_model_label = "Google Gemini 3.5 Flash Lite"
+                except Exception:
+                    response = client.models.generate_content_stream(
                         model="gemini-3.8-flash",
                         contents=prompt_content,
                     )
                     gemini_model_label = "Google Gemini 3.8 Flash"
-                except Exception:
-                    response = client.models.generate_content_stream(
-                        model="gemini-2.0-flash",
-                        contents=prompt_content,
-                    )
-                    gemini_model_label = "Google Gemini 2.0 Flash"
 
                 yield f"event: provider\ndata: {json.dumps({'provider': gemini_model_label})}\n\n"
                 for chunk in response:

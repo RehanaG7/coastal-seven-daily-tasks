@@ -285,16 +285,16 @@ class AICopywriterService:
                 )
                 try:
                     response = client.models.generate_content(
+                        model="gemini-3.5-flash-lite",
+                        contents=prompt
+                    )
+                    used_gemini_model = "gemini-3.5-flash-lite"
+                except Exception:
+                    response = client.models.generate_content(
                         model="gemini-3.8-flash",
                         contents=prompt
                     )
                     used_gemini_model = "gemini-3.8-flash"
-                except Exception:
-                    response = client.models.generate_content(
-                        model="gemini-2.0-flash",
-                        contents=prompt
-                    )
-                    used_gemini_model = "gemini-2.0-flash"
                 parsed_json = json.loads(response.text.strip().removeprefix("```json").removesuffix("```").strip())
                 result = {
                     "headline": parsed_json.get("headline", title),

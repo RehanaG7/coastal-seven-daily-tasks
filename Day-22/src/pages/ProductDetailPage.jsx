@@ -171,7 +171,14 @@ export default function ProductDetailPage() {
           }
         } else if (res.status === 404) {
           if (isMounted) {
-            setProduct(null);
+            let deleted = new Set();
+            try {
+              deleted = new Set(JSON.parse(localStorage.getItem("rmart_deleted_product_ids") || "[]").map(String));
+            } catch (e) {}
+            // Only clear product if explicitly deleted by admin or if no fallback catalog item was found
+            if (deleted.has(String(id)) || (!initialItem && !product)) {
+              setProduct(null);
+            }
             setLoading(false);
           }
         }

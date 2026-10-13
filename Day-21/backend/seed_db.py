@@ -507,6 +507,33 @@ def seed_database():
 
         db.commit()
         print(f"Database sync complete: {inserted_count} inserted, {updated_count} updated. Total: {len(SEEDED_PRODUCTS)} products across 16 R-Mart categories.")
+
+        # Seed realistic customer reviews (both positive and critical)
+        from models.ecommerce import Review
+        existing_rev_count = db.query(Review).count()
+        if existing_rev_count == 0:
+            all_prods = db.query(Product).all()
+            sample_reviews = [
+                {"rating": 5, "author": "Arun Kumar", "comment": "Outstanding product! Build quality and performance exceeded expectations. Delivered within 24 hours."},
+                {"rating": 4, "author": "Priya Sharma", "comment": "Great performance overall. Only minor point is that setup took a few extra minutes."},
+                {"rating": 5, "author": "David Miller", "comment": "100% authentic genuine product. Pristine packaging and excellent responsiveness."},
+                {"rating": 3, "author": "Neha Patel", "comment": "Decent product for the price. Works fine but wish the power cable was slightly longer."},
+                {"rating": 5, "author": "Karthik R.", "comment": "Absolute value for money! Worked effortlessly straight out of the box."},
+                {"rating": 2, "author": "Sanjay Verma", "comment": "The device works okay, but the outer packaging arrived slightly scuffed. Support resolved questions quickly."}
+            ]
+            for p in all_prods[:15]:
+                import random
+                chosen = random.sample(sample_reviews, k=3)
+                for cr in chosen:
+                    db.add(Review(
+                        product_id=p.id,
+                        user_name=cr["author"],
+                        user_email=f"{cr['author'].lower().replace(' ', '.')}@gmail.com",
+                        rating=cr["rating"],
+                        comment=cr["comment"]
+                    ))
+            db.commit()
+            print("Seeded authentic customer reviews across catalog.")
     finally:
         db.close()
 

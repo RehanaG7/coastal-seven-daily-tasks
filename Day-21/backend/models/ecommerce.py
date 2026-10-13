@@ -44,10 +44,12 @@ class Review(Base):
     __tablename__ = "reviews"
     __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    product_id = Column(Integer, ForeignKey("products.id"))
-    rating = Column(Integer, nullable=False)
-    comment = Column(Text)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_name = Column(String, nullable=True, default="Verified Buyer")
+    user_email = Column(String, nullable=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    rating = Column(Integer, nullable=False, default=5)
+    comment = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User")

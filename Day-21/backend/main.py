@@ -23,7 +23,7 @@ from models.user import User
 from models.product import Product
 from models.order import Order, OrderItem
 from models.ecommerce import ChatMessage, Notification
-from routers import auth, cart, orders, products, realtime, tasks, ai_chat, ai_tools
+from routers import auth, cart, orders, products, realtime, tasks, ai_chat, ai_tools, store
 
 # Ensure static directories exist
 STATIC_DIR = Path("static")
@@ -93,12 +93,14 @@ app.include_router(cart.router, prefix="/api/v1/cart", tags=["3. Redis Shopping 
 app.include_router(orders.router, prefix="/api/v1/orders", tags=["4. Orders & Fulfillment"])
 app.include_router(realtime.router, prefix="/api/v1", tags=["5. Real-Time & WebSockets"])
 app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["6. Celery Background Tasks"])
+app.include_router(store.router, prefix="/api/v1", tags=["7. Store Actions & Reviews"])
 
 # Root aliases for direct frontend access
 app.include_router(auth.router, prefix="/auth", tags=["Auth (Root)"])
 app.include_router(products.router, prefix="/products", tags=["Products (Root)"])
 app.include_router(cart.router, prefix="/cart", tags=["Cart (Root)"])
 app.include_router(orders.router, prefix="/orders", tags=["Orders (Root)"])
+app.include_router(store.router, tags=["Store Actions & Reviews (Root)"])
 app.include_router(realtime.router, tags=["Real-Time (Root)"])
 app.include_router(tasks.router, prefix="/tasks", tags=["Tasks (Root)"])
 

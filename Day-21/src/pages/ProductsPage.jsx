@@ -175,9 +175,16 @@ export default function ProductsPage() {
       try {
         let res;
         try {
-          res = await fetch(`${apiBase}/api/v1/ai/semantic-search?q=${encodeURIComponent(query.trim())}&limit=12`, { headers });
-        } catch (netErr) {
           res = await fetch(`/api/v1/ai/semantic-search?q=${encodeURIComponent(query.trim())}&limit=12`, { headers });
+          if (!res.ok && res.status !== 422 && res.status !== 429) {
+            throw new Error(`Proxy error ${res.status}`);
+          }
+        } catch (proxyErr) {
+          try {
+            res = await fetch(`http://127.0.0.1:8000/api/v1/ai/semantic-search?q=${encodeURIComponent(query.trim())}&limit=12`, { headers });
+          } catch (netErr2) {
+            res = await fetch(`${apiBase}/api/v1/ai/semantic-search?q=${encodeURIComponent(query.trim())}&limit=12`, { headers });
+          }
         }
 
         if (res.status === 429) {
@@ -205,7 +212,7 @@ export default function ProductsPage() {
       } finally {
         setIsSemanticLoading(false);
       }
-    }, 250);
+    }, 180);
 
     return () => clearTimeout(timer);
   }, [query]);
@@ -336,14 +343,35 @@ export default function ProductsPage() {
       }
 
       // ChromaDB Vector Search Semantic Hit
-      if (validSemantic.some((s) => String(s.id) === String(p.id))) {
-        score += 70;
+      const semanticMatch = validSemantic.find((s) => String(s.id) === String(p.id));
+      if (semanticMatch) {
+        score += 350 + Math.round((semanticMatch.relevance_score || 0.85) * 150);
       }
 
-      return { product: p, score };
+      const enhancedProduct = semanticMatch?.relevance_score
+        ? { ...p, relevance_score: semanticMatch.relevance_score }
+        : p;
+
+      return { product: enhancedProduct, score };
     });
 
-    const matches = scoredList
+    // Also include any semantic products returned by ChromaDB that are not in baseList
+    const baseIds = new Set(baseList.map((p) => String(p.id)));
+    const additionalSemantic = validSemantic
+      .filter((s) => s && !baseIds.has(String(s.id)))
+      .map((s) => ({
+        product: {
+          ...s,
+          name: s.name || s.title,
+          image: s.image || `https://picsum.photos/seed/product-${s.id}/400/300`,
+          relevance_score: s.relevance_score || 0.85,
+        },
+        score: 350 + Math.round((s.relevance_score || 0.85) * 150),
+      }));
+
+    const combinedList = [...scoredList, ...additionalSemantic];
+
+    const matches = combinedList
       .filter((item) => item.score > 0)
       .sort((a, b) => b.score - a.score)
       .map((item) => item.product);
@@ -353,7 +381,11 @@ export default function ProductsPage() {
     }
 
     if (validSemantic.length > 0) {
-      return validSemantic;
+      return validSemantic.map((s) => ({
+        ...s,
+        name: s.name || s.title,
+        image: s.image || `https://picsum.photos/seed/product-${s.id}/400/300`,
+      }));
     }
 
     return [];
@@ -402,7 +434,10 @@ export default function ProductsPage() {
   return (
     <div
       style={{
-        backgroundColor: isDark ? "#000000" : "#F8FAFC",
+        backgroundColor: isDark ? "#060913" : "#F8FAFC",
+        backgroundImage: isDark
+          ? "radial-gradient(ellipse at 20% 0%, rgba(56, 189, 248, 0.08) 0%, transparent 50%), radial-gradient(ellipse at 80% 0%, rgba(147, 51, 234, 0.08) 0%, transparent 50%), radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.04) 0%, transparent 60%)"
+          : "radial-gradient(ellipse at 20% 0%, rgba(56, 189, 248, 0.05) 0%, transparent 50%), radial-gradient(ellipse at 80% 100%, rgba(245, 158, 11, 0.05) 0%, transparent 50%)",
         minHeight: "100vh",
         padding: "24px 20px 0 20px",
         fontFamily: "'Inter', system-ui, sans-serif",
@@ -436,19 +471,20 @@ export default function ProductsPage() {
                     onChange={(e) => setQuery(e.target.value)}
                     style={{
                       width: "100%",
-                      backgroundColor: isDark ? "#0B0F19" : "#FFFFFF",
+                      backgroundColor: isDark ? "rgba(11, 15, 25, 0.85)" : "#FFFFFF",
                       border: isVoiceListening
                         ? "2px solid #EF4444"
-                        : (isDark ? "1px solid #1E293B" : "1px solid #CBD5E1"),
-                      borderRadius: "12px",
-                      padding: "12px 72px 12px 40px",
+                        : (isDark ? "1.5px solid rgba(56, 189, 248, 0.35)" : "1.5px solid #CBD5E1"),
+                      borderRadius: "14px",
+                      padding: "13px 76px 13px 44px",
                       color: isDark ? "#FFFFFF" : "#0F172A",
                       fontSize: "14px",
+                      fontWeight: "500",
                       outline: "none",
                       boxSizing: "border-box",
                       boxShadow: isVoiceListening
-                        ? "0 0 12px rgba(239, 68, 68, 0.4)"
-                        : (isDark ? "inset 0 1px 3px rgba(0,0,0,0.6)" : "0 2px 6px rgba(0,0,0,0.03)"),
+                        ? "0 0 16px rgba(239, 68, 68, 0.45)"
+                        : (isDark ? "0 4px 20px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.04)" : "0 4px 16px rgba(0,0,0,0.04)"),
                       transition: "all 0.2s ease",
                     }}
                   />
@@ -473,25 +509,38 @@ export default function ProductsPage() {
                     onClick={handleToggleVoiceSearch}
                     style={{
                       position: "absolute",
-                      right: query ? "36px" : "12px",
+                      right: query ? "38px" : "12px",
                       top: "50%",
                       transform: "translateY(-50%)",
-                      backgroundColor: isVoiceListening ? "rgba(239, 68, 68, 0.2)" : "transparent",
-                      border: isVoiceListening ? "1px solid #EF4444" : "none",
+                      backgroundColor: isVoiceListening ? "rgba(239, 68, 68, 0.2)" : (isDark ? "rgba(56, 189, 248, 0.12)" : "rgba(2, 132, 199, 0.08)"),
+                      border: isVoiceListening ? "1.5px solid #EF4444" : (isDark ? "1px solid rgba(56, 189, 248, 0.3)" : "1px solid rgba(2, 132, 199, 0.2)"),
                       borderRadius: "50%",
-                      width: "28px",
-                      height: "28px",
+                      width: "32px",
+                      height: "32px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: isVoiceListening ? "#EF4444" : (isDark ? "#94A3B8" : "#64748B"),
+                      color: isVoiceListening ? "#EF4444" : (isDark ? "#38BDF8" : "#0284C7"),
                       cursor: "pointer",
-                      fontSize: "15px",
                       padding: 0,
-                      transition: "all 0.15s ease",
+                      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                      boxShadow: isVoiceListening ? "0 0 10px rgba(239, 68, 68, 0.5)" : "none",
                     }}
                   >
-                    <span>{isVoiceListening ? "🔴" : "🎤"}</span>
+                    {isVoiceListening ? (
+                      <span style={{ display: "flex", alignItems: "center", gap: "2px", height: "14px" }}>
+                        <span style={{ width: "3px", height: "8px", backgroundColor: "#EF4444", borderRadius: "2px" }} />
+                        <span style={{ width: "3px", height: "14px", backgroundColor: "#EF4444", borderRadius: "2px" }} />
+                        <span style={{ width: "3px", height: "6px", backgroundColor: "#EF4444", borderRadius: "2px" }} />
+                      </span>
+                    ) : (
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                        <line x1="12" x2="12" y1="19" y2="22" />
+                        <line x1="8" x2="16" y1="22" y2="22" />
+                      </svg>
+                    )}
                   </button>
 
                   {query && (
@@ -687,36 +736,38 @@ export default function ProductsPage() {
                   key={cat}
                   onClick={() => setCategory(cat)}
                   style={{
-                    backgroundColor:
+                    background:
                       category === cat
-                        ? "#38BDF8"
+                        ? "linear-gradient(135deg, #0284C7 0%, #38BDF8 100%)"
                         : isDark
-                        ? "#0B0F19"
+                        ? "rgba(15, 23, 42, 0.75)"
                         : "#FFFFFF",
                     color:
                       category === cat
-                        ? "#030712"
+                        ? "#FFFFFF"
                         : isDark
                         ? "#94A3B8"
                         : "#475569",
-                    border: `1px solid ${
+                    border: `1.5px solid ${
                       category === cat
                         ? "#38BDF8"
                         : isDark
-                        ? "#1E293B"
-                        : "#CBD5E1"
+                        ? "rgba(255, 255, 255, 0.08)"
+                        : "#E2E8F0"
                     }`,
-                    padding: "8px 16px",
-                    borderRadius: "10px",
+                    padding: "8px 18px",
+                    borderRadius: "12px",
                     fontWeight: "800",
                     fontSize: "12px",
                     cursor: "pointer",
-                    transition: "all 0.2s ease",
+                    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                     flexShrink: 0,
                     boxShadow:
-                      !isDark && category !== cat
-                        ? "0 1px 3px rgba(0,0,0,0.05)"
-                        : "none",
+                      category === cat
+                        ? "0 4px 14px rgba(56, 189, 248, 0.35)"
+                        : isDark
+                        ? "0 2px 6px rgba(0,0,0,0.3)"
+                        : "0 1px 3px rgba(0,0,0,0.05)",
                   }}
                 >
                   {cat}
@@ -729,15 +780,16 @@ export default function ProductsPage() {
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               style={{
-                backgroundColor: isDark ? "#0B0F19" : "#FFFFFF",
-                border: isDark ? "1px solid #1E293B" : "1px solid #CBD5E1",
-                borderRadius: "10px",
-                padding: "8px 14px",
+                backgroundColor: isDark ? "rgba(15, 23, 42, 0.85)" : "#FFFFFF",
+                border: isDark ? "1.5px solid rgba(56, 189, 248, 0.25)" : "1.5px solid #CBD5E1",
+                borderRadius: "12px",
+                padding: "9px 16px",
                 color: isDark ? "#FFFFFF" : "#0F172A",
                 fontSize: "13px",
                 fontWeight: "700",
                 cursor: "pointer",
                 outline: "none",
+                boxShadow: isDark ? "0 2px 8px rgba(0,0,0,0.3)" : "0 2px 6px rgba(0,0,0,0.04)",
               }}
             >
               <option value="default">Sort: Default</option>

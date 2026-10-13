@@ -9,6 +9,7 @@ except ImportError:
     from database import get_db
 
 from models.ecommerce import Order, CartItem, WishlistItem, SupportTicket, Review
+from models.product import Product
 from core.celery_app import send_order_notification, notify_admin_new_issue
 
 router = APIRouter(prefix="/store", tags=["store"])
@@ -48,8 +49,9 @@ class TicketCreate(BaseModel):
 
 class ReviewCreate(BaseModel):
     product_id: int
-    user_email: str
-    rating: int
+    user_email: Optional[str] = "customer@store.com"
+    user_name: Optional[str] = "Verified Customer"
+    rating: int = 5
     comment: str
 
 # --- ORDERS & REAL-TIME TRACKING ---
@@ -212,4 +214,100 @@ def get_admin_metrics(db: Session = Depends(get_db)):
         "open_tickets": open_tickets,
         "active_customers": active_customers,
         "recent_carts": recent_carts
+    }
+
+# --- PRODUCT REVIEWS WITH CONTENT MODERATION ---
+@router.post("/reviews", status_code=status.HTTP_201_CREATED)
+def submit_review(review_in: ReviewCreate, db: Session = Depends(get_db)):
+    """
+    Submits a genuine customer product review.
+    Enforces AI Content Moderation:
+    - Blocks offensive, harassing, or toxic language with HTTP 422.
+    - Welcomes both positive and negative honest product feedback.
+    """
+    if review_in.rating < 1 or review_in.rating > 5:
+        raise HTTPException(status_code=400, detail="Rating must be between 1 and 5 stars")
+
+    comment_text = (review_in.comment or "").strip()
+    if not comment_text:
+        raise HTTPException(status_code=400, detail="Review comment cannot be empty")
+
+    # 1. AI Content Moderation Guardrail Check
+    try:
+        from core.moderation_service import moderation_service
+        mod_result = moderation_service.check_text(comment_text)
+        if mod_result.flagged:
+            reason = mod_result.reason or "Content violates community standards."
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Review rejected by moderation guardrail: {reason} Only genuine constructive feedback (positive or negative) is accepted."
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Review Moderation Check Notice]: {e}")
+
+    # 2. Verify Product Exists
+    product = db.query(Product).filter(Product.id == review_in.product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    # 3. Persist Review to Database
+    new_review = Review(
+        product_id=review_in.product_id,
+        user_email=review_in.user_email or "customer@store.com",
+        user_name=review_in.user_name or "Verified Customer",
+        rating=review_in.rating,
+        comment=comment_text,
+    )
+    db.add(new_review)
+    db.commit()
+    db.refresh(new_review)
+
+    return {
+        "id": new_review.id,
+        "product_id": new_review.product_id,
+        "user_name": new_review.user_name,
+        "user_email": new_review.user_email,
+        "rating": new_review.rating,
+        "comment": new_review.comment,
+        "created_at": new_review.created_at.isoformat() if new_review.created_at else None,
+        "message": "Review submitted successfully and published!"
+    }
+
+@router.get("/reviews/{product_id}")
+def get_product_reviews(product_id: int, db: Session = Depends(get_db)):
+    """
+    Returns verified customer reviews for a given product along with aggregate metrics.
+    """
+    reviews = db.query(Review).filter(Review.product_id == product_id).order_by(Review.created_at.desc()).all()
+    
+    total = len(reviews)
+    avg_rating = round(sum(r.rating for r in reviews) / total, 1) if total > 0 else 5.0
+
+    breakdown = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0}
+    for r in reviews:
+        if r.rating in breakdown:
+            breakdown[r.rating] += 1
+
+    formatted_reviews = []
+    for r in reviews:
+        formatted_reviews.append({
+            "id": r.id,
+            "product_id": r.product_id,
+            "author": r.user_name or "Verified Buyer",
+            "email": r.user_email or "customer@store.com",
+            "rating": r.rating,
+            "text": r.comment,
+            "comment": r.comment,
+            "date": r.created_at.strftime("%b %d, %Y") if r.created_at else "Recently",
+            "created_at": r.created_at.isoformat() if r.created_at else None
+        })
+
+    return {
+        "product_id": product_id,
+        "total_reviews": total,
+        "average_rating": avg_rating,
+        "breakdown": breakdown,
+        "reviews": formatted_reviews
     }

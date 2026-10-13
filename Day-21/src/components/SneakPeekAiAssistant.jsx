@@ -54,8 +54,98 @@ export const getDisplayAiEngine = (provider) => {
   return provider;
 };
 
+export const CHAT_THEMES = {
+  midnight: {
+    id: "midnight",
+    name: "Midnight Nebula",
+    icon: "🌌",
+    bg: "#060A16",
+    gradient: "linear-gradient(180deg, #0A1226 0%, #050814 100%)",
+    headerBg: "rgba(10, 18, 38, 0.96)",
+    border: "#38BDF8",
+    glow: "0 0 25px rgba(56, 189, 248, 0.35)",
+    accent: "#38BDF8",
+    bubbleUser: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)",
+    bubbleBot: "#0D182E",
+    bubbleBotBorder: "rgba(56, 189, 248, 0.25)",
+    text: "#FFFFFF",
+    subtext: "#93C5FD",
+    inputBg: "#0B1428",
+  },
+  emerald: {
+    id: "emerald",
+    name: "Emerald Luxe",
+    icon: "💎",
+    bg: "#03140E",
+    gradient: "linear-gradient(180deg, #06281C 0%, #020D09 100%)",
+    headerBg: "rgba(6, 40, 28, 0.96)",
+    border: "#10B981",
+    glow: "0 0 25px rgba(16, 185, 129, 0.35)",
+    accent: "#10B981",
+    bubbleUser: "linear-gradient(135deg, #059669 0%, #047857 100%)",
+    bubbleBot: "#08261B",
+    bubbleBotBorder: "rgba(16, 185, 129, 0.3)",
+    text: "#FFFFFF",
+    subtext: "#A7F3D0",
+    inputBg: "#051D14",
+  },
+  cyber: {
+    id: "cyber",
+    name: "Cyber Neon",
+    icon: "⚡",
+    bg: "#120524",
+    gradient: "linear-gradient(180deg, #230B46 0%, #0C0318 100%)",
+    headerBg: "rgba(35, 11, 70, 0.96)",
+    border: "#EC4899",
+    glow: "0 0 25px rgba(236, 72, 153, 0.4)",
+    accent: "#F472B6",
+    bubbleUser: "linear-gradient(135deg, #DB2777 0%, #9333EA 100%)",
+    bubbleBot: "#1F0A3D",
+    bubbleBotBorder: "rgba(236, 72, 153, 0.35)",
+    text: "#FFFFFF",
+    subtext: "#FBCFE8",
+    inputBg: "#17072E",
+  },
+  titanium: {
+    id: "titanium",
+    name: "Titanium Gold",
+    icon: "👑",
+    bg: "#120F08",
+    gradient: "linear-gradient(180deg, #241D0D 0%, #0C0A05 100%)",
+    headerBg: "rgba(36, 29, 13, 0.96)",
+    border: "#F59E0B",
+    glow: "0 0 25px rgba(245, 158, 11, 0.4)",
+    accent: "#F59E0B",
+    bubbleUser: "linear-gradient(135deg, #D97706 0%, #B45309 100%)",
+    bubbleBot: "#221A0C",
+    bubbleBotBorder: "rgba(245, 158, 11, 0.35)",
+    text: "#FFFFFF",
+    subtext: "#FDE68A",
+    inputBg: "#1A1409",
+  }
+};
+
 export default function SneakPeekAiAssistant() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [selectedThemeId, setSelectedThemeId] = useState(() => {
+    try {
+      return localStorage.getItem("rmart_ai_chat_theme") || "midnight";
+    } catch {
+      return "midnight";
+    }
+  });
+  const [showThemePicker, setShowThemePicker] = useState(false);
+
+  const activeTheme = CHAT_THEMES[selectedThemeId] || CHAT_THEMES.midnight;
+
+  const handleSelectTheme = (themeId) => {
+    setSelectedThemeId(themeId);
+    setShowThemePicker(false);
+    try {
+      localStorage.setItem("rmart_ai_chat_theme", themeId);
+    } catch {}
+  };
   const [messages, setMessages] = useState(() => {
     try {
       const stored = localStorage.getItem("rmart_ai_chat_history");
@@ -1558,7 +1648,7 @@ export default function SneakPeekAiAssistant() {
 
   return (
     <>
-      {/* 1. SCREEN GOES PITCH DARK OVERLAY WHEN BOT IS CLICKED */}
+      {/* 1. SCREEN BACKDROP (Active in Fullscreen, Transparent Non-Blocking in Compact View) */}
       {isOpen && (
         <div
           data-testid="ai-dark-backdrop"
@@ -1566,11 +1656,11 @@ export default function SneakPeekAiAssistant() {
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.94)",
-            backdropFilter: "blur(28px)",
-            WebkitBackdropFilter: "blur(28px)",
+            backgroundColor: isFullScreen ? "rgba(0, 0, 0, 0.94)" : "transparent",
+            backdropFilter: isFullScreen ? "blur(28px)" : "none",
+            WebkitBackdropFilter: isFullScreen ? "blur(28px)" : "none",
+            pointerEvents: isFullScreen ? "auto" : "none",
             zIndex: 9998,
-            animation: "fadeInBackdrop 0.25s ease-out forwards",
             transition: "all 0.3s ease"
           }}
         />
@@ -1677,103 +1767,226 @@ export default function SneakPeekAiAssistant() {
         </div>
       )}
 
-      {/* 3. FULL DARK SCREEN AI CHAT MODAL - SPARKY JUMPS ON SCREEN */}
+      {/* 3. AI CHAT MODAL - DOCKED AT BOTTOM RIGHT BY DEFAULT (SMALL BOX), EXPANDABLE TO FULLSCREEN */}
       {isOpen && (
         <div
           data-testid="ai-chat-modal"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 9999,
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: "rgba(4, 7, 15, 0.95)",
-            backdropFilter: "blur(24px)",
-            WebkitBackdropFilter: "blur(24px)",
-            color: "#FFFFFF",
-            padding: "16px",
-            overflow: "hidden",
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
-          }}
+          style={
+            isFullScreen
+              ? {
+                  position: "fixed",
+                  inset: 0,
+                  zIndex: 9999,
+                  display: "flex",
+                  flexDirection: "column",
+                  backgroundColor: "rgba(4, 7, 15, 0.95)",
+                  backdropFilter: "blur(24px)",
+                  WebkitBackdropFilter: "blur(24px)",
+                  color: "#FFFFFF",
+                  padding: "16px",
+                  overflow: "hidden",
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+                }
+              : {
+                  position: "fixed",
+                  bottom: "20px",
+                  right: "20px",
+                  width: "350px",
+                  height: "480px",
+                  maxWidth: "calc(100vw - 24px)",
+                  maxHeight: "calc(100vh - 30px)",
+                  zIndex: 9999,
+                  display: "flex",
+                  flexDirection: "column",
+                  backgroundColor: activeTheme.bg,
+                  backgroundImage: activeTheme.gradient,
+                  border: `2px solid ${activeTheme.border}`,
+                  borderRadius: "20px",
+                  boxShadow: `0 20px 50px rgba(0, 0, 0, 0.85), ${activeTheme.glow}`,
+                  overflow: "hidden",
+                  color: "#FFFFFF",
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                  animation: "fadeIn 0.2s ease-out"
+                }
+          }
         >
-          {/* Centered Command Console */}
+          {/* Inner Console Wrapper (Adapts to full screen or compact view) */}
           <div
-            style={{
-              maxWidth: "960px",
-              width: "100%",
-              height: "100%",
-              margin: "0 auto",
-              display: "flex",
-              flexDirection: "column",
-              backgroundColor: "#0B1120",
-              backgroundImage: "radial-gradient(circle at 50% 0%, rgba(30, 58, 138, 0.12) 0%, transparent 65%)",
-              border: `1px solid ${isAdmin ? "rgba(245, 158, 11, 0.25)" : "rgba(59, 130, 246, 0.25)"}`,
-              borderRadius: "22px",
-              boxShadow: "0 25px 65px rgba(0, 0, 0, 0.85), 0 0 1px 1px rgba(255, 255, 255, 0.05)",
-              overflow: "hidden"
-            }}
+            style={
+              isFullScreen
+                ? {
+                    maxWidth: "960px",
+                    width: "100%",
+                    height: "100%",
+                    margin: "0 auto",
+                    display: "flex",
+                    flexDirection: "column",
+                    backgroundColor: activeTheme.bg,
+                    backgroundImage: activeTheme.gradient,
+                    border: `2px solid ${activeTheme.border}`,
+                    borderRadius: "22px",
+                    boxShadow: `0 25px 65px rgba(0, 0, 0, 0.85), ${activeTheme.glow}`,
+                    overflow: "hidden"
+                  }
+                : {
+                    width: "100%",
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    overflow: "hidden"
+                  }
+            }
           >
-            {/* Immersive Header (Jumping Robot & Clean Controls) */}
+            {/* Header (Jumping Robot, Title, Theme Selector & Fullscreen Toggle) */}
             <div
               style={{
-                padding: "16px 24px",
-                backgroundColor: "rgba(15, 23, 42, 0.85)",
-                borderBottom: `1px solid ${isAdmin ? "rgba(245, 158, 11, 0.15)" : "rgba(59, 130, 246, 0.15)"}`,
+                position: "relative",
+                zIndex: 100,
+                padding: "14px 18px",
+                backgroundColor: activeTheme.headerBg,
+                borderBottom: `1px solid ${activeTheme.border}`,
                 backdropFilter: "blur(12px)",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "space-between"
+                justifyContent: "space-between",
+                flexWrap: "nowrap",
+                gap: "8px"
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", flex: 1, minWidth: 0 }}
+                onClick={() => setIsFullScreen(!isFullScreen)}
+                title="Tap to toggle Fullscreen / Compact Box"
+              >
                 {/* SPARKY JUMPS ON SCREEN ANIMATED AVATAR */}
                 <div
                   style={{
-                    width: "48px",
-                    height: "48px",
-                    borderRadius: "14px",
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "12px",
                     backgroundColor: isAdmin ? "#D97706" : "#2563EB",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "24px",
+                    fontSize: "20px",
                     boxShadow: isAdmin
                       ? "0 4px 18px rgba(217, 119, 6, 0.35)"
                       : "0 4px 18px rgba(37, 99, 235, 0.35)",
-                    animation: "sparkyLeap 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)"
+                    animation: "sparkyLeap 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                    flexShrink: 0
                   }}
                 >
                   {isAdmin ? "🛡️" : "🤖"}
                 </div>
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "800", letterSpacing: "-0.2px", color: "#FFFFFF" }}>
-                      {isAdmin ? "Boss Store Command Intelligence" : "Sparky AI Assistant"}
+                <div style={{ minWidth: 0, overflow: "hidden" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "nowrap" }}>
+                    <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "800", letterSpacing: "-0.2px", color: "#FFFFFF", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {isAdmin ? "Boss Store Command" : "Sparky AI Assistant"}
                     </h3>
-                    <span
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: "700",
-                        padding: "2px 8px",
-                        borderRadius: "8px",
-                        backgroundColor: isAdmin ? "rgba(245, 158, 11, 0.15)" : "rgba(37, 99, 235, 0.15)",
-                        border: `1px solid ${isAdmin ? "rgba(245, 158, 11, 0.3)" : "rgba(37, 99, 235, 0.3)"}`,
-                        color: isAdmin ? "#FBBF24" : "#60A5FA"
-                      }}
-                    >
-                      {isAdmin ? "ADMIN CONSOLE" : "ONLINE • FULL KNOWLEDGE"}
-                    </span>
                   </div>
-                  <div style={{ fontSize: "12px", color: "#94A3B8", marginTop: "2px" }}>
-                    {isAdmin
-                      ? "Direct control over inventory, customer tickets, and orders"
-                      : "Grounded in live store catalog, your order stream & delivery profile"}
+                  <div style={{ fontSize: "11px", color: activeTheme.subtext, marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {isFullScreen ? "Tap header to collapse to small box" : "Tap header for Fullscreen view"}
                   </div>
                 </div>
               </div>
 
-              {/* Clean Top Controls */}
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              {/* Top Controls: Theme Switcher, Minimize, Fullscreen, Clear & Close */}
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+                {/* Theme Selector Pill & Dropdown */}
+                <div style={{ position: "relative" }}>
+                  <button
+                    type="button"
+                    data-testid="chat-theme-toggle-btn"
+                    onClick={() => setShowThemePicker(!showThemePicker)}
+                    title="Select Chatbot Theme"
+                    style={{
+                      backgroundColor: "rgba(255,255,255,0.08)",
+                      border: `1px solid ${activeTheme.border}`,
+                      color: activeTheme.text,
+                      fontSize: "11px",
+                      cursor: "pointer",
+                      padding: "5px 8px",
+                      borderRadius: "8px",
+                      fontWeight: "700",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px"
+                    }}
+                  >
+                    <span>{activeTheme.icon}</span>
+                    <span style={{ fontSize: "11px", fontWeight: "800" }}>{activeTheme.name}</span>
+                  </button>
+
+                  {showThemePicker && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "calc(100% + 8px)",
+                        right: 0,
+                        zIndex: 10002,
+                        backgroundColor: "#0A0F1D",
+                        border: `2px solid ${activeTheme.border}`,
+                        borderRadius: "14px",
+                        padding: "8px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "6px",
+                        boxShadow: "0 16px 40px rgba(0,0,0,0.95), 0 0 25px rgba(0,0,0,0.85)",
+                        minWidth: "165px"
+                      }}
+                    >
+                      {Object.values(CHAT_THEMES).map((th) => (
+                        <button
+                          key={th.id}
+                          type="button"
+                          onClick={() => handleSelectTheme(th.id)}
+                          style={{
+                            backgroundColor: selectedThemeId === th.id ? "rgba(56, 189, 248, 0.2)" : "rgba(255,255,255,0.03)",
+                            border: selectedThemeId === th.id ? `1.5px solid ${th.accent}` : "1.5px solid transparent",
+                            borderRadius: "10px",
+                            padding: "7px 12px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            color: "#FFFFFF",
+                            fontSize: "12px",
+                            fontWeight: selectedThemeId === th.id ? "800" : "600",
+                            cursor: "pointer",
+                            textAlign: "left",
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          <span style={{ fontSize: "15px" }}>{th.icon}</span>
+                          <span>{th.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Fullscreen / Compact Toggle Button */}
+                <button
+                  type="button"
+                  data-testid="toggle-fullscreen-btn"
+                  onClick={() => setIsFullScreen(!isFullScreen)}
+                  title={isFullScreen ? "Collapse to bottom-right box" : "Maximize to Full Screen view"}
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.08)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    color: "#E2E8F0",
+                    borderRadius: "8px",
+                    padding: "5px 8px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "12px",
+                    cursor: "pointer"
+                  }}
+                >
+                  {isFullScreen ? "🗗" : "⛶"}
+                </button>
+
+                {/* Clear Chat */}
                 <button
                   data-testid="clear-chat-history-btn"
                   onClick={handleClearChat}
@@ -1782,17 +1995,17 @@ export default function SneakPeekAiAssistant() {
                     backgroundColor: "rgba(255,255,255,0.06)",
                     border: "1px solid rgba(255,255,255,0.12)",
                     color: "#94A3B8",
-                    fontSize: "13px",
+                    fontSize: "11px",
                     cursor: "pointer",
-                    padding: "7px 14px",
-                    borderRadius: "10px",
-                    fontWeight: "600",
-                    transition: "all 0.15s ease"
+                    padding: "5px 8px",
+                    borderRadius: "8px",
+                    fontWeight: "600"
                   }}
                 >
                   Clear Chat
                 </button>
 
+                {/* Close Button */}
                 <button
                   onClick={handleCloseChat}
                   title="Close Assistant"
@@ -1801,15 +2014,14 @@ export default function SneakPeekAiAssistant() {
                     border: "none",
                     color: "#E2E8F0",
                     borderRadius: "50%",
-                    width: "36px",
-                    height: "36px",
+                    width: "28px",
+                    height: "28px",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "16px",
+                    fontSize: "14px",
                     fontWeight: "bold",
-                    cursor: "pointer",
-                    transition: "all 0.15s ease"
+                    cursor: "pointer"
                   }}
                 >
                   ✕
@@ -1845,17 +2057,17 @@ export default function SneakPeekAiAssistant() {
                       style={{
                         maxWidth: isUser ? "75%" : "88%",
                         background: isUser
-                          ? (isAdmin ? "linear-gradient(135deg, #D97706 0%, #B45309 100%)" : "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)")
-                          : "rgba(17, 24, 39, 0.82)",
+                          ? (isAdmin ? "linear-gradient(135deg, #D97706 0%, #B45309 100%)" : activeTheme.bubbleUser)
+                          : activeTheme.bubbleBot,
                         border: isUser
-                          ? `1px solid ${isAdmin ? "rgba(245, 158, 11, 0.4)" : "rgba(96, 165, 250, 0.3)"}`
-                          : `1px solid ${isAdmin ? "rgba(245, 158, 11, 0.22)" : "rgba(59, 130, 246, 0.2)"}`,
+                          ? `1px solid ${isAdmin ? "rgba(245, 158, 11, 0.4)" : activeTheme.border}`
+                          : `1px solid ${activeTheme.bubbleBotBorder || "rgba(255, 255, 255, 0.15)"}`,
                         borderRadius: isUser ? "20px 20px 4px 20px" : "20px 20px 20px 4px",
                         padding: "18px 22px",
                         boxShadow: isUser
-                          ? "0 6px 20px rgba(37, 99, 235, 0.3)"
+                          ? `0 6px 20px rgba(0, 0, 0, 0.3), ${activeTheme.glow}`
                           : "0 8px 30px rgba(0, 0, 0, 0.45)",
-                        color: "#FFFFFF",
+                        color: activeTheme.text,
                         position: "relative"
                       }}
                     >
@@ -2379,12 +2591,11 @@ export default function SneakPeekAiAssistant() {
                 handleSendMessage();
               }}
               style={{
-                padding: "16px 24px",
+                padding: isFullScreen ? "14px 20px" : "10px 12px",
                 backgroundColor: "rgba(11, 15, 25, 0.95)",
                 borderTop: "1px solid rgba(148, 163, 184, 0.12)",
                 display: "flex",
                 alignItems: "center",
-                gap: "12px"
               }}
             >
               <input
@@ -2396,101 +2607,144 @@ export default function SneakPeekAiAssistant() {
                 style={{ display: "none" }}
               />
 
-              <button
-                type="button"
-                data-testid="upload-photo-btn"
-                onClick={() => fileInputRef.current?.click()}
-                title="Upload photo / proof of damaged item"
+              {/* Message Bar Tab Capsule: Camera, Mic, Input, and Send integrated into one bar */}
+              <div
+                data-testid="ai-msg-bar-tab"
                 style={{
-                  width: "46px",
-                  height: "46px",
-                  borderRadius: "14px",
-                  border: "1px solid rgba(148, 163, 184, 0.2)",
-                  backgroundColor: "rgba(30, 41, 59, 0.7)",
-                  color: "#60A5FA",
-                  fontSize: "18px",
-                  cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  transition: "all 0.15s ease"
+                  width: "100%",
+                  backgroundColor: activeTheme.inputBg || "rgba(17, 24, 39, 0.9)",
+                  border: `1.5px solid ${activeTheme.border}`,
+                  borderRadius: "18px",
+                  padding: "4px 6px 4px 8px",
+                  gap: "6px",
+                  boxShadow: `0 2px 10px rgba(0, 0, 0, 0.35)`,
+                  transition: "border-color 0.2s ease"
                 }}
               >
-                📸
-              </button>
+                {/* Camera SVG inside Message Bar Tab */}
+                <button
+                  type="button"
+                  data-testid="upload-photo-btn"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Upload photo / proof of damaged item (Camera)"
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "8px",
+                    border: "none",
+                    backgroundColor: "transparent",
+                    color: activeTheme.accent,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 0,
+                    transition: "all 0.15s ease",
+                    flexShrink: 0
+                  }}
+                >
+                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                    <circle cx="12" cy="13" r="3" />
+                  </svg>
+                </button>
 
-              <button
-                type="button"
-                onClick={handleToggleMic}
-                title={isListening ? "Listening... Click to stop" : "Speak to Sparky (Mic)"}
-                style={{
-                  width: "46px",
-                  height: "46px",
-                  borderRadius: "14px",
-                  border: isListening ? "1px solid #DC2626" : "1px solid rgba(148, 163, 184, 0.2)",
-                  backgroundColor: isListening ? "#EF4444" : "rgba(30, 41, 59, 0.7)",
-                  color: isListening ? "#FFFFFF" : "#60A5FA",
-                  fontSize: "20px",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  animation: isListening ? "pulse 1s infinite" : "none",
-                  transition: "all 0.15s ease"
-                }}
-              >
-                🎙️
-              </button>
+                {/* Mic SVG inside Message Bar Tab */}
+                <button
+                  type="button"
+                  onClick={handleToggleMic}
+                  title={isListening ? "Listening... Click to stop" : "Speak to Assistant (Mic)"}
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "8px",
+                    border: isListening ? "1.5px solid #EF4444" : "none",
+                    backgroundColor: isListening ? "rgba(239, 68, 68, 0.25)" : "transparent",
+                    color: isListening ? "#EF4444" : activeTheme.accent,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 0,
+                    animation: isListening ? "pulse 1.2s infinite" : "none",
+                    transition: "all 0.15s ease",
+                    flexShrink: 0
+                  }}
+                >
+                  {isListening ? (
+                    <span style={{ display: "flex", alignItems: "center", gap: "2px", height: "14px" }}>
+                      <span style={{ width: "2.5px", height: "7px", backgroundColor: "#EF4444", borderRadius: "2px" }} />
+                      <span style={{ width: "2.5px", height: "14px", backgroundColor: "#EF4444", borderRadius: "2px" }} />
+                      <span style={{ width: "2.5px", height: "5px", backgroundColor: "#EF4444", borderRadius: "2px" }} />
+                    </span>
+                  ) : (
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" fill="currentColor" fillOpacity="0.1" />
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                      <line x1="12" x2="12" y1="19" y2="22" />
+                      <line x1="8" x2="16" y1="22" y2="22" />
+                    </svg>
+                  )}
+                </button>
 
-              <input
-                data-testid="ai-chat-input"
-                type="text"
-                placeholder={
-                  isListening
-                    ? "Listening to your voice..."
-                    : isAdmin
-                    ? "Ask Boss Intelligence about stock, tickets, or orders..."
-                    : "Ask Sparky about products, your orders, delivery address, cart, or deals..."
-                }
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                disabled={isStreaming}
-                style={{
-                  flex: 1,
-                  padding: "14px 18px",
-                  borderRadius: "14px",
-                  border: "1px solid rgba(148, 163, 184, 0.2)",
-                  backgroundColor: "rgba(17, 24, 39, 0.9)",
-                  color: "#FFFFFF",
-                  fontSize: "14.5px",
-                  outline: "none"
-                }}
-              />
+                {/* Text Input inside Message Bar Tab */}
+                <input
+                  data-testid="ai-chat-input"
+                  type="text"
+                  placeholder={
+                    isListening
+                      ? "Listening to your voice..."
+                      : isAdmin
+                      ? "Ask Boss Intelligence about stock, tickets, or orders..."
+                      : "Ask Sparky about products, your orders, delivery address, cart, or deals..."
+                  }
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  disabled={isStreaming}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    padding: "7px 6px",
+                    border: "none",
+                    outline: "none",
+                    backgroundColor: "transparent",
+                    color: "#FFFFFF",
+                    fontSize: "13px"
+                  }}
+                />
 
-              <button
-                data-testid="ai-chat-send-btn"
-                type="submit"
-                disabled={!input.trim() || isStreaming}
-                style={{
-                  width: "46px",
-                  height: "46px",
-                  borderRadius: "14px",
-                  border: "none",
-                  backgroundColor: isAdmin ? "#D97706" : "#2563EB",
-                  color: "#FFFFFF",
-                  fontWeight: "900",
-                  fontSize: "18px",
-                  cursor: !input.trim() || isStreaming ? "not-allowed" : "pointer",
-                  opacity: !input.trim() || isStreaming ? 0.4 : 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: !input.trim() || isStreaming ? "none" : (isAdmin ? "0 4px 14px rgba(217, 119, 6, 0.4)" : "0 4px 14px rgba(37, 99, 235, 0.4)"),
-                  transition: "all 0.15s ease"
-                }}
-              >
-                ➤
-              </button>
+                {/* Send Button inside Message Bar Tab */}
+                <button
+                  data-testid="ai-chat-send-btn"
+                  type="submit"
+                  disabled={!input.trim() || isStreaming}
+                  style={{
+                    width: "34px",
+                    height: "34px",
+                    borderRadius: "10px",
+                    border: "none",
+                    backgroundColor: isAdmin ? "#D97706" : activeTheme.accent,
+                    color: "#030712",
+                    fontWeight: "900",
+                    fontSize: "16px",
+                    cursor: !input.trim() || isStreaming ? "not-allowed" : "pointer",
+                    opacity: !input.trim() || isStreaming ? 0.35 : 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: !input.trim() || isStreaming ? "none" : (isAdmin ? "0 4px 14px rgba(217, 119, 6, 0.4)" : `0 4px 14px ${activeTheme.accent}66`),
+                    transition: "all 0.15s ease",
+                    flexShrink: 0
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor" fillOpacity="0.3" />
+                  </svg>
+                </button>
+              </div>
             </form>
           </div>
         </div>

@@ -96,12 +96,15 @@ export const ProductCard = memo(({ product }) => {
         className="preserve-3d"
         style={{
           height: "100%",
-          backgroundColor: isDark ? "#0B0F19" : "#FFFFFF",
-          border: `1px solid ${
+          backgroundColor: isDark ? "rgba(15, 23, 42, 0.85)" : "#FFFFFF",
+          backgroundImage: isDark
+            ? "linear-gradient(165deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.95) 100%)"
+            : "linear-gradient(165deg, #FFFFFF 0%, #F8FAFC 100%)",
+          border: `1.5px solid ${
             tilt.isHovered
-              ? "rgba(56, 189, 248, 0.6)"
+              ? "rgba(56, 189, 248, 0.65)"
               : isDark
-              ? "#1E293B"
+              ? "rgba(255, 255, 255, 0.08)"
               : "#E2E8F0"
           }`,
           borderRadius: "18px",
@@ -117,9 +120,11 @@ export const ProductCard = memo(({ product }) => {
             : "transform 0.5s ease-out, border-color 0.2s ease",
           boxShadow: tilt.isHovered
             ? isDark
-              ? "0 20px 40px -10px rgba(56, 189, 248, 0.25), 0 0 25px rgba(0, 0, 0, 0.8)"
-              : "0 20px 40px -10px rgba(0, 0, 0, 0.15)"
-            : "0 4px 15px rgba(0, 0, 0, 0.08)",
+              ? "0 20px 45px -10px rgba(56, 189, 248, 0.35), 0 0 25px rgba(0, 0, 0, 0.85)"
+              : "0 20px 40px -10px rgba(0, 0, 0, 0.18)"
+            : isDark
+            ? "0 4px 20px rgba(0, 0, 0, 0.5)"
+            : "0 4px 15px rgba(0, 0, 0, 0.06)",
         }}
       >
         {/* Holographic Sheen */}
@@ -407,11 +412,11 @@ export const ProductCard = memo(({ product }) => {
                 to={`/catalog/${product.id}`}
                 style={{
                   flex: 1,
-                  backgroundColor: isDark ? "#0B0F19" : "#F1F5F9",
+                  backgroundColor: isDark ? "rgba(30, 41, 59, 0.7)" : "#F1F5F9",
                   color: isDark ? "#FFFFFF" : "#0F172A",
-                  border: `1px solid ${isDark ? "#1E293B" : "#CBD5E1"}`,
+                  border: `1px solid ${isDark ? "rgba(255, 255, 255, 0.12)" : "#CBD5E1"}`,
                   padding: "10px",
-                  borderRadius: "10px",
+                  borderRadius: "11px",
                   fontSize: "12px",
                   fontWeight: "800",
                   textAlign: "center",
@@ -444,15 +449,17 @@ export const ProductCard = memo(({ product }) => {
                 disabled={isOutOfStock || isAtMaxStock}
                 style={{
                   flex: 1.4,
-                  backgroundColor: isOutOfStock || isAtMaxStock ? "#334155" : "#F59E0B",
-                  color: isOutOfStock || isAtMaxStock ? "#94A3B8" : "#030712",
+                  background: isOutOfStock || isAtMaxStock
+                    ? "#334155"
+                    : "linear-gradient(135deg, #F59E0B 0%, #EA580C 100%)",
+                  color: isOutOfStock || isAtMaxStock ? "#94A3B8" : "#FFFFFF",
                   border: "none",
                   padding: "10px",
-                  borderRadius: "10px",
+                  borderRadius: "11px",
                   fontSize: "12px",
                   fontWeight: "900",
                   cursor: isOutOfStock || isAtMaxStock ? "not-allowed" : "pointer",
-                  boxShadow: isOutOfStock || isAtMaxStock ? "none" : "0 4px 14px rgba(245, 158, 11, 0.35)",
+                  boxShadow: isOutOfStock || isAtMaxStock ? "none" : "0 4px 15px rgba(245, 158, 11, 0.4)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",

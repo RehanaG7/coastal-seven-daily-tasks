@@ -107,7 +107,7 @@ def semantic_search_endpoint(
     response: Response,
     q: str = Query(..., min_length=1, description="Natural language search query"),
     limit: int = Query(6, ge=1, le=20, description="Max results to return"),
-    min_score: float = Query(0.3, ge=0.0, le=1.0, description="Minimum relevance score"),
+    min_score: float = Query(0.2, ge=0.0, le=1.0, description="Minimum relevance score"),
     db: Session = Depends(get_db)
 ):
     """

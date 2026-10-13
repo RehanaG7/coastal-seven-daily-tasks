@@ -20,6 +20,7 @@ const ProductDetailPage = lazy(() => import("./pages/ProductDetailPage"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const CheckoutPage = lazy(() => import("./pages/CheckoutPage"));
+const CartPage = lazy(() => import("./pages/CartPage"));
 const OrdersPage = lazy(() => import("./pages/OrdersPage"));
 
 function PageLoader() {
@@ -106,16 +107,7 @@ function AppContent() {
       <main>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            <Route
-              path="/"
-              element={
-                !user ? (
-                  <Navigate to="/auth" replace />
-                ) : (
-                  <Navigate to="/catalog" replace />
-                )
-              }
-            />
+            <Route path="/" element={<Navigate to="/catalog" replace />} />
 
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/login" element={<AuthPage />} />
@@ -127,6 +119,7 @@ function AppContent() {
             <Route path="/catalog/:id" element={<ProductDetailPage />} />
             <Route path="/products/:id" element={<ProductDetailPage />} />
 
+            <Route path="/cart" element={<CartPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/orders" element={<OrdersPage />} />
 

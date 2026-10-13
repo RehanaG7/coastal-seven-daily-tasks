@@ -461,6 +461,38 @@ describe("Day 20 – SneakPeek Robo Assistant & Segmented Role Switcher", () => 
     const tickets = JSON.parse(localStorage.getItem("rmart_support_tickets") || "[]");
     expect(tickets.some((t) => t.subject.includes("Complaint"))).toBe(true);
   });
+
+  it("opens as a small compact chat box with camera and mic in the message bar tab, and toggles full screen", () => {
+    render(
+      <MemoryRouter>
+        <SneakPeekAiAssistant />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId("sneakpeek-robo-container"));
+    const modal = screen.getByTestId("ai-chat-modal");
+    expect(modal).toBeInTheDocument();
+
+    // Unified message bar tab contains camera, mic, input, and send button
+    const msgBarTab = screen.getByTestId("ai-msg-bar-tab");
+    expect(msgBarTab).toBeInTheDocument();
+    expect(screen.getByTestId("upload-photo-btn")).toBeInTheDocument();
+    expect(screen.getByTitle(/Speak to Assistant/i)).toBeInTheDocument();
+    expect(screen.getByTestId("ai-chat-input")).toBeInTheDocument();
+    expect(screen.getByTestId("ai-chat-send-btn")).toBeInTheDocument();
+
+    // Toggle fullscreen button is present
+    const toggleFullscreenBtn = screen.getByTestId("toggle-fullscreen-btn");
+    expect(toggleFullscreenBtn).toBeInTheDocument();
+
+    // Clicking toggle expands to fullscreen
+    fireEvent.click(toggleFullscreenBtn);
+    expect(screen.getByText(/Tap header to collapse to small box/i)).toBeInTheDocument();
+
+    // Clicking toggle again collapses back to small compact box
+    fireEvent.click(toggleFullscreenBtn);
+    expect(screen.getByText(/Tap header for Fullscreen view/i)).toBeInTheDocument();
+  });
 });
 
 

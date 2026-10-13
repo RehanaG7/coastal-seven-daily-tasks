@@ -237,15 +237,28 @@ class AICopywriterService:
                     f"Target Audience: {target_audience or 'General shoppers'}.\n"
                     "Return a JSON object with keys: headline, narrative, bullet_points (array of strings), full_text."
                 )
-                response = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=[
-                        {"role": "system", "content": "You are an expert e-commerce copywriter. Return ONLY valid JSON."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0.7,
-                    response_format={"type": "json_object"}
-                )
+                try:
+                    response = client.chat.completions.create(
+                        model="openai/gpt-oss-20b",
+                        messages=[
+                            {"role": "system", "content": "You are an expert e-commerce copywriter. Return ONLY valid JSON."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.7,
+                        response_format={"type": "json_object"}
+                    )
+                    used_model = "openai/gpt-oss-20b"
+                except Exception:
+                    response = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=[
+                            {"role": "system", "content": "You are an expert e-commerce copywriter. Return ONLY valid JSON."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.7,
+                        response_format={"type": "json_object"}
+                    )
+                    used_model = "llama-3.3-70b-versatile"
                 parsed = json.loads(response.choices[0].message.content)
                 result = {
                     "headline": parsed.get("headline", f"{title} - Premium Edition"),
@@ -254,7 +267,7 @@ class AICopywriterService:
                     "full_text": parsed.get("full_text", ""),
                     "tone": tone,
                     "provider": "Groq",
-                    "model": "llama-3.3-70b-versatile",
+                    "model": used_model,
                     "generated_at": time.time()
                 }
             except Exception as e:
@@ -270,10 +283,18 @@ class AICopywriterService:
                     f"Highlights: {', '.join(features)}. Target: {target_audience or 'General'}. "
                     "Output JSON with keys headline, narrative, bullet_points, full_text."
                 )
-                response = client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=prompt
-                )
+                try:
+                    response = client.models.generate_content(
+                        model="gemini-3.8-flash",
+                        contents=prompt
+                    )
+                    used_gemini_model = "gemini-3.8-flash"
+                except Exception:
+                    response = client.models.generate_content(
+                        model="gemini-2.0-flash",
+                        contents=prompt
+                    )
+                    used_gemini_model = "gemini-2.0-flash"
                 parsed_json = json.loads(response.text.strip().removeprefix("```json").removesuffix("```").strip())
                 result = {
                     "headline": parsed_json.get("headline", title),
@@ -282,7 +303,7 @@ class AICopywriterService:
                     "full_text": parsed_json.get("full_text", ""),
                     "tone": tone,
                     "provider": "Google Gemini",
-                    "model": "gemini-2.5-flash",
+                    "model": used_gemini_model,
                     "generated_at": time.time()
                 }
             except Exception as e:

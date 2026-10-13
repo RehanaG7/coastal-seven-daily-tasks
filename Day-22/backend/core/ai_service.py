@@ -190,15 +190,26 @@ class LLMProviderManager:
                     messages.append({"role": h.get("role", "user"), "content": h.get("content", "")})
                 messages.append({"role": "user", "content": query})
 
-                stream = await client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=messages,
-                    stream=True,
-                    temperature=0.6,
-                    max_tokens=700,
-                )
+                try:
+                    stream = await client.chat.completions.create(
+                        model="openai/gpt-oss-20b",
+                        messages=messages,
+                        stream=True,
+                        temperature=0.6,
+                        max_tokens=700,
+                    )
+                    groq_model_name = "Groq (GPT-OSS-20b)"
+                except Exception:
+                    stream = await client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=messages,
+                        stream=True,
+                        temperature=0.6,
+                        max_tokens=700,
+                    )
+                    groq_model_name = "Groq (Llama-3.3-70b)"
 
-                yield f"event: provider\ndata: {json.dumps({'provider': 'Groq (Llama-3.3-70b)'})}\n\n"
+                yield f"event: provider\ndata: {json.dumps({'provider': groq_model_name})}\n\n"
                 async for chunk in stream:
                     delta = chunk.choices[0].delta.content or ""
                     if delta:
@@ -209,18 +220,26 @@ class LLMProviderManager:
             except Exception as e:
                 print(f"[LLM Fallback Manager] Groq failed: {e}. Falling back to Secondary...")
 
-        # 3. Try Secondary Provider: Google Gemini 2.0 Flash
+        # 3. Try Secondary Provider: Google Gemini
         if gemini_key and gemini_key != "your_gemini_api_key_here":
             try:
                 from google import genai
                 client = genai.Client(api_key=gemini_key)
                 prompt_content = f"{system_prompt}\n\nUser Question: {query}"
-                response = client.models.generate_content_stream(
-                    model="gemini-2.5-flash",
-                    contents=prompt_content,
-                )
+                try:
+                    response = client.models.generate_content_stream(
+                        model="gemini-3.8-flash",
+                        contents=prompt_content,
+                    )
+                    gemini_model_label = "Google Gemini 3.8 Flash"
+                except Exception:
+                    response = client.models.generate_content_stream(
+                        model="gemini-2.0-flash",
+                        contents=prompt_content,
+                    )
+                    gemini_model_label = "Google Gemini 2.0 Flash"
 
-                yield f"event: provider\ndata: {json.dumps({'provider': 'Google Gemini 2.0 Flash'})}\n\n"
+                yield f"event: provider\ndata: {json.dumps({'provider': gemini_model_label})}\n\n"
                 for chunk in response:
                     text_piece = chunk.text or ""
                     if text_piece:

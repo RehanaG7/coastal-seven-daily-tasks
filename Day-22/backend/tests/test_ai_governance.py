@@ -35,16 +35,18 @@ def test_ai_governance_tracks_transactions_and_calculates_savings():
     client = TestClient(app)
 
     # 1. Simulate an AI copywriter operation (Cache Miss)
-    client.post(
+    res1 = client.post(
         "/api/v1/ai/generate-description",
         json={"title": "Ergonomic Mechanical Keyboard", "category": "Electronics"}
     )
+    assert res1.status_code == 200
 
     # 2. Re-run identical operation (Triggers Redis Cache Hit)
-    client.post(
+    res2 = client.post(
         "/api/v1/ai/generate-description",
         json={"title": "Ergonomic Mechanical Keyboard", "category": "Electronics"}
     )
+    assert res2.status_code == 200
 
     # 3. Check governance statistics
     res = client.get("/api/v1/ai/governance/stats")

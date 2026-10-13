@@ -66,6 +66,20 @@ def setup_db():
             pass
 
 
+@pytest.fixture(autouse=True)
+def clean_test_state():
+    from core.redis import shared_in_memory_redis
+    shared_in_memory_redis.store.clear()
+    shared_in_memory_redis.hashes.clear()
+    test_redis.store.clear()
+    test_redis.hashes.clear()
+    yield
+    shared_in_memory_redis.store.clear()
+    shared_in_memory_redis.hashes.clear()
+    test_redis.store.clear()
+    test_redis.hashes.clear()
+
+
 @pytest.fixture
 def client():
     return TestClient(app)

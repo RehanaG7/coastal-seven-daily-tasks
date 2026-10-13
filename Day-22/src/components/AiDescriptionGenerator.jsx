@@ -41,7 +41,7 @@ export default function AiDescriptionGenerator({
     setModerationWarning("");
     setGeneratedResult(null);
 
-    const apiBase = env.API_BASE_URL || (env.API_URL || "http://localhost:8000").replace(/\/api\/v1\/?$/, "");
+    const apiBase = env.API_BASE_URL || (env.API_URL || "https://e-commerce-backend-texz.onrender.com").replace(/\/api\/v1\/?$/, "");
     const token = localStorage.getItem("token") || localStorage.getItem("access_token") || localStorage.getItem("rmart_token");
     const headers = {
       "Content-Type": "application/json",

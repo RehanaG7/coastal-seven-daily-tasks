@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { useCartStore, useAuthStore, useUIStore } from "../store/useStore";
 
 // Backward-compatible hook mapping old Context calls to Zustand

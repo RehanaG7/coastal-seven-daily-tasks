@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = "https://e-commerce-backend-texz.onrender.com";
 
 export const productKeys = {
   all: ["products"],

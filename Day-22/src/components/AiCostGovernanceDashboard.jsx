@@ -8,7 +8,7 @@ export default function AiCostGovernanceDashboard({ theme = "dark" }) {
   const [simulating, setSimulating] = useState(false);
   const [notification, setNotification] = useState(null);
 
-  const apiBase = env.API_BASE_URL || (env.API_URL || "http://localhost:8000").replace(/\/api\/v1\/?$/, "");
+  const apiBase = env.API_BASE_URL || (env.API_URL || "https://e-commerce-backend-texz.onrender.com").replace(/\/api\/v1\/?$/, "");
 
   const fetchStats = async () => {
     try {

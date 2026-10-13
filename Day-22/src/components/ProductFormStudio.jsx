@@ -75,7 +75,7 @@ export default function ProductFormStudio() {
       };
 
       try {
-        res = await fetch("http://localhost:8000/api/v1/ai/generate-description", {
+        res = await fetch("https://e-commerce-backend-texz.onrender.com/api/v1/ai/generate-description", {
           method: "POST",
           headers,
           body: JSON.stringify(payload),

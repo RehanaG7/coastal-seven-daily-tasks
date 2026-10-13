@@ -44,7 +44,7 @@ export default function ProductDetailPage() {
     let active = true;
     async function fetchReviews() {
       try {
-        const apiBase = env.API_BASE_URL || (env.API_URL || "http://localhost:8000").replace(/\/api\/v1\/?$/, "");
+        const apiBase = env.API_BASE_URL || (env.API_URL || "https://e-commerce-backend-texz.onrender.com").replace(/\/api\/v1\/?$/, "");
         const res = await fetch(`${apiBase}/api/v1/store/reviews/${id}`);
         if (res.ok) {
           const data = await res.json();
@@ -293,7 +293,7 @@ export default function ProductDetailPage() {
     setIsSubmittingReview(true);
 
     try {
-      const apiBase = env.API_BASE_URL || (env.API_URL || "http://localhost:8000").replace(/\/api\/v1\/?$/, "");
+      const apiBase = env.API_BASE_URL || (env.API_URL || "https://e-commerce-backend-texz.onrender.com").replace(/\/api\/v1\/?$/, "");
       const res = await fetch(`${apiBase}/api/v1/store/reviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

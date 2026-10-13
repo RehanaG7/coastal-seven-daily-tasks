@@ -1,4 +1,4 @@
-ï»¿import React, { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
 
@@ -125,7 +125,7 @@ export default function AuthPage() {
       <div style={{ width: "100%", maxWidth: "440px", backgroundColor: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "16px", padding: "30px", boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}>
         
         <div style={{ textAlign: "center", marginBottom: "22px" }}>
-          <div style={{ fontSize: "36px", marginBottom: "6px" }}>âš¡</div>
+          <div style={{ fontSize: "36px", marginBottom: "6px" }}>?</div>
           <h2 style={{ fontSize: "22px", fontWeight: "900", color: c.text, margin: 0 }}>
             {mode === "login" ? "Welcome Back to R-MART" : "Register Customer Account"}
           </h2>
@@ -246,7 +246,7 @@ export default function AuthPage() {
             <input
               type="password"
               required
-              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", backgroundColor: isDark ? "#1E293B" : "#F1F5F9", border: `1px solid ${c.border}`, color: c.text, fontSize: "13px", outline: "none", boxSizing: "border-box" }}
@@ -268,7 +268,7 @@ export default function AuthPage() {
               marginTop: "6px",
             }}
           >
-            {loading ? "Verifying..." : mode === "login" ? "Sign In â†’" : "Register & Start Shopping ðŸš€"}
+            {loading ? "Verifying..." : mode === "login" ? "Sign In ?" : "Register & Start Shopping ??"}
           </button>
         </form>
       </div>

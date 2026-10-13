@@ -20,11 +20,11 @@ vi.mock("../api/apiClient", async () => {
     },
     invoiceService: {
       generateInvoice: vi.fn().mockResolvedValue({ task_id: "test-inv-task-1", status: "PENDING" }),
-      downloadInvoiceUrl: vi.fn().mockReturnValue("http://127.0.0.1:8000/orders/1/invoice/download"),
+      downloadInvoiceUrl: vi.fn().mockReturnValue("https://e-commerce-backend-texz.onrender.com/orders/1/invoice/download"),
     },
     csvService: {
       importCsv: vi.fn().mockResolvedValue({ task_id: "test-csv-task-1", status: "PENDING" }),
-      getSampleTemplateUrl: vi.fn().mockReturnValue("http://127.0.0.1:8000/products/sample-csv-template"),
+      getSampleTemplateUrl: vi.fn().mockReturnValue("https://e-commerce-backend-texz.onrender.com/products/sample-csv-template"),
     },
     orderService: {
       getOrders: vi.fn().mockResolvedValue([

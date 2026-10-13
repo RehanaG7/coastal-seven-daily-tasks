@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { useCartStore } from "../store/useStore";
 
 describe("Day 16: Zustand Cart Store Suite", () => {

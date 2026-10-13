@@ -734,7 +734,7 @@ export default function SneakPeekAiAssistant() {
         { id: userMsgId, role: "user", content: query },
         { id: `bot_${Date.now()}`, role: "assistant", content: "⚡ Firing 6 rapid requests to test sliding window rate limit (anonymous quota: 5 req/min)...", provider: "Rate Limit Tester" }
       ]);
-      const apiBase = env.API_BASE_URL || (env.API_URL || "http://localhost:8000").replace(/\/api\/v1\/?$/, "");
+      const apiBase = env.API_BASE_URL || (env.API_URL || "https://e-commerce-backend-texz.onrender.com").replace(/\/api\/v1\/?$/, "");
       for (let i = 1; i <= 6; i++) {
         try {
           const res = await fetch(`${apiBase}/api/v1/ai/generate-description`, {
@@ -1208,7 +1208,7 @@ export default function SneakPeekAiAssistant() {
     // Day 21 Autonomous AI Agent Tool Calling
     const hasAgentToolIntent = /(?:coupon|promo\s*code|voucher|discount|track\s*order|order\s*#?\d+|create\s*ticket|file\s*ticket|stock|inventory|how\s*many|available|in\s*stock)/i.test(query);
 
-    const apiBase = env.API_BASE_URL || (env.API_URL || "http://localhost:8000").replace(/\/api\/v1\/?$/, "");
+    const apiBase = env.API_BASE_URL || (env.API_URL || "https://e-commerce-backend-texz.onrender.com").replace(/\/api\/v1\/?$/, "");
     const token = localStorage.getItem("token") || localStorage.getItem("access_token") || localStorage.getItem("rmart_token");
     const headers = { "Content-Type": "application/json" };
     if (token) headers["Authorization"] = `Bearer ${token}`;

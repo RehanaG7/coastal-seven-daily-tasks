@@ -309,7 +309,7 @@ export default function AdminDashboard() {
     setMagicPencilModeration(false);
     setAiDescStatus("⏳ Generating eye-catching description with AI...");
 
-    const apiBase = env.API_BASE_URL || (env.API_URL || "http://localhost:8000").replace(/\/api\/v1\/?$/, "");
+    const apiBase = env.API_BASE_URL || (env.API_URL || "https://e-commerce-backend-texz.onrender.com").replace(/\/api\/v1\/?$/, "");
     const token = localStorage.getItem("token") || localStorage.getItem("access_token");
     const headers = { "Content-Type": "application/json" };
     if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -444,7 +444,7 @@ export default function AdminDashboard() {
     let isMounted = true;
     const loadBackendProducts = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/products/?limit=200");
+        const res = await fetch("https://e-commerce-backend-texz.onrender.com/products/?limit=200");
         if (res.ok && isMounted) {
           const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {
@@ -645,7 +645,7 @@ export default function AdminDashboard() {
 
     // 1. Post to backend SQLite database
     try {
-      await fetch("http://127.0.0.1:8000/products/", {
+      await fetch("https://e-commerce-backend-texz.onrender.com/products/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2203,7 +2203,7 @@ export default function AdminDashboard() {
           queryClient.invalidateQueries({ queryKey: ["products"] });
           queryClient.invalidateQueries({ queryKey: productKeys.all });
           try {
-            const res = await fetch("http://127.0.0.1:8000/products/?limit=200");
+            const res = await fetch("https://e-commerce-backend-texz.onrender.com/products/?limit=200");
             if (res.ok) {
               const data = await res.json();
               if (Array.isArray(data) && data.length > 0) {

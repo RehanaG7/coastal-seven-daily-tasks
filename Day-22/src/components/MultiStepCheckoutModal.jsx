@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -90,13 +90,13 @@ export default function MultiStepCheckoutModal({ isOpen, onClose }) {
         <div className="flex justify-between items-center pb-4 border-b border-slate-800">
           <div>
             <span className="text-[10px] font-black uppercase text-amber-500 tracking-widest">
-              Dynamic Multi-Step Form • Step {step} of 2
+              Dynamic Multi-Step Form � Step {step} of 2
             </span>
             <h3 className="text-base font-black mt-0.5">
               {step === 1 ? "1. Verify Shipping Destination" : "2. Secure Payment Gateway"}
             </h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white font-bold p-1">✕</button>
+          <button onClick={onClose} className="text-slate-400 hover:text-white font-bold p-1">?</button>
         </div>
 
         {/* STEP 1: Shipping Details */}
@@ -108,7 +108,7 @@ export default function MultiStepCheckoutModal({ isOpen, onClose }) {
                 {...reg1("fullName")}
                 className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-xs text-white focus:border-amber-500 focus:outline-none"
               />
-              {err1.fullName && <p className="text-red-400 text-[11px] mt-1">⚠️ {err1.fullName.message}</p>}
+              {err1.fullName && <p className="text-red-400 text-[11px] mt-1">?? {err1.fullName.message}</p>}
             </div>
 
             <div>
@@ -117,7 +117,7 @@ export default function MultiStepCheckoutModal({ isOpen, onClose }) {
                 {...reg1("phone")}
                 className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-xs text-white focus:border-amber-500 focus:outline-none"
               />
-              {err1.phone && <p className="text-red-400 text-[11px] mt-1">⚠️️ {err1.phone.message}</p>}
+              {err1.phone && <p className="text-red-400 text-[11px] mt-1">??? {err1.phone.message}</p>}
             </div>
 
             <div>
@@ -127,11 +127,11 @@ export default function MultiStepCheckoutModal({ isOpen, onClose }) {
                 {...reg1("address")}
                 className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-xs text-white focus:border-amber-500 focus:outline-none"
               />
-              {err1.address && <p className="text-red-400 text-[11px] mt-1">⚠️ {err1.address.message}</p>}
+              {err1.address && <p className="text-red-400 text-[11px] mt-1">?? {err1.address.message}</p>}
             </div>
 
             <Button type="submit" className="w-full mt-2">
-              Next: Payment Gateway →
+              Next: Payment Gateway ?
             </Button>
           </form>
         )}
@@ -143,9 +143,9 @@ export default function MultiStepCheckoutModal({ isOpen, onClose }) {
               <label className="block text-[11px] font-bold text-slate-400 uppercase mb-2">Select Method</label>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { id: "upi", label: "UPI / QR", icon: "⚡" },
-                  { id: "card", label: "Cards", icon: "💳" },
-                  { id: "cod", label: "COD", icon: "💵" },
+                  { id: "upi", label: "UPI / QR", icon: "?" },
+                  { id: "card", label: "Cards", icon: "??" },
+                  { id: "cod", label: "COD", icon: "??" },
                 ].map((m) => (
                   <label
                     key={m.id}
@@ -198,11 +198,11 @@ export default function MultiStepCheckoutModal({ isOpen, onClose }) {
               </div>
             )}
 
-            {err2.paymentMethod && <p className="text-red-400 text-[11px]">⚠️ {err2.paymentMethod.message}</p>}
+            {err2.paymentMethod && <p className="text-red-400 text-[11px]">?? {err2.paymentMethod.message}</p>}
 
             <div className="pt-2 flex gap-3">
               <Button type="button" variant="outline" onClick={() => setStep(1)} className="flex-1">
-                ← Back
+                ? Back
               </Button>
               <Button type="submit" disabled={isSubmitting} className="flex-1">
                 {isSubmitting ? "Authorizing..." : `Pay $${cartTotal.toFixed(2)} & Dispatch`}

@@ -182,7 +182,7 @@ export default function ProductsPage() {
       setIsSemanticLoading(true);
       setAiAlertMessage("");
 
-      const apiBase = env.API_BASE_URL || (env.API_URL || "http://localhost:8000").replace(/\/api\/v1\/?$/, "");
+      const apiBase = env.API_BASE_URL || (env.API_URL || "https://e-commerce-backend-texz.onrender.com").replace(/\/api\/v1\/?$/, "");
       const token = localStorage.getItem("token") || localStorage.getItem("access_token");
       const headers = token ? { "Authorization": `Bearer ${token}` } : {};
 
@@ -195,7 +195,7 @@ export default function ProductsPage() {
           }
         } catch (proxyErr) {
           try {
-            res = await fetch(`http://127.0.0.1:8000/api/v1/ai/semantic-search?q=${encodeURIComponent(query.trim())}&limit=12`, { headers });
+            res = await fetch(`https://e-commerce-backend-texz.onrender.com/api/v1/ai/semantic-search?q=${encodeURIComponent(query.trim())}&limit=12`, { headers });
           } catch (netErr2) {
             res = await fetch(`${apiBase}/api/v1/ai/semantic-search?q=${encodeURIComponent(query.trim())}&limit=12`, { headers });
           }

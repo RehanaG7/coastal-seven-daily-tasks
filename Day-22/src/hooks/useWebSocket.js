@@ -21,7 +21,7 @@ export const ReadyState = {
 /**
  * Custom React hook for robust WebSocket communication with exponential backoff.
  * 
- * @param {string} url - Target WebSocket endpoint (e.g. ws://127.0.0.1:8000/ws/live)
+ * @param {string} url - Target WebSocket endpoint (e.g. wss://e-commerce-backend-texz.onrender.com/ws/live)
  * @param {object} options - Configuration options
  * @returns {object} WebSocket controller and reactive state
  */

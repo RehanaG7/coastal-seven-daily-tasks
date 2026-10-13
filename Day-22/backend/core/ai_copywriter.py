@@ -271,7 +271,7 @@ class AICopywriterService:
                     "Output JSON with keys headline, narrative, bullet_points, full_text."
                 )
                 response = client.models.generate_content(
-                    model="gemini-2.0-flash",
+                    model="gemini-2.5-flash",
                     contents=prompt
                 )
                 parsed_json = json.loads(response.text.strip().removeprefix("```json").removesuffix("```").strip())
@@ -282,7 +282,7 @@ class AICopywriterService:
                     "full_text": parsed_json.get("full_text", ""),
                     "tone": tone,
                     "provider": "Google Gemini",
-                    "model": "gemini-2.0-flash",
+                    "model": "gemini-2.5-flash",
                     "generated_at": time.time()
                 }
             except Exception as e:

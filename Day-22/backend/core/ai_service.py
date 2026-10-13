@@ -216,7 +216,7 @@ class LLMProviderManager:
                 client = genai.Client(api_key=gemini_key)
                 prompt_content = f"{system_prompt}\n\nUser Question: {query}"
                 response = client.models.generate_content_stream(
-                    model="gemini-2.0-flash",
+                    model="gemini-2.5-flash",
                     contents=prompt_content,
                 )
 

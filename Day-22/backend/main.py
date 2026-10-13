@@ -1,3 +1,10 @@
+import socket
+_orig_getaddrinfo = socket.getaddrinfo
+def _ipv4_getaddrinfo(*args, **kwargs):
+    res = _orig_getaddrinfo(*args, **kwargs)
+    v4 = [r for r in res if r[0] == socket.AF_INET]
+    return v4 if v4 else res
+socket.getaddrinfo = _ipv4_getaddrinfo
 import asyncio
 import json
 import sys

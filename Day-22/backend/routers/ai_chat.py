@@ -117,7 +117,7 @@ def ai_health_status(db: Session = Depends(get_db)):
             },
             "secondary": {
                 "name": "Google Gemini",
-                "model": "gemini-2.0-flash",
+                "model": "gemini-2.5-flash",
                 "configured": bool(ai_service.gemini_api_key and ai_service.gemini_api_key != "your_gemini_api_key_here")
             },
             "tertiary": {

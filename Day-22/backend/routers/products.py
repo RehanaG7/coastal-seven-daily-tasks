@@ -259,7 +259,7 @@ async def list_products(
             products = [item[1] for item in scored[offset_val : offset_val + limit]]
     else:
         # Regular category browse / paginated list
-        products = base_query.offset(offset_val).limit(limit).all()
+        products = base_query.order_by(Product.id.asc()).offset(offset_val).limit(limit).all()
 
     serialized = [
         {

@@ -124,6 +124,7 @@ class VectorStoreService:
                 f"Stock: {int(p.stock)} units available\n"
                 f"Description: {p_desc}"
             )
+            p_img = getattr(p, "image_url", None) or getattr(p, "image", None) or ""
             documents.append(doc_text)
             ids.append(f"prod_{p.id}")
             metadatas.append({
@@ -133,6 +134,7 @@ class VectorStoreService:
                 "stock": int(p.stock),
                 "category": str(p_cat),
                 "description": str(p_desc)[:200],
+                "image_url": str(p_img),
             })
 
         # Upsert documents into collection
@@ -189,6 +191,14 @@ class VectorStoreService:
                     document = results["documents"][0][idx] if results.get("documents") else ""
                     distance = results["distances"][0][idx] if results.get("distances") else 0.5
                     norm_score = max(0.40, min(0.99, round(1.0 - (float(distance) * 0.5), 3)))
+                    img_url = metadata.get("image_url") or ""
+                    if not img_url and db is not None:
+                        db_p = db.query(Product).filter(Product.id == prod_id).first()
+                        if db_p and db_p.image_url:
+                            img_url = db_p.image_url
+                    if not img_url:
+                        img_url = f"https://picsum.photos/seed/product-{prod_id}/400/300"
+
                     hits.append({
                         "id": metadata.get("id"),
                         "title": title,
@@ -197,7 +207,8 @@ class VectorStoreService:
                         "stock": metadata.get("stock", 0),
                         "category": metadata.get("category", "General"),
                         "description": metadata.get("description", ""),
-                        "image": f"https://picsum.photos/seed/product-{metadata.get('id', 1)}/400/300",
+                        "image": img_url,
+                        "image_url": img_url,
                         "snippet": document,
                         "relevance_score": norm_score,
                     })
@@ -255,7 +266,8 @@ class VectorStoreService:
                     "stock": int(p.stock),
                     "category": getattr(p, "category", "General") or "General",
                     "description": p_desc,
-                    "image": getattr(p, "image", getattr(p, "image_url", f"https://picsum.photos/seed/product-{p.id}/400/300")),
+                    "image": getattr(p, "image_url", None) or getattr(p, "image", None) or f"https://picsum.photos/seed/product-{p.id}/400/300",
+                    "image_url": getattr(p, "image_url", None) or getattr(p, "image", None) or f"https://picsum.photos/seed/product-{p.id}/400/300",
                     "snippet": f"Product: {p_title} (${p.price}) - Stock: {p.stock}",
                     "relevance_score": 0.85 if score > 0 else 0.5,
                 }))

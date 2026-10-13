@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { useInfiniteProducts, ALL_CATEGORIES } from "../hooks/useProducts";
+import { useInfiniteProducts, ALL_CATEGORIES, MOCK_CATALOG } from "../hooks/useProducts";
 import { useUIStore, useAuthStore } from "../store/useStore";
 import ProductCard from "../components/ProductCard";
 import Footer from "../components/Footer";
@@ -76,8 +76,22 @@ export const COMMON_TYPOS = {
   "espreso": "espresso coffee nespresso",
   "nespreso": "nespresso coffee",
   "logitec": "logitech mouse keyboard",
-  "logtech": "logitech mouse keyboard"
+  "logtech": "logitech mouse keyboard",
 };
+
+export function resolveProductImage(item) {
+  if (!item) return "";
+  const nameStr = (item.name || item.title || "").toLowerCase().trim();
+  const catalogMatch = MOCK_CATALOG.find((m) => {
+    const mName = (m.name || m.title || "").toLowerCase().trim();
+    return (nameStr && mName && nameStr === mName) || String(m.id) === String(item.id);
+  });
+  if (item.image_url && !item.image_url.includes("picsum.photos")) return item.image_url;
+  if (item.image && !item.image.includes("picsum.photos")) return item.image;
+  if (catalogMatch?.image_url && !catalogMatch.image_url.includes("picsum.photos")) return catalogMatch.image_url;
+  if (catalogMatch?.image && !catalogMatch.image.includes("picsum.photos")) return catalogMatch.image;
+  return item.image || item.image_url || `https://picsum.photos/seed/product-${item.id}/400/300`;
+}
 
 export default function ProductsPage() {
   const user = useAuthStore((s) => s.user);
@@ -343,31 +357,54 @@ export default function ProductsPage() {
       }
 
       // ChromaDB Vector Search Semantic Hit
-      const semanticMatch = validSemantic.find((s) => String(s.id) === String(p.id));
+      const pName = (p.name || p.title || "").toLowerCase().trim();
+      const semanticMatch = validSemantic.find((s) => {
+        if (!s) return false;
+        if (String(s.id) === String(p.id)) return true;
+        const sName = (s.name || s.title || "").toLowerCase().trim();
+        return Boolean(sName && pName && sName === pName);
+      });
       if (semanticMatch) {
         score += 350 + Math.round((semanticMatch.relevance_score || 0.85) * 150);
       }
 
       const enhancedProduct = semanticMatch?.relevance_score
-        ? { ...p, relevance_score: semanticMatch.relevance_score }
-        : p;
+        ? {
+            ...p,
+            relevance_score: semanticMatch.relevance_score,
+            image: resolveProductImage(p),
+          }
+        : {
+            ...p,
+            image: resolveProductImage(p),
+          };
 
       return { product: enhancedProduct, score };
     });
 
-    // Also include any semantic products returned by ChromaDB that are not in baseList
+    // Also include any semantic products returned by ChromaDB that are genuinely new (not already in baseList by ID or Name)
     const baseIds = new Set(baseList.map((p) => String(p.id)));
+    const baseNames = new Set(baseList.map((p) => (p.name || p.title || "").toLowerCase().trim()).filter(Boolean));
     const additionalSemantic = validSemantic
-      .filter((s) => s && !baseIds.has(String(s.id)))
-      .map((s) => ({
-        product: {
-          ...s,
-          name: s.name || s.title,
-          image: s.image || `https://picsum.photos/seed/product-${s.id}/400/300`,
-          relevance_score: s.relevance_score || 0.85,
-        },
-        score: 350 + Math.round((s.relevance_score || 0.85) * 150),
-      }));
+      .filter((s) => {
+        if (!s) return false;
+        const sId = String(s.id);
+        const sName = (s.name || s.title || "").toLowerCase().trim();
+        return !baseIds.has(sId) && (!sName || !baseNames.has(sName));
+      })
+      .map((s) => {
+        const bestImage = resolveProductImage(s);
+        return {
+          product: {
+            ...s,
+            name: s.name || s.title,
+            image: bestImage,
+            image_url: bestImage,
+            relevance_score: s.relevance_score || 0.85,
+          },
+          score: 350 + Math.round((s.relevance_score || 0.85) * 150),
+        };
+      });
 
     const combinedList = [...scoredList, ...additionalSemantic];
 

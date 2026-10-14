@@ -2,7 +2,7 @@ name: Day 23 DevOps CI/CD: Automated Testing, Linting & Docker Build-Push
 
 on:
   push:
-    branches: [main, "feature/**"]
+    branches: [main, "feature/*", "feature/**"]
   pull_request:
     branches: [main]
 

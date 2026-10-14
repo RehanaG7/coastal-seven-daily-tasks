@@ -1,0 +1,177 @@
+# ==============================================================================
+# Day 23 DevOps / AWS Focus: Master Docker Compose Stack
+# Services: FastAPI, PostgreSQL 16, Redis 7, Celery Worker, Celery Beat, Nginx
+# ==============================================================================
+
+version: "3.8"
+
+networks:
+  rmart-network:
+    name: rmart-day23-network
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: rmart-day23-postgres-data
+  redis_data:
+    name: rmart-day23-redis-data
+  media_data:
+    name: rmart-day23-media-data
+  static_data:
+    name: rmart-day23-static-data
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. PostgreSQL Relational Database Service (Alpine 16)
+  # ----------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: rmart-day23-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rmart_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rmart_secure_pass_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-rmart_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - rmart-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rmart_user} -d ${POSTGRES_DB:-rmart_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ----------------------------------------------------------------------------
+  # 2. Redis In-Memory Cache & Message Broker (Alpine 7)
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: rmart-day23-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - rmart-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ----------------------------------------------------------------------------
+  # 3. FastAPI Web Application Gateway
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rmart-day23-backend
+    restart: unless-stopped
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --workers 2
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-rmart_user}:${POSTGRES_PASSWORD:-rmart_secure_pass_2026}@db:5432/${POSTGRES_DB:-rmart_db}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - SECRET_KEY=${SECRET_KEY:-rmart-super-secret-jwt-key-2026}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    volumes:
+      - media_data:/app/media
+      - static_data:/app/static
+    networks:
+      - rmart-network
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ----------------------------------------------------------------------------
+  # 4. Celery Distributed Background Worker
+  # ----------------------------------------------------------------------------
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rmart-day23-celery-worker
+    restart: unless-stopped
+    command: celery -A tasks.celery_app.celery_app worker --loglevel=info -c 2
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-rmart_user}:${POSTGRES_PASSWORD:-rmart_secure_pass_2026}@db:5432/${POSTGRES_DB:-rmart_db}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    volumes:
+      - media_data:/app/media
+    networks:
+      - rmart-network
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
+  # ----------------------------------------------------------------------------
+  # 5. Celery Beat Periodic Task Scheduler
+  # ----------------------------------------------------------------------------
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rmart-day23-celery-beat
+    restart: unless-stopped
+    command: celery -A tasks.celery_app.celery_app beat --loglevel=info
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-rmart_user}:${POSTGRES_PASSWORD:-rmart_secure_pass_2026}@db:5432/${POSTGRES_DB:-rmart_db}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    networks:
+      - rmart-network
+    depends_on:
+      redis:
+        condition: service_healthy
+      celery_worker:
+        condition: service_started
+
+  # ----------------------------------------------------------------------------
+  # 6. Production Frontend & Reverse Proxy (React SPA + Nginx)
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: rmart-day23-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "5173:80"
+    networks:
+      - rmart-network
+    depends_on:
+      backend:
+        condition: service_healthy

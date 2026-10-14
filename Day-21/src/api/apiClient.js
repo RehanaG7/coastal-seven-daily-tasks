@@ -35,23 +35,9 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Clear credentials
       localStorage.removeItem("token");
       localStorage.removeItem("access_token");
       localStorage.removeItem("rmart_user");
-      localStorage.removeItem("user_role");
-
-      // Notify application of session expiration
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent("rmart:auth_expired", {
-            detail: {
-              message: "Your session has expired. Please log in again.",
-              timestamp: Date.now(),
-            },
-          })
-        );
-      }
     }
     return Promise.reject(error);
   }

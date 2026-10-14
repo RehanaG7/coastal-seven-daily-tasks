@@ -26,9 +26,19 @@
 
 ## 📖 Executive Summary
 
-**Coastal Seven Daily Tasks** is a complete, production-grade enterprise full-stack software engineering curriculum tracking progress from **Day 01 through Day 20**. 
+**Coastal Seven Daily Tasks** is a complete, production-grade enterprise full-stack software engineering curriculum tracking progress from **Day 01 through Day 22 (AI Focus Capstone)**. 
 
-The repository demonstrates a scalable journey from core algorithmic Python scripting and relational database architecture to an asynchronous, distributed full-stack E-Commerce platform (**R-Mart**) featuring **FastAPI**, **SQLAlchemy 2.0**, **PostgreSQL (Neon)**, **Redis Cache & Pub/Sub**, **Celery Asynchronous Workers**, **ReportLab PDF Invoices**, **Chunked Bulk CSV Import Pipelines**, **React 19 + TypeScript**, **Zustand State Management**, **TanStack React Query v5**, **Bidirectional WebSockets**, and automated quality assurance across **Pytest**, **Vitest**, and **Playwright**.
+The repository demonstrates a scalable journey from core algorithmic Python scripting and relational database architecture to an asynchronous, distributed full-stack AI-enhanced E-Commerce platform (**R-Mart**) featuring **FastAPI**, **PostgreSQL (Neon)**, **Redis Cache & Pub/Sub**, **Celery Asynchronous Workers**, **ReportLab PDF Invoices**, **ChromaDB Dense Vectors**, **Multi-LLM RAG Streaming (Gemini + Groq)**, **React 19 + TypeScript**, **Zustand State Management**, **TanStack React Query v5**, **Bidirectional WebSockets**, **Responsible AI Cost Governance ($0.00 spend)**, and automated quality assurance across **Pytest**, **Vitest**, and **Playwright**.
+
+---
+
+## 🌐 Live Production Deployments
+
+The Capstone application is deployed online and accessible at:
+
+* 🌐 **Frontend Application:** [https://coastal-seven-daily-tasks.onrender.com](https://coastal-seven-daily-tasks.onrender.com)
+* 🔌 **Backend REST API:** [https://e-commerce-backend-texz.onrender.com](https://e-commerce-backend-texz.onrender.com)
+* 📖 **Interactive Swagger Docs:** [https://e-commerce-backend-texz.onrender.com/docs](https://e-commerce-backend-texz.onrender.com/docs)
 
 ---
 
@@ -113,31 +123,34 @@ flowchart TD
 
 ---
 
-## 📊 Comprehensive Progress Tracker Table (Days 01–21)
+### 📊 Master Progress & Architecture Tracker (Days 01–22)
 
-| Day | Module / Focus | Topics & Core Architecture | Key Deliverables & Test Verification | Feature Branch | Status |
-| :---: | :--- | :--- | :--- | :--- | :---: |
-| **Day 01** | **Python & FastAPI Fundamentals** | Python data types, loops, functions, FastAPI app instance, Swagger UI | Interactive Student Management CRUD API with Pydantic validation | `feature/day-01-python-fastapi` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 02** | **Python Control Flow & Data Structures** | Modulo algorithms, primality tests, nested collections, file I/O | Persistent Contact Book CLI with JSON storage and CSV export | `feature/day-02-python-foundations` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 03** | **OOP Principles & Python Data Model** | Classes, encapsulation, dunder methods, inheritance, polymorphism, ABC | Defensive Bank Account, Abstract contracts, property decorators | `feature/day-03-oop-principles` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 04** | **PostgreSQL & CLI Task Manager** | Neon PostgreSQL serverless, psycopg connection pooling, relational DDL | Parameterized SQL Task Manager with JSON export and Pytest suite | `feature/day-04-cli-task-manager` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 05** | **SQLAlchemy ORM & Alembic** | SQLAlchemy 2.0 models, repository CRUD pattern, Alembic migrations | Layered REST API with automated database migrations and tests | `feature/day-05-fastapi-sqlalchemy` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 06** | **JWT Authentication & RBAC** | Password hashing (Bcrypt), JWT creation/decode, role dependencies | Secure Auth subsystem with OAuth2 password flow and admin route gating | `feature/day-06-jwt-rbac` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 07** | **Task Management Production API** | Multi-tenant projects, task status lifecycle (`TODO` → `DONE`), CORS | Modular Project & Task Management API with JWT RBAC | `feature/day-07-task-mgmt-jwt-redis` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 08** | **High-Performance FastAPI, Redis & Celery**| `asyncio.gather` concurrency, Redis cache-aside, ZSET rate limiter | Sub-5ms cached reads, 429 rate-limiting, Celery report jobs | `feature/day-08-fastapi-redis-celery` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 09** | **File Ingestion, Pillow & WebSockets** | Streaming `UploadFile`, MIME validation, Pillow 300x300 thumbnails | Resilient image upload pipeline with WebSocket alerts and 95% test coverage | `feature/day-09-file-processing-websockets` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 10** | **E-Commerce Backend & Celery Tasks** | E-commerce schema, cart quantity stacking, Redis Pub/Sub, live tracking | Production FastAPI backend, 21-test Pytest suite (100% passed) | `feature/day-10-ecommerce-backend` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 11** | **React Frontend Integration & Admin Ops** | Vite + React SPA, React Router v6, Context API auth, protected routes | Interactive shopping cart, live stepper, and admin metrics portal | `feature/day-11-react-frontend-integration` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 12** | **Tailwind CSS, Shadcn/ui & Zod Validation**| Tailwind design system, dark mode, React Hook Form + Zod schemas | Multi-step checkout wizard with accessible dropzone file upload | `feature/day-12-tailwind-shadcn-forms` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 13** | **E-Commerce Frontend Part 1** | Real-time search/filters/sort, `/catalog/:id` view, dual-mode auth | Amazon/Flipkart cart drawer, Admin Studio with 3-way image upload | `feature/day-13-ecommerce-frontend-part1` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 14** | **State Management, React Query & 3D Motion**| Zustand micro-stores, TanStack Query v5, Canvas 3D space warp, Audio API| Optimistic stock mutations, interactive tilt cards, 99+ Lighthouse score | `feature/day-14-state-query-performance` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 15** | **TypeScript Strict Typing & Testing Matrix**| TypeScript interfaces, Vitest component tests, MSW offline mocking | Strict typing, 5 Vitest tests, Playwright cross-browser user journeys | `feature/day-15-typescript-testing` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 16** | **Frontend Part 2 & Automated Quality Matrix**| Zustand cart persistence, Zod checkout validation, Admin CRUD | 25 Vitest tests passed, 13 Playwright E2E scenarios, 100% CI pass | `feature/day-16-ecommerce-frontend-part2` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 17** | **Full-Stack Real-Time WebSockets & Tracking**| Bidirectional WebSockets, Redis Pub/Sub broadcast, `useWebSocket` hook | Live delivery tracking stepper, 24/7 customer support chat, alerts drawer | `feature/day-17-fullstack-websockets-tracking` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 18** | **Background Tasks, PDF Invoices & Bulk CSV** | Celery polling, ReportLab PDF invoices, 500-row chunked CSV imports | Multi-token search, N+1 query optimization, 34-test Pytest suite | `feature/day-18` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 19** | **API Security, Performance & Load Testing** | `slowapi` rate limiting, OWASP Top 10 hardening, GZip compression, Rollup code splitting, Lighthouse 90+ | 38 backend Pytest tests, 50 Vitest tests, 50-user Locust load test (0.00% fails) | `feature/day-19-security-performance-loadtest` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 20** | **AI Shopping Concierge, ChromaDB Vector RAG & SSE Streaming** | ChromaDB dense vectors (`all-MiniLM-L6-v2`), multi-provider LLMs (Groq Llama-3.3-70B, Gemini 2.0 Flash), SSE token streaming, support exception training | 44 backend Pytest tests, 67 Vitest tests (100% passed) | `feature/day-20-ai-rag-streaming` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
-| **Day 21** | **AI Production Focus: Copywriting, Vector Search, Moderation, Redis Caching & Agent Tools** | LLM product copywriter (tones), ChromaDB dense vector search, content moderation guardrails, deterministic Redis response caching (<3ms), per-user rate limiting (5/20/60 req/min), autonomous agent tool calling (stock, orders, coupons, tickets), React error boundary degradation | 55 backend Pytest tests, 75 Vitest tests (100% passed across all modules) | `feature/day-21-ai-focus` | ![Completed](https://img.shields.io/badge/Status-Completed-brightgreen) |
+> 💡 **Quick Revision & Interview Cheat Sheet**: Rapid technical review of each milestone's domain, technology stack, architectural purpose, and production status.
+
+| Day | Domain | Technology / Tool | Version | Purpose in Architecture | Status |
+| :---: | :--- | :--- | :---: | :--- | :---: |
+| **Day 01** | Backend API | FastAPI, Pydantic, Uvicorn | `0.115+` | RESTful CRUD endpoints with schema validation and Swagger UI docs | Completed |
+| **Day 02** | Python Core | Python 3, JSON, CSV | `3.11+` | Modular CLI Contact Book with persistent JSON storage and CSV export | Completed |
+| **Day 03** | OOP Architecture | Python OOP, ABC, Dunder Methods | `3.11+` | Defensive OOP banking system with abstract contracts and polymorphism | Completed |
+| **Day 04** | Cloud Relational DB | Neon PostgreSQL, psycopg | `16 / 3.x` | Serverless cloud PostgreSQL with connection pooling and parameterized SQL | Completed |
+| **Day 05** | ORM & Migrations | SQLAlchemy 2.0, Alembic, SQLite | `2.0+ / 1.13+` | Declarative entity models, repository CRUD pattern, and Alembic migrations | Completed |
+| **Day 06** | Auth & RBAC Security | JWT (PyJWT), Passlib, Bcrypt | `2.8+ / 4.1+` | Stateless auth with salted password hashing, JWT tokens, and RBAC guards | Completed |
+| **Day 07** | Production Task APIs | FastAPI, JWT, CORS Middleware | `0.115+` | Multi-tenant task API with owner foreign keys, task lifecycle, and CORS | Completed |
+| **Day 08** | Async & Caching | Redis, Celery, asyncio.gather | `5.0+ / 5.4+` | Cache-aside architecture for sub-5ms reads, rate limiting, and Celery tasks | Completed |
+| **Day 09** | File Pipelines | Pillow (PIL), WebSockets, UploadFile | `10.3+` | Resilient image upload with MIME check, 300x300 thumbnails, WebSocket alerts | Completed |
+| **Day 10** | E-Commerce Backend | FastAPI, PostgreSQL, Redis Pub/Sub | `0.115+ / 5.0+` | Production E-Commerce core with atomic cart stacking and Redis order tracking | Completed |
+| **Day 11** | React Frontend SPA | React 19, Vite, React Router v6 | `19.2+ / 8.3+` | Single-page client with declarative routing, Context auth, and cart drawer | Completed |
+| **Day 12** | Design Systems & Forms | Tailwind CSS, Shadcn/ui, Zod | `4.3+ / 3.25+` | Accessible dark-mode UI with uncontrolled forms and multi-step checkout | Completed |
+| **Day 13** | E-Commerce Catalog | React 19, Context API, Lucide React | `19.2+` | Multi-facet catalog search/filter/sort, item detail view, and Admin Studio | Completed |
+| **Day 14** | State & Server Data | Zustand, TanStack React Query v5 | `5.0+ / v5` | Atomic Zustand stores and TanStack Query caching with optimistic mutations | Completed |
+| **Day 15** | Strict Typing & QA | TypeScript, Vitest, Playwright, MSW | `5.x / 5.0+` | Strict TypeScript interfaces, MSW offline mocking, Vitest and Playwright E2E | Completed |
+| **Day 16** | Full Frontend Platform | Zustand Persistence, RTL, Zod | `5.0+ / 16.0+` | Persistent cart across reloads, admin stock CRUD, and 40-test quality matrix | Completed |
+| **Day 17** | Real-Time WebSockets | Native WebSockets, Redis Pub/Sub | Built-in / `5.0+` | Live order tracking stepper, customer support chat, and reconnection backoff | Completed |
+| **Day 18** | Async Jobs & Reports | Celery, Redis, ReportLab, Pandas | `5.4+ / 4.2+` | 500-row chunked CSV bulk import, PDF invoice generation, and Celery polling | Completed |
+| **Day 19** | API Security & Load Test | slowapi, GZipMiddleware, Locust | `0.1.10+ / 2.46+` | Sliding-window IP rate limiting, GZip compression, and 50-user Locust load test | Completed |
+| **Day 20** | Vector RAG & Streaming AI | ChromaDB, Gemini Flash, Groq, SSE | `0.6+ / 2.0+` | AI Shopping Concierge with dense vector retrieval and SSE token streaming | Completed |
+| **Day 21** | AI Tools & Governance | Groq Llama-3.3-70B, Redis, Tool Calling | `Cloud / 5.0+` | AI Copywriter studio, autonomous agent tool calling, and sub-3ms Redis cache | Completed |
+| **Day 22** | Full-Stack AI Capstone | FastAPI, React 19, ChromaDB, Render | `Production` | Full-stack RAG, semantic search, AI copywriter, WebSockets, zero-cost ($0.00) | Live Deployed |
 
 
 ---
@@ -168,6 +181,8 @@ Every milestone in this repository is isolated into its own cleanly structured f
 | **Day 18** | `feature/day-18` | `git checkout feature/day-18` |
 | **Day 19** | `feature/day-19-security-performance-loadtest` | `git checkout feature/day-19-security-performance-loadtest` |
 | **Day 20** | `feature/day-20-ai-rag-streaming` | `git checkout feature/day-20-ai-rag-streaming` |
+| **Day 21** | `feature/day-21-ai-focus` | `git checkout feature/day-21-ai-focus` |
+| **Day 22** | `feature/day-22-ai-focus-capstone` | `git checkout feature/day-22-ai-focus-capstone` |
 
 ---
 
@@ -200,7 +215,9 @@ coastal-seven-daily-tasks/
 ├── Day-17/                 # Full-stack real-time WebSockets, live tracking & chat
 ├── Day-18/                 # Celery async polling, ReportLab PDF, bulk CSV, 34 Pytests
 ├── Day-19/                 # API security, slowapi, OWASP, GZip, Locust load test, bundle splitting
-└── Day-20/                 # AI shopping assistant, ChromaDB RAG, multi-provider LLMs, SSE streaming
+├── Day-20/                 # AI shopping assistant, ChromaDB RAG, multi-provider LLMs, SSE streaming
+├── Day-21/                 # AI copywriter studio, ChromaDB search, Redis cache & agent tools
+└── Day-22/                 # Capstone: Full-stack RAG, semantic discovery, WebSockets & zero-cost governance
 ```
 
 ---

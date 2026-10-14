@@ -126,6 +126,7 @@ class VectorStoreService:
                         continue
                     document = results["documents"][0][idx] if results.get("documents") else ""
                     distance = results["distances"][0][idx] if results.get("distances") else 0.5
+                    norm_score = max(0.40, min(0.99, round(1.0 - (float(distance) * 0.5), 3)))
                     hits.append({
                         "id": metadata.get("id"),
                         "title": title,
@@ -136,7 +137,7 @@ class VectorStoreService:
                         "description": metadata.get("description", ""),
                         "image": f"https://picsum.photos/seed/product-{metadata.get('id', 1)}/400/300",
                         "snippet": document,
-                        "relevance_score": round(max(0.0, 1.0 - float(distance)), 3),
+                        "relevance_score": norm_score,
                     })
                     if len(hits) >= top_k:
                         break

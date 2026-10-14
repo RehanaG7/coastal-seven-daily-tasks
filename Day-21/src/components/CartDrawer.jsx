@@ -509,6 +509,57 @@ export default function CartDrawer({ isOpen, onClose }) {
                         </div>
                       </div>
                     ))}
+
+                    {/* Bottom Action Card: Place Order & Proceed to Checkout */}
+                    <div
+                      style={{
+                        marginTop: "16px",
+                        padding: "18px 24px",
+                        backgroundColor: c.cardBg,
+                        border: `1px solid ${c.border}`,
+                        borderRadius: "14px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: "16px",
+                        boxShadow: "0 4px 15px rgba(0,0,0,0.06)",
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: "12px", color: c.subtext, fontWeight: "700" }}>
+                          Total ({cart.reduce((a, b) => a + (b.quantity || 1), 0)} items):
+                        </div>
+                        <div style={{ fontSize: "22px", fontWeight: "900", color: "#10B981" }}>
+                          ${total.toFixed(2)}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          handleClose();
+                          navigate("/checkout");
+                        }}
+                        style={{
+                          backgroundColor: c.primary,
+                          color: "#030712",
+                          border: "none",
+                          padding: "12px 28px",
+                          borderRadius: "10px",
+                          fontWeight: "900",
+                          fontSize: "14px",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          boxShadow: "0 4px 15px rgba(245, 158, 11, 0.35)",
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        <span>🛒 Place Order & Checkout</span>
+                        <span>➔</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1000,7 +1051,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                     boxShadow: "0 4px 15px rgba(245, 158, 11, 0.3)",
                   }}
                 >
-                  Proceed to Checkout ➔
+                  Place Order & Proceed to Checkout ➔
                 </button>
               )}
 

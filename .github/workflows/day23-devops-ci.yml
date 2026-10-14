@@ -1,4 +1,4 @@
-name: Day 23 DevOps CI/CD: Automated Testing, Linting & Docker Build-Push
+name: "Day 23 DevOps CI/CD - Automated Testing, Linting & Docker Build-Push"
 
 on:
   push:

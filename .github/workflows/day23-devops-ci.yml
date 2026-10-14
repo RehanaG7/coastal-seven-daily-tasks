@@ -1,0 +1,197 @@
+name: Day 23 DevOps CI/CD: Automated Testing, Linting & Docker Build-Push
+
+on:
+  push:
+    branches: [main, "feature/**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # Job 1: Python Backend Linting & Test Matrix (PostgreSQL + Redis)
+  # ----------------------------------------------------------------------------
+  backend-test:
+    name: Backend Pytest & Linting Suite
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: Day-23/backend/requirements.txt
+
+      - name: Install Python Dependencies
+        working-directory: ./Day-23/backend
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -r requirements.txt
+          pip install pytest-cov flake8
+
+      - name: Run Flake8 Code Linting
+        working-directory: ./Day-23/backend
+        run: |
+          # Stop build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Warning check for complexity
+          flake8 . --count --exit-zero --max-complexity=15 --max-line-length=127 --statistics
+
+      - name: Execute Automated Pytest Matrix
+        working-directory: ./Day-23/backend
+        env:
+          DATABASE_URL: postgresql+psycopg2://test_user:test_password@localhost:5432/test_db
+          REDIS_URL: redis://localhost:6379/0
+          CELERY_BROKER_URL: redis://localhost:6379/1
+          CELERY_RESULT_BACKEND: redis://localhost:6379/2
+          PYTHONPATH: .
+        run: |
+          python -m pytest -v tests --ignore=venv
+
+  # ----------------------------------------------------------------------------
+  # Job 2: Frontend Linting, TypeScript Typecheck & Vitest Suite
+  # ----------------------------------------------------------------------------
+  frontend-test:
+    name: Frontend Vitest & Build Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: Day-23/package.json
+
+      - name: Install Frontend Dependencies
+        working-directory: ./Day-23
+        run: npm ci --legacy-peer-deps || npm install
+
+      - name: Run TypeScript Strict Type Check
+        working-directory: ./Day-23
+        run: npx tsc --noEmit
+
+      - name: Run Vitest Automated Test Suite
+        working-directory: ./Day-23
+        run: npm test -- --run
+
+      - name: Test Production Frontend Bundle Build
+        working-directory: ./Day-23
+        run: npm run build
+
+  # ----------------------------------------------------------------------------
+  # Job 3: Docker & Compose Configuration Validation
+  # ----------------------------------------------------------------------------
+  docker-validate:
+    name: Dockerfile Lint & Compose Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Lint Backend Dockerfile with Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Day-23/backend/Dockerfile
+          failure-threshold: error
+          ignore: DL3008,DL3013
+
+      - name: Lint Frontend Dockerfile with Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Day-23/Dockerfile.frontend
+          failure-threshold: error
+          ignore: DL3008,DL3018
+
+      - name: Validate Docker Compose Configuration Syntax
+        working-directory: ./Day-23
+        run: docker compose config --quiet
+
+  # ----------------------------------------------------------------------------
+  # Job 4: Multi-Stage Docker Image Build & Push to GHCR
+  # ----------------------------------------------------------------------------
+  docker-build-push:
+    name: Docker Buildx & Publish Images
+    needs: [backend-test, frontend-test, docker-validate]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (Multi-platform emulation)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feature/'))
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push Backend Container Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./Day-23/backend
+          file: ./Day-23/backend/Dockerfile
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/rmart-backend:latest
+            ${{ env.REGISTRY }}/${{ github.repository }}/rmart-backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & Push Frontend Container Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./Day-23
+          file: ./Day-23/Dockerfile.frontend
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/rmart-frontend:latest
+            ${{ env.REGISTRY }}/${{ github.repository }}/rmart-frontend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

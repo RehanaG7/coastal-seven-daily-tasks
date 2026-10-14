@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   PURE BLACK 3D MOTION GRAPHICS & NEWS TICKER SUITE (DAY 14)
+   ========================================================================== */
+
+/* Hardware accelerated 3D perspectives */
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.perspective-2000 {
+  perspective: 2000px;
+}
+
+/* 3D Holographic Cube Rotation */
+@keyframes spinCube3D {
+  0% {
+    transform: rotateX(-22deg) rotateY(0deg) rotateZ(0deg);
+  }
+  50% {
+    transform: rotateX(25deg) rotateY(180deg) rotateZ(10deg);
+  }
+  100% {
+    transform: rotateX(-22deg) rotateY(360deg) rotateZ(0deg);
+  }
+}
+
+.animate-cube-3d {
+  animation: spinCube3D 16s infinite linear;
+}
+
+/* 3D Floating Motion with subtle pitch & roll */
+@keyframes float3D {
+  0%, 100% {
+    transform: translateY(0px) rotateX(0deg) rotateY(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotateX(4deg) rotateY(-4deg);
+  }
+}
+
+.animate-float-3d {
+  animation: float3D 4.5s ease-in-out infinite;
+}
+
+/* Kinetic 3D Parcel Drop */
+@keyframes parcelDrop3D {
+  0% {
+    transform: translateY(-400px) scale3d(0.5, 0.5, 0.5) rotateX(60deg) rotateZ(-30deg);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(20px) scale3d(1.15, 0.85, 1.1) rotateX(-10deg) rotateZ(5deg);
+    opacity: 1;
+  }
+  80% {
+    transform: translateY(-10px) scale3d(0.95, 1.05, 0.95) rotateX(5deg) rotateZ(-2deg);
+  }
+  100% {
+    transform: translateY(0px) scale3d(1, 1, 1) rotateX(0deg) rotateZ(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-parcel-drop-3d {
+  animation: parcelDrop3D 1.1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Ground Shockwave Ripple */
+@keyframes shockwaveRing {
+  0% {
+    transform: translate(-50%, -50%) scale(0.1);
+    opacity: 1;
+    border-color: #38BDF8;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(3.5);
+    opacity: 0;
+    border-color: #818CF8;
+  }
+}
+
+.animate-shockwave {
+  animation: shockwaveRing 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+
+/* Human-Readable Scrolling News Banner Ticker */
+@keyframes humanReadableScroll {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.scrolling-news-track {
+  display: inline-block;
+  white-space: nowrap;
+  animation: humanReadableScroll 32s linear infinite;
+  will-change: transform;
+}
+
+.scrolling-news-track:hover {
+  animation-play-state: paused;
+}
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #F59E0B;
+}

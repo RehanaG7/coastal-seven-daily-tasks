@@ -50,7 +50,11 @@ def test_05_read_user_me(client, user_token):
 
 
 # --- 2. PRODUCT MANAGEMENT (6 Tests) ---
+created_product_id = 1
+
+
 def test_06_admin_create_product(client, admin_token):
+    global created_product_id
     res = client.post(
         "/api/v1/products",
         json={"name": "Gaming Laptop", "price": 1200.0, "stock": 10},
@@ -58,6 +62,7 @@ def test_06_admin_create_product(client, admin_token):
     )
     assert res.status_code == 201
     assert res.json()["name"] == "Gaming Laptop"
+    created_product_id = res.json()["id"]
 
 
 def test_07_customer_cannot_create_product(client, user_token):
@@ -76,14 +81,14 @@ def test_08_list_products_and_caching(client):
 
 
 def test_09_get_single_product(client):
-    res = client.get("/api/v1/products/1")
+    res = client.get(f"/api/v1/products/{created_product_id}")
     assert res.status_code == 200
-    assert res.json()["id"] == 1
+    assert res.json()["id"] == created_product_id
 
 
 def test_10_update_product(client, admin_token):
     res = client.put(
-        "/api/v1/products/1",
+        f"/api/v1/products/{created_product_id}",
         json={"price": 1150.0},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
@@ -96,7 +101,7 @@ def test_11_upload_product_image(client, admin_token):
     Image.new("RGB", (100, 100), color="blue").save(buf, format="JPEG")
     buf.seek(0)
     res = client.post(
-        "/api/v1/products/1/upload-image",
+        f"/api/v1/products/{created_product_id}/upload-image",
         files={"file": ("test.jpg", buf, "image/jpeg")},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
@@ -108,13 +113,18 @@ def test_11_upload_product_image(client, admin_token):
 def test_12_add_item_to_cart(client, user_token):
     res = client.post(
         "/api/v1/cart/items",
-        json={"product_id": 1, "quantity": 2},
+        json={"product_id": created_product_id, "quantity": 2},
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert res.status_code == 200
 
 
 def test_13_view_cart(client, user_token):
+    client.post(
+        "/api/v1/cart/items",
+        json={"product_id": created_product_id, "quantity": 2},
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
     res = client.get(
         "/api/v1/cart", headers={"Authorization": f"Bearer {user_token}"}
     )
@@ -127,15 +137,20 @@ def test_13_view_cart(client, user_token):
 def test_14_add_item_exceeding_stock(client, user_token):
     res = client.post(
         "/api/v1/cart/items",
-        json={"product_id": 1, "quantity": 9999},
+        json={"product_id": created_product_id, "quantity": 9999},
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert res.status_code == 400
 
 
 def test_15_remove_from_cart(client, user_token):
+    client.post(
+        "/api/v1/cart/items",
+        json={"product_id": created_product_id, "quantity": 1},
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
     res = client.delete(
-        "/api/v1/cart/items/1",
+        f"/api/v1/cart/items/{created_product_id}",
         headers={"Authorization": f"Bearer {user_token}"},
     )
     assert res.status_code == 200
@@ -156,7 +171,7 @@ def test_16_order_checkout_empty_cart(client, user_token):
 def test_17_order_checkout_success_and_stock_deduction(client, user_token):
     client.post(
         "/api/v1/cart/items",
-        json={"product_id": 1, "quantity": 2},
+        json={"product_id": created_product_id, "quantity": 2},
         headers={"Authorization": f"Bearer {user_token}"},
     )
     order_res = client.post(
@@ -165,7 +180,7 @@ def test_17_order_checkout_success_and_stock_deduction(client, user_token):
     assert order_res.status_code == 201
     assert order_res.json()["status"] == "CONFIRMED"
 
-    p = client.get("/api/v1/products/1").json()
+    p = client.get(f"/api/v1/products/{created_product_id}").json()
     assert p["stock"] == 8
 
 

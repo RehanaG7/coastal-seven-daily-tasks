@@ -1,4 +1,4 @@
-name: Day 23 DevOps CI/CD: Automated Testing, Linting & Docker Build-Push
+name: "Day 23 DevOps CI/CD - Automated Testing, Linting & Docker Build-Push"
 
 on:
   push:
@@ -12,6 +12,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
+  NODE_OPTIONS: "--no-deprecation"
 
 jobs:
   # ----------------------------------------------------------------------------
@@ -71,6 +72,23 @@ jobs:
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           # Warning check for complexity
           flake8 . --count --exit-zero --max-complexity=15 --max-line-length=127 --statistics
+
+      - name: Initialize PostgreSQL Extensions
+        working-directory: ./Day-23/backend
+        run: |
+          python -c "
+          import psycopg2
+          try:
+              conn = psycopg2.connect('postgresql://test_user:test_password@localhost:5432/test_db')
+              conn.autocommit = True
+              cur = conn.cursor()
+              cur.execute('CREATE EXTENSION IF NOT EXISTS pg_trgm;')
+              cur.close()
+              conn.close()
+              print('PostgreSQL pg_trgm extension initialized successfully.')
+          except Exception as e:
+              print('Notice initializing extension:', e)
+          "
 
       - name: Execute Automated Pytest Matrix
         working-directory: ./Day-23/backend
@@ -158,6 +176,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Lowercase Repository Name
+        run: |
+          echo "IMAGE_REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Set up QEMU (Multi-platform emulation)
         uses: docker/setup-qemu-action@v3
 
@@ -173,25 +195,25 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & Push Backend Container Image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./Day-23/backend
           file: ./Day-23/backend/Dockerfile
           push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository }}/rmart-backend:latest
-            ${{ env.REGISTRY }}/${{ github.repository }}/rmart-backend:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}/rmart-backend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}/rmart-backend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Build & Push Frontend Container Image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./Day-23
           file: ./Day-23/Dockerfile.frontend
           push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository }}/rmart-frontend:latest
-            ${{ env.REGISTRY }}/${{ github.repository }}/rmart-frontend:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}/rmart-frontend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}/rmart-frontend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

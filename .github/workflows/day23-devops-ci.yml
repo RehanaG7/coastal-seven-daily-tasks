@@ -12,6 +12,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
+  NODE_OPTIONS: "--no-deprecation"
 
 jobs:
   # ----------------------------------------------------------------------------
@@ -194,7 +195,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & Push Backend Container Image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./Day-23/backend
           file: ./Day-23/backend/Dockerfile
@@ -206,7 +207,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build & Push Frontend Container Image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./Day-23
           file: ./Day-23/Dockerfile.frontend

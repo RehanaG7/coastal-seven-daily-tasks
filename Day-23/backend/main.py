@@ -43,8 +43,25 @@ INVOICES_DIR.mkdir(parents=True, exist_ok=True)
 from slowapi.errors import RateLimitExceeded
 from core.rate_limiter import limiter, custom_rate_limit_handler
 
-# Ensure database tables exist
-Base.metadata.create_all(bind=engine)
+# Ensure database tables and PostgreSQL extensions exist
+from sqlalchemy import text
+
+if "postgres" in str(engine.url):
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm;"))
+            conn.commit()
+    except Exception:
+        pass
+
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception:
+    for table in Base.metadata.tables.values():
+        try:
+            table.create(bind=engine, checkfirst=True)
+        except Exception:
+            pass
 
 app = FastAPI(
     title="E-Commerce API",

@@ -127,196 +127,30 @@ flowchart TD
 
 > 💡 **Quick Revision & Interview Cheat Sheet**: Rapid technical review of each milestone's domain, technology stack, architectural purpose, and production status.
 
-<table width="100%">
-  <thead>
-    <tr style="background-color: #f1f5f9;">
-      <th align="center" width="10%">Day</th>
-      <th align="left" width="15%">Domain</th>
-      <th align="left" width="20%">Technology / Tool</th>
-      <th align="center" width="10%">Version</th>
-      <th align="left" width="35%">Purpose in Architecture</th>
-      <th align="center" width="10%">Status</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td align="center"><b>Day 01</b></td>
-      <td><b>Backend API</b></td>
-      <td>FastAPI, Pydantic, Uvicorn</td>
-      <td align="center"><code>0.115+</code></td>
-      <td>RESTful CRUD endpoints with automatic request schema validation, serialization, and Swagger UI docs.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 02</b></td>
-      <td><b>Python Core</b></td>
-      <td>Python 3, JSON, CSV</td>
-      <td align="center"><code>3.11+</code></td>
-      <td>Modular CLI Contact Book with persistent JSON file storage, CSV export, and algorithmic modulo/primality tests.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 03</b></td>
-      <td><b>OOP Design</b></td>
-      <td>Python OOP, ABC, Dunder Methods</td>
-      <td align="center"><code>3.11+</code></td>
-      <td>Defensive OOP banking system with abstract base contracts, encapsulation, properties, and polymorphic accounts.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 04</b></td>
-      <td><b>Cloud Database</b></td>
-      <td>Neon PostgreSQL, psycopg</td>
-      <td align="center"><code>16 / 3.x</code></td>
-      <td>Serverless cloud PostgreSQL with connection pooling, parameterized SQL queries, and Pytest fixtures.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 05</b></td>
-      <td><b>ORM & Migrations</b></td>
-      <td>SQLAlchemy 2.0, Alembic, SQLite</td>
-      <td align="center"><code>2.0+ / 1.13+</code></td>
-      <td>Declarative entity mappings, repository pattern for CRUD, and automated programmatic Alembic migrations.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 06</b></td>
-      <td><b>Auth & Security</b></td>
-      <td>JWT (PyJWT), Passlib, Bcrypt</td>
-      <td align="center"><code>2.8+ / 4.1+</code></td>
-      <td>Stateless auth with salted password hashing, JWT bearer tokens, and role-based route guards (admin/user).</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 07</b></td>
-      <td><b>Task REST API</b></td>
-      <td>FastAPI, JWT, CORS Middleware</td>
-      <td align="center"><code>0.115+</code></td>
-      <td>Multi-tenant project & task API with foreign key owner constraints, task lifecycle transitions, and CORS.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 08</b></td>
-      <td><b>Async & Caching</b></td>
-      <td>Redis, Celery, asyncio.gather</td>
-      <td align="center"><code>5.0+ / 5.4+</code></td>
-      <td>Cache-aside architecture for sub-5ms read speeds, sliding-window rate limiters, and Celery report tasks.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 09</b></td>
-      <td><b>File Pipelines</b></td>
-      <td>Pillow (PIL), WebSockets, UploadFile</td>
-      <td align="center"><code>10.3+</code></td>
-      <td>File ingestion pipeline with MIME validation, asynchronous 300x300 thumbnail generation, and WebSocket alerts.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 10</b></td>
-      <td><b>E-Commerce Engine</b></td>
-      <td>FastAPI, PostgreSQL, Redis Pub/Sub</td>
-      <td align="center"><code>0.115+ / 5.0+</code></td>
-      <td>Core E-Commerce relational model, atomic cart item quantity stacking, inventory safety checks, and Pytests.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 11</b></td>
-      <td><b>React Frontend</b></td>
-      <td>React 19, Vite, React Router v6</td>
-      <td align="center"><code>19.2+ / 8.3+</code></td>
-      <td>Single-page client with declarative routing, Context API auth state, protected admin routes, and cart drawer.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 12</b></td>
-      <td><b>Design & Forms</b></td>
-      <td>Tailwind CSS, Shadcn/ui, Zod</td>
-      <td align="center"><code>4.3+ / 3.25+</code></td>
-      <td>Accessible dark-mode UI with high-performance uncontrolled form state, Zod validation, and checkout wizard.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 13</b></td>
-      <td><b>Catalog & Admin</b></td>
-      <td>React 19, Context API, Lucide React</td>
-      <td align="center"><code>19.2+ / 1.49+</code></td>
-      <td>Multi-facet product filtering, search, sorting, dedicated item detail view (/catalog/:id), and Admin Studio.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 14</b></td>
-      <td><b>State & Query</b></td>
-      <td>Zustand, TanStack React Query v5</td>
-      <td align="center"><code>5.0+ / v5</code></td>
-      <td>Atomic Zustand micro-stores and automated server query caching, background refetching, and optimistic mutations.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 15</b></td>
-      <td><b>Strict QA & E2E</b></td>
-      <td>TypeScript, Vitest, Playwright, MSW</td>
-      <td align="center"><code>5.x / 5.0+</code></td>
-      <td>Strict TypeScript interfaces, MSW offline network mocking, Vitest component tests, and Playwright E2E journeys.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 16</b></td>
-      <td><b>Production Frontend</b></td>
-      <td>Zustand Persistence, RTL, Zod</td>
-      <td align="center"><code>5.0+ / 16.0+</code></td>
-      <td>Persistent cart storage across browser refreshes, complete admin stock CRUD, and 40-test automated quality matrix.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 17</b></td>
-      <td><b>Real-Time Sockets</b></td>
-      <td>Native WebSockets, Redis Pub/Sub</td>
-      <td align="center"><code>Built-in / 5.0+</code></td>
-      <td>Bidirectional order-status push notifications, live delivery stepper, customer support chat, and reconnection backoff.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 18</b></td>
-      <td><b>Background Jobs</b></td>
-      <td>Celery, Redis, ReportLab, Pandas</td>
-      <td align="center"><code>5.4+ / 4.2+</code></td>
-      <td>Heavy workload offloading: chunked 500-row bulk CSV imports, PDF invoice generation, and status polling endpoints.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 19</b></td>
-      <td><b>Security & Load</b></td>
-      <td>slowapi, GZipMiddleware, Locust</td>
-      <td align="center"><code>0.1.10+ / 2.46+</code></td>
-      <td>API hardening with sliding-window rate limiting, GZip payload compression, and 50-user concurrent Locust load testing.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 20</b></td>
-      <td><b>Vector RAG & AI</b></td>
-      <td>ChromaDB, Gemini Flash, Groq, SSE</td>
-      <td align="center"><code>0.6+ / 2.0+</code></td>
-      <td>AI Shopping Concierge with dense vector retrieval (all-MiniLM-L6-v2), multi-LLM routing, and SSE token streaming.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 21</b></td>
-      <td><b>Agent & Governance</b></td>
-      <td>Groq (Llama-3.3-70B), Redis, Function Calling</td>
-      <td align="center"><code>Cloud / 5.0+</code></td>
-      <td>AI Copywriter studio, autonomous agent tool calling (stock, orders, coupons), moderation, and &lt;3ms Redis AI caching.</td>
-      <td align="center">✅ Completed</td>
-    </tr>
-    <tr>
-      <td align="center"><b>Day 22</b></td>
-      <td><b>AI Capstone</b></td>
-      <td>FastAPI, React 19, ChromaDB, Celery, Render</td>
-      <td align="center"><code>Production</code></td>
-      <td>Unified RAG streaming, semantic search, AI copywriter, WebSockets, and cost governance ($0.00 spend) on Render live.</td>
-      <td align="center">★ Live Deployed</td>
-    </tr>
-  </tbody>
-</table>
+| Day | Domain | Technology / Tool | Version | Purpose in Architecture | Status |
+| :---: | :--- | :--- | :---: | :--- | :---: |
+| **Day 01** | Backend API | FastAPI, Pydantic, Uvicorn | `0.115+` | RESTful CRUD endpoints with schema validation and Swagger UI docs | Completed |
+| **Day 02** | Python Core | Python 3, JSON, CSV | `3.11+` | Modular CLI Contact Book with persistent JSON storage and CSV export | Completed |
+| **Day 03** | OOP Architecture | Python OOP, ABC, Dunder Methods | `3.11+` | Defensive OOP banking system with abstract contracts and polymorphism | Completed |
+| **Day 04** | Cloud Relational DB | Neon PostgreSQL, psycopg | `16 / 3.x` | Serverless cloud PostgreSQL with connection pooling and parameterized SQL | Completed |
+| **Day 05** | ORM & Migrations | SQLAlchemy 2.0, Alembic, SQLite | `2.0+ / 1.13+` | Declarative entity models, repository CRUD pattern, and Alembic migrations | Completed |
+| **Day 06** | Auth & RBAC Security | JWT (PyJWT), Passlib, Bcrypt | `2.8+ / 4.1+` | Stateless auth with salted password hashing, JWT tokens, and RBAC guards | Completed |
+| **Day 07** | Production Task APIs | FastAPI, JWT, CORS Middleware | `0.115+` | Multi-tenant task API with owner foreign keys, task lifecycle, and CORS | Completed |
+| **Day 08** | Async & Caching | Redis, Celery, asyncio.gather | `5.0+ / 5.4+` | Cache-aside architecture for sub-5ms reads, rate limiting, and Celery tasks | Completed |
+| **Day 09** | File Pipelines | Pillow (PIL), WebSockets, UploadFile | `10.3+` | Resilient image upload with MIME check, 300x300 thumbnails, WebSocket alerts | Completed |
+| **Day 10** | E-Commerce Backend | FastAPI, PostgreSQL, Redis Pub/Sub | `0.115+ / 5.0+` | Production E-Commerce core with atomic cart stacking and Redis order tracking | Completed |
+| **Day 11** | React Frontend SPA | React 19, Vite, React Router v6 | `19.2+ / 8.3+` | Single-page client with declarative routing, Context auth, and cart drawer | Completed |
+| **Day 12** | Design Systems & Forms | Tailwind CSS, Shadcn/ui, Zod | `4.3+ / 3.25+` | Accessible dark-mode UI with uncontrolled forms and multi-step checkout | Completed |
+| **Day 13** | E-Commerce Catalog | React 19, Context API, Lucide React | `19.2+` | Multi-facet catalog search/filter/sort, item detail view, and Admin Studio | Completed |
+| **Day 14** | State & Server Data | Zustand, TanStack React Query v5 | `5.0+ / v5` | Atomic Zustand stores and TanStack Query caching with optimistic mutations | Completed |
+| **Day 15** | Strict Typing & QA | TypeScript, Vitest, Playwright, MSW | `5.x / 5.0+` | Strict TypeScript interfaces, MSW offline mocking, Vitest and Playwright E2E | Completed |
+| **Day 16** | Full Frontend Platform | Zustand Persistence, RTL, Zod | `5.0+ / 16.0+` | Persistent cart across reloads, admin stock CRUD, and 40-test quality matrix | Completed |
+| **Day 17** | Real-Time WebSockets | Native WebSockets, Redis Pub/Sub | Built-in / `5.0+` | Live order tracking stepper, customer support chat, and reconnection backoff | Completed |
+| **Day 18** | Async Jobs & Reports | Celery, Redis, ReportLab, Pandas | `5.4+ / 4.2+` | 500-row chunked CSV bulk import, PDF invoice generation, and Celery polling | Completed |
+| **Day 19** | API Security & Load Test | slowapi, GZipMiddleware, Locust | `0.1.10+ / 2.46+` | Sliding-window IP rate limiting, GZip compression, and 50-user Locust load test | Completed |
+| **Day 20** | Vector RAG & Streaming AI | ChromaDB, Gemini Flash, Groq, SSE | `0.6+ / 2.0+` | AI Shopping Concierge with dense vector retrieval and SSE token streaming | Completed |
+| **Day 21** | AI Tools & Governance | Groq Llama-3.3-70B, Redis, Tool Calling | `Cloud / 5.0+` | AI Copywriter studio, autonomous agent tool calling, and sub-3ms Redis cache | Completed |
+| **Day 22** | Full-Stack AI Capstone | FastAPI, React 19, ChromaDB, Render | `Production` | Full-stack RAG, semantic search, AI copywriter, WebSockets, zero-cost ($0.00) | Live Deployed |
 
 
 ---

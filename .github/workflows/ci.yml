@@ -2,7 +2,7 @@ name: E-Commerce CI Automated Test Matrix (Days 10-20)
 
 on:
   push:
-    branches: [main, "feature/**"]
+    branches: [main, "feature/*", "feature/**"]
   pull_request:
     branches: [main]
 

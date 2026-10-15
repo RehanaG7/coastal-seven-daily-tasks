@@ -1,0 +1,62 @@
+[
+  {
+    "AlarmName": "rmart-ec2-high-cpu-utilization",
+    "AlarmDescription": "Triggers when EC2 backend average CPU exceeds 80% for 5 minutes",
+    "MetricName": "CPUUtilization",
+    "Namespace": "AWS/EC2",
+    "Statistic": "Average",
+    "Period": 300,
+    "EvaluationPeriods": 2,
+    "Threshold": 80.0,
+    "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+    "Dimensions": [
+      {
+        "Name": "AutoScalingGroupName",
+        "Value": "rmart-production-asg"
+      }
+    ],
+    "AlarmActions": [
+      "arn:aws:sns:us-east-1:123456789012:rmart-ops-alerts"
+    ]
+  },
+  {
+    "AlarmName": "rmart-alb-high-5xx-error-rate",
+    "AlarmDescription": "Triggers when Application Load Balancer HTTP 5XX count exceeds 10 in 1 minute",
+    "MetricName": "HTTPCode_Target_5XX_Count",
+    "Namespace": "AWS/ApplicationELB",
+    "Statistic": "Sum",
+    "Period": 60,
+    "EvaluationPeriods": 1,
+    "Threshold": 10.0,
+    "ComparisonOperator": "GreaterThanThreshold",
+    "Dimensions": [
+      {
+        "Name": "LoadBalancer",
+        "Value": "app/rmart-production-alb/50dc6c495c0c9188"
+      }
+    ],
+    "AlarmActions": [
+      "arn:aws:sns:us-east-1:123456789012:rmart-ops-alerts"
+    ]
+  },
+  {
+    "AlarmName": "rmart-alb-unhealthy-host-count",
+    "AlarmDescription": "Triggers when healthy backend instances in target group drop below 1",
+    "MetricName": "HealthyHostCount",
+    "Namespace": "AWS/ApplicationELB",
+    "Statistic": "Minimum",
+    "Period": 60,
+    "EvaluationPeriods": 2,
+    "Threshold": 1.0,
+    "ComparisonOperator": "LessThanThreshold",
+    "Dimensions": [
+      {
+        "Name": "TargetGroup",
+        "Value": "targetgroup/rmart-backend-target-group/73e2d6bc24d8a067"
+      }
+    ],
+    "AlarmActions": [
+      "arn:aws:sns:us-east-1:123456789012:rmart-ops-alerts"
+    ]
+  }
+]

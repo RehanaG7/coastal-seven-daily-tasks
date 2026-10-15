@@ -1,5 +1,5 @@
 # ==============================================================================
-# Day 23 DevOps / AWS Focus: Master Docker Compose Stack
+# Day 24 DevOps / AWS Focus: Master Docker Compose Stack
 # Services: FastAPI, PostgreSQL 16, Redis 7, Celery Worker, Celery Beat, Nginx
 # ==============================================================================
 

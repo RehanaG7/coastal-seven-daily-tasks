@@ -1,5 +1,5 @@
 # ==============================================================================
-# Day 23 DevOps: Multi-Stage Production Dockerfile for FastAPI Backend & Celery
+# Day 24 DevOps / AWS Focus: Multi-Stage Production Dockerfile for FastAPI Backend & Celery
 # ==============================================================================
 
 # ------------------------------------------------------------------------------

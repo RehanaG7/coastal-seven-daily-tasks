@@ -1,0 +1,39 @@
+[Unit]
+Description=R-Mart Production FastAPI Asynchronous Application Server
+After=network.target redis-server.service
+Wants=redis-server.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/rmart/Day-24/backend
+Environment=PYTHONPATH=/opt/rmart/Day-24/backend
+EnvironmentFile=-/etc/rmart/.env
+
+# Production ASGI server with 4 asynchronous worker processes
+ExecStart=/opt/rmart/venv/bin/uvicorn main:app \
+    --host 127.0.0.1 \
+    --port 8000 \
+    --workers 4 \
+    --log-level info \
+    --no-access-log
+
+# Self-healing auto-restart policy
+Restart=always
+RestartSec=5s
+
+# Security sandboxing
+ProtectSystem=full
+PrivateTmp=true
+NoNewPrivileges=true
+
+# Log destinations for CloudWatch Agent aggregation
+StandardOutput=append:/var/log/rmart/app.log
+StandardError=append:/var/log/rmart/error.log
+
+# Resource limits
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

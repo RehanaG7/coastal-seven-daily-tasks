@@ -1,0 +1,138 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Day 24 DevOps / AWS Focus: Production Elastic Load Balancer (ALB) & EC2 Auto Scaling (ASG) Architecture'
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC where ALB and EC2 instances will reside
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Public Subnets across multiple Availability Zones for High Availability
+  SecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security Group allowing HTTP/HTTPS traffic
+  CertificateArn:
+    Type: String
+    Description: AWS Certificate Manager (ACM) SSL Certificate ARN for HTTPS
+    Default: 'arn:aws:acm:us-east-1:123456789012:certificate/placeholder-id'
+
+Resources:
+  # ----------------------------------------------------------------------------
+  # 1. AWS Application Load Balancer (ALB) - Multi-AZ
+  # ----------------------------------------------------------------------------
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: rmart-production-alb
+      Scheme: internet-facing
+      Type: application
+      Subnets: !Ref SubnetIds
+      SecurityGroups:
+        - !Ref SecurityGroupId
+      Tags:
+        - Key: Environment
+          Value: Production
+        - Key: Project
+          Value: RMart
+
+  # ----------------------------------------------------------------------------
+  # 2. ALB Target Group with Automated Health Check Liveness Probe
+  # ----------------------------------------------------------------------------
+  ALBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: rmart-backend-target-group
+      Port: 8000
+      Protocol: HTTP
+      VpcId: !Ref VpcId
+      TargetType: instance
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: /api/v1/health/live
+      HealthCheckIntervalSeconds: 15
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher:
+        HttpCode: '200'
+
+  # ----------------------------------------------------------------------------
+  # 3. HTTP Listener (Port 80): Automatic 301 Redirect to HTTPS
+  # ----------------------------------------------------------------------------
+  ALBListenerHTTP:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: redirect
+          RedirectConfig:
+            Protocol: HTTPS
+            Port: '443'
+            StatusCode: HTTP_301
+
+  # ----------------------------------------------------------------------------
+  # 4. HTTPS Listener (Port 443): SSL Termination & Forwarding to Target Group
+  # ----------------------------------------------------------------------------
+  ALBListenerHTTPS:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref CertificateArn
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ALBTargetGroup
+
+  # ----------------------------------------------------------------------------
+  # 5. EC2 Launch Template (t3.medium Ubuntu with User Data)
+  # ----------------------------------------------------------------------------
+  EC2LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: rmart-backend-launch-template
+      LaunchTemplateData:
+        InstanceType: t3.medium
+        SecurityGroupIds:
+          - !Ref SecurityGroupId
+        Monitoring:
+          Enabled: true
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: rmart-asg-worker
+
+  # ----------------------------------------------------------------------------
+  # 6. EC2 Auto Scaling Group (ASG): Elastic Capacity 2 to 6 Instances
+  # ----------------------------------------------------------------------------
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: rmart-production-asg
+      MinSize: '2'
+      MaxSize: '6'
+      DesiredCapacity: '2'
+      VPCZoneIdentifier: !Ref SubnetIds
+      TargetGroupARNs:
+        - !Ref ALBTargetGroup
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 300
+      LaunchTemplate:
+        LaunchTemplateId: !Ref EC2LaunchTemplate
+        Version: !GetAtt EC2LaunchTemplate.LatestVersionNumber
+
+  # ----------------------------------------------------------------------------
+  # 7. Dynamic Scaling Policy: Target Tracking CPU at 70%
+  # ----------------------------------------------------------------------------
+  CPUTargetTrackingScalingPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: 70.0

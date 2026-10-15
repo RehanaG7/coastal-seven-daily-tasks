@@ -1,0 +1,36 @@
+{
+  "GroupName": "rmart-ec2-production-sg",
+  "Description": "Production Security Group for R-Mart Backend with Least-Privilege Inbound Rules",
+  "InboundRules": [
+    {
+      "Protocol": "tcp",
+      "FromPort": 22,
+      "ToPort": 22,
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Secure Shell (SSH) Remote Administrative Access"
+    },
+    {
+      "Protocol": "tcp",
+      "FromPort": 80,
+      "ToPort": 80,
+      "CidrIp": "0.0.0.0/0",
+      "Description": "HTTP Web Traffic (Nginx Let's Encrypt ACME & HTTPS Redirection)"
+    },
+    {
+      "Protocol": "tcp",
+      "FromPort": 443,
+      "ToPort": 443,
+      "CidrIp": "0.0.0.0/0",
+      "Description": "HTTPS Encrypted Transport Layer Security (TLS/SSL)"
+    }
+  ],
+  "OutboundRules": [
+    {
+      "Protocol": "-1",
+      "FromPort": 0,
+      "ToPort": 0,
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic (PostgreSQL Neon, S3, CloudWatch, Sentry)"
+    }
+  ]
+}

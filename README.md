@@ -222,7 +222,8 @@ coastal-seven-daily-tasks/
 ├── Day-20/                  # AI shopping assistant, ChromaDB RAG, multi-provider LLMs, SSE streaming
 ├── Day-21/                  # AI copywriter studio, ChromaDB search, Redis cache & agent tools
 ├── Day-22/                  # Capstone: Full-stack RAG, semantic discovery, WebSockets & zero-cost governance
-└── Day-23/                  # DevOps / AWS Focus: Multi-stage Docker, Docker Compose (6 services) & CI/CD
+├── Day-23/                  # DevOps / AWS Focus: Multi-stage Docker, Docker Compose (6 services) & CI/CD
+└── Day-24/                  # DevOps / AWS Focus: EC2, Nginx HTTPS, Vercel, Sentry, Health & Prometheus, CloudWatch
 ```
 
 ---

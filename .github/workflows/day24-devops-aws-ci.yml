@@ -1,0 +1,168 @@
+name: "Day 24 DevOps CI/CD - AWS Deployment, Observability & Cloud Quality Gate"
+
+on:
+  push:
+    branches: [main, "feature/*", "feature/**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  NODE_OPTIONS: "--no-deprecation"
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # Job 1: Backend Observability, Health Checks & Sentry Suite
+  # ----------------------------------------------------------------------------
+  backend-observability-test:
+    name: Backend Observability & Pytest Suite
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: Day-24/backend/requirements.txt
+
+      - name: Install Backend Dependencies
+        working-directory: ./Day-24/backend
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -r requirements.txt
+          pip install pytest-cov flake8
+
+      - name: Lint Code with Flake8
+        working-directory: ./Day-24/backend
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=15 --max-line-length=127 --statistics
+
+      - name: Initialize PostgreSQL Extensions
+        working-directory: ./Day-24/backend
+        run: |
+          python -c "
+          import psycopg2
+          try:
+              conn = psycopg2.connect('postgresql://test_user:test_password@localhost:5432/test_db')
+              conn.autocommit = True
+              cur = conn.cursor()
+              cur.execute('CREATE EXTENSION IF NOT EXISTS pg_trgm;')
+              cur.close()
+              conn.close()
+              print('PostgreSQL pg_trgm extension initialized.')
+          except Exception as e:
+              print('Notice initializing extension:', e)
+          "
+
+      - name: Run Day 24 DevOps & AWS Automated Tests
+        working-directory: ./Day-24/backend
+        env:
+          DATABASE_URL: postgresql+psycopg2://test_user:test_password@localhost:5432/test_db
+          REDIS_URL: redis://localhost:6379/0
+          CELERY_BROKER_URL: redis://localhost:6379/1
+          CELERY_RESULT_BACKEND: redis://localhost:6379/2
+          PYTHONPATH: .
+        run: |
+          python -m pytest -v tests --ignore=venv
+
+  # ----------------------------------------------------------------------------
+  # Job 2: Frontend Vercel Build Validation & Vitest Suite
+  # ----------------------------------------------------------------------------
+  frontend-vercel-validation:
+    name: Frontend Vercel & Build Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: Day-24/package.json
+
+      - name: Install Frontend Dependencies
+        working-directory: ./Day-24
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+
+      - name: TypeScript Strict Type Check
+        working-directory: ./Day-24
+        run: npx tsc --noEmit
+
+      - name: Execute Vitest Automated Suite
+        working-directory: ./Day-24
+        run: npm test -- --run
+
+      - name: Validate Vercel Production Build
+        working-directory: ./Day-24
+        run: npm run build
+
+  # ----------------------------------------------------------------------------
+  # Job 3: AWS Infrastructure as Code & Security Linting
+  # ----------------------------------------------------------------------------
+  aws-iac-security-lint:
+    name: AWS IaC, Nginx & Policy Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate All AWS IAM JSON Policies
+        run: |
+          python -c "
+          import json, glob
+          for f in glob.glob('Day-24/deploy/aws/**/*.json', recursive=True):
+              with open(f, 'r') as fp:
+                  data = json.load(fp)
+                  print(f'Valid JSON syntax: {f}')
+          "
+
+      - name: Validate Vercel Configuration JSON
+        run: |
+          python -c "
+          import json
+          with open('Day-24/vercel.json', 'r') as fp:
+              data = json.load(fp)
+              assert data.get('framework') == 'vite'
+              print('Vercel configuration successfully validated.')
+          "

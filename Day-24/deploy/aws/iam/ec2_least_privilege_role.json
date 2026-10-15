@@ -1,0 +1,44 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowCloudWatchLogsStreaming",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:DescribeLogStreams"
+      ],
+      "Resource": "arn:aws:logs:*:*:log-group:/rmart/*"
+    },
+    {
+      "Sid": "AllowCloudWatchMetricsPush",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:PutMetricData"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "cloudwatch:namespace": [
+            "CWAgent",
+            "RMart/Production"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "AllowS3StaticAssetsRead",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::rmart-static-assets-2026",
+        "arn:aws:s3:::rmart-static-assets-2026/*"
+      ]
+    }
+  ]
+}

@@ -1,95 +1,76 @@
-# 🚀 Day 23: Production Container Deployment & AWS Cloud Guide
+# 🚀 Day 24: Production Cloud Deployment & AWS Infrastructure Guide
 
-This guide details how to deploy the containerized **R-Mart** full-stack architecture to **AWS (Amazon Web Services)** and cloud container registries.
+This guide details how to deploy the **R-Mart** full-stack architecture to **AWS (Amazon Web Services)** and **Vercel Edge CDN**.
 
 ---
 
-## 🏗️ 1. Architecture On AWS
+## 🏗️ 1. Cloud Architecture Overview
 
 ```text
                        [ Internet Users ]
-                               │
-                               ▼
-                   [ AWS Route 53 (DNS) ]
-                               │
-                               ▼
-               [ Application Load Balancer (ALB) ]
-                               │
-            ┌──────────────────┴──────────────────┐
-            ▼                                     ▼
-   [ AWS App Runner / ECS ]              [ AWS ECS Fargate ]
-   (Frontend React Nginx)               (FastAPI Backend Service)
-            │                                     │
-            │                  ┌──────────────────┴──────────────────┐
-            │                  ▼                                     ▼
-            │        [ Amazon RDS PostgreSQL ]             [ Amazon ElastiCache Redis ]
-            │        (db.t4g.micro - Free Tier)            (cache.t4g.micro - Free)
-            │                  ▲                                     ▲
-            │                  │                                     │
-            └──────────────────┴─────────────┬───────────────────────┘
-                                             ▼
-                                  [ AWS ECS Fargate ]
-                              (Celery Worker & Beat Tasks)
+                                │
+               ┌────────────────┴────────────────┐
+               ▼                                 ▼
+      [ Vercel Edge CDN ]           [ AWS Route 53 (DNS) ]
+     (React 19 Frontend)                         │
+               │                                 ▼
+               │                [ Application Load Balancer (ALB) ]
+               │                (HTTPS Port 443 / SSL Termination)
+               │                                 │
+               │                    ┌────────────┴────────────┐
+               │                    ▼                         ▼
+               │          [ EC2 Instance 1 ]        [ EC2 Instance 2 ]
+               │          (Nginx + FastAPI)         (Nginx + FastAPI)
+               │                    │                         │
+               └────────────────────┼─────────────────────────┘
+                                    ▼
+                         [ Shared Data Services ]
+                         • PostgreSQL (Neon / RDS)
+                         • Redis 7 Cache & Broker
+                         • Amazon S3 Static Assets
+                         • AWS CloudWatch & Sentry
 ```
 
 ---
 
-## 🛠️ 2. Pushing Containers to Amazon ECR (Elastic Container Registry)
+## 💻 2. Step-by-Step Deployment Instructions
 
-### Step 1: Authenticate Docker to AWS ECR
-```bash
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com
-```
-
-### Step 2: Create ECR Repositories
-```bash
-aws ecr create-repository --repository-name rmart-backend --region us-east-1
-aws ecr create-repository --repository-name rmart-frontend --region us-east-1
-```
-
-### Step 3: Tag and Push Images
-```bash
-# Backend Image
-docker build -t rmart-backend -f Day-23/backend/Dockerfile Day-23/backend
-docker tag rmart-backend:latest <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/rmart-backend:latest
-docker push <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/rmart-backend:latest
-
-# Frontend Image
-docker build -t rmart-frontend -f Day-23/Dockerfile.frontend Day-23
-docker tag rmart-frontend:latest <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/rmart-frontend:latest
-docker push <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/rmart-frontend:latest
-```
+### A. Frontend Deployment (Vercel)
+1. Ensure [`Day-24/vercel.json`](vercel.json) is committed to your repository.
+2. Log into [Vercel](https://vercel.com) using your GitHub account (`RehanaG7`).
+3. Import the `coastal-seven-daily-tasks` repository.
+4. Set the **Root Directory** to `Day-24`.
+5. Configure Environment Variables:
+   - `VITE_API_URL`: `https://api.rmart.store/api/v1` (or your EC2/ALB domain)
+   - `VITE_WS_URL`: `wss://api.rmart.store/ws`
+6. Click **Deploy**. Vercel will build and host the app at `https://coastal-seven-daily-tasks-rehanag7.vercel.app`.
 
 ---
 
-## ☁️ 3. Deploying on AWS App Runner (Zero-Ops Managed Containers)
-
-AWS App Runner provides managed container execution with automatic TLS, load balancing, and scaling:
-
-1. Open **AWS App Runner Console** $\rightarrow$ **Create Service**.
-2. **Source**: Choose **Container Registry** $\rightarrow$ **Amazon ECR**.
-3. Select `rmart-backend:latest`.
-4. Configure Port: `8000`.
-5. Add Environment Variables:
-   - `DATABASE_URL`: `postgresql+psycopg2://<user>:<password>@<rds-endpoint>:5432/rmart_db`
-   - `REDIS_URL`: `redis://<elasticache-endpoint>:6379/0`
-   - `CELERY_BROKER_URL`: `redis://<elasticache-endpoint>:6379/1`
-   - `CELERY_RESULT_BACKEND`: `redis://<elasticache-endpoint>:6379/2`
-   - `ENVIRONMENT`: `production`
-6. Click **Deploy**. App Runner generates a live HTTPS URL (e.g. `https://xyz.us-east-1.awsapprunner.com`).
+### B. Backend Deployment (AWS EC2)
+1. **Launch EC2 Instance:**
+   - AMI: Ubuntu Server 22.04 LTS (x86_64)
+   - Instance Type: `t3.medium` (or `t3.small`)
+   - Security Group: Attach rules from [`deploy/aws/security_groups.json`](deploy/aws/security_groups.json) (allow ports 22, 80, 443).
+2. **Bootstrap via User Data:**
+   - In Advanced Details ➔ User Data, paste the script from [`deploy/aws/ec2_setup.sh`](deploy/aws/ec2_setup.sh).
+3. **Attach IAM Role:**
+   - Attach an IAM role using [`deploy/aws/iam/ec2_least_privilege_role.json`](deploy/aws/iam/ec2_least_privilege_role.json) to allow CloudWatch log streaming and S3 reads.
+4. **Configure HTTPS & Certbot:**
+   - SSH into the instance:
+     ```bash
+     ssh -i your-key.pem ubuntu@your-ec2-ip
+     sudo bash /opt/rmart/Day-24/deploy/nginx/setup_ssl_certbot.sh api.yourdomain.com your-email@example.com
+     ```
+5. **Verify Service Health:**
+   ```bash
+   curl -i http://localhost:8000/api/v1/health/live
+   curl -i http://localhost:8000/metrics
+   ```
 
 ---
 
-## 🐳 4. Docker CLI Command Cheatsheet
-
-| Command | Purpose |
-| :--- | :--- |
-| `docker compose up --build` | Build images and start all 6 services with live terminal logs |
-| `docker compose up -d` | Start all services in the background (detached mode) |
-| `docker compose ps` | Check container health, status, and exposed ports |
-| `docker compose logs -f backend` | Stream live logs from the FastAPI backend service |
-| `docker compose logs -f celery_worker` | Stream live logs from Celery worker task execution |
-| `docker compose exec backend bash` | Open an interactive terminal inside the backend container |
-| `docker compose exec db psql -U rmart_user -d rmart_db` | Connect directly to the PostgreSQL database CLI |
-| `docker compose down` | Stop and remove containers and network while preserving volume data |
-| `docker compose down -v` | Stop containers and wipe all persistent database volumes |
+### C. Observability & Monitoring Setup
+1. **Sentry Error Tracking:** Set `SENTRY_DSN` in `/etc/rmart/.env`.
+2. **CloudWatch Agent:** Run `/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/rmart/Day-24/deploy/aws/cloudwatch/amazon-cloudwatch-agent.json`.
+3. **UptimeRobot:** Create an HTTP(s) monitor pointing to `https://api.yourdomain.com/api/v1/health/live` with a 60-second polling interval.

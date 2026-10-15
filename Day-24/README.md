@@ -1,197 +1,115 @@
-# 🐳 Day 23 – DevOps / AWS Focus: Production Containerization, Docker Compose, Multi-Stage Builds & CI/CD Pipelines
+# ☁️ Day 24 – DEVOPS / AWS FOCUS: Production AWS Cloud Deployment, Observability & Site Reliability Engineering (SRE)
 
-Welcome to **Day 23** of the Coastal Seven curriculum. Today's module transitions our enterprise full-stack platform (**R-Mart**) into a modern, cloud-native, and automated DevOps architecture using **Multi-Stage Dockerfiles**, **Docker Compose Orchestration (6 Services)**, **Persistent Named Volumes**, **Bridge Networking**, **Celery Beat Schedulers**, **GitHub Actions CI/CD Matrix**, and **Branch Protection Governance**.
+Welcome to **Day 24** of the Coastal Seven curriculum. Today's module delivers production cloud deployment, observability, and infrastructure automation for our enterprise full-stack platform (**R-Mart**). 
 
----
-
-## 🎯 8-Topic Learning & Implementation Matrix
-
-| Topic | Learning & Implementation | Expected Outcome | Status |
-| :--- | :--- | :--- | :---: |
-| **Docker Fundamentals** | Designed multi-stage Dockerfiles for FastAPI backend and React 19 frontend; isolated build dependencies from runtime environments and enforced non-root users (`appuser`) | Reduced image footprints by >70% and created portable, production-hardened containers | ✅ Complete |
-| **Docker Compose** | Orchestrated FastAPI, PostgreSQL 16, Redis 7, Celery Worker, Celery Beat, and Nginx into a unified declarative topology | Run the entire distributed application stack with a single command (`docker compose up --build`) | ✅ Complete |
-| **GitHub Actions CI** | Built `.github/workflows/day23-devops-ci.yml` running automated Flake8 linting, Pytest (with PostgreSQL + Redis services), Vitest, Hadolint, and Docker Compose validation | Automatically validate code quality and prevent regressions on every push and PR | ✅ Complete |
-| **Docker Build & Push** | Automated multi-platform Docker container image builds via GitHub Actions with layer caching (`type=gha`) and published to GitHub Container Registry (GHCR) | Streamlined container delivery and zero-downtime deployment readiness | ✅ Complete |
-| **Branch Protection** | Codified `.github/BRANCH_PROTECTION.md` requiring peer reviews, passing CI status checks, and linear git histories before merging into `main` | Protected production codebase from unvalidated code and broken deployments | ✅ Complete |
-| **Docker Networking & Volumes** | Implemented custom bridge network (`rmart-network`) and persistent named volumes (`postgres_data`, `redis_data`, `media_data`) | Reliable container-to-container DNS resolution and persistent database storage across restarts | ✅ Complete |
-| **Environment & Secret Management** | Standardized `Day-23/.env.example` template with clean defaults, `.gitignore` exclusions, and GitHub Secrets integration | Protected production secrets and separated environment configuration from code | ✅ Complete |
-| **Final Integration** | Unified containerization, Docker Compose orchestration, automated testing, healthchecks, and CI/CD pipelines into a portfolio-ready DevOps system | 1-command local development and 100% automated CI pipeline passing on every push | ✅ Complete |
+The platform integrates **AWS EC2 Provisioning**, **Systemd Daemon Automation**, **Nginx Reverse Proxy with Let's Encrypt SSL (HTTPS)**, **Vercel Edge Frontend Hosting**, **Structured JSON Logging**, **Sentry Real-Time Error Tracking**, **Multi-Tier Health Checks (`/live`, `/ready`, `/deep`)**, **Prometheus Metric Exposition (`/metrics`)**, **AWS IAM Least-Privilege Policies**, **Amazon S3 Static Asset Hosting**, **Elastic Load Balancer (ALB) & Auto Scaling (ASG)**, and **Amazon CloudWatch Agent & Alarms**.
 
 ---
 
-## 🏗️ Docker Compose Architecture & Service Topology
+## 🎯 10-Topic Learning & Implementation Matrix
+
+| # | Topic | Learning & Implementation | Expected Outcome | Status |
+| :-: | :--- | :--- | :--- | :---: |
+| **1** | **AWS EC2 Deployment** | Engineered automated Ubuntu 22.04 LTS User Data bootstrap script (`deploy/aws/ec2_setup.sh`), hardened Systemd service (`deploy/aws/rmart.service`) with auto-restart, and configured Security Groups (ports 22, 80, 443) | Host the FastAPI backend application on AWS EC2 with controlled network access | ✅ Verified |
+| **2** | **Nginx & HTTPS Configuration** | Configured high-performance Nginx reverse proxy (`deploy/nginx/rmart_ssl.conf`), TLSv1.2/1.3 security ciphers, HSTS headers, rate limiting (30r/s), WebSocket proxying, and automated Let's Encrypt Certbot SSL provisioning | Secure public access to the application over HTTPS with A+ SSL rating | ✅ Verified |
+| **3** | **Vercel Deployment** | Authored `vercel.json` edge routing configuration with client-side SPA fallback rewrites, API proxying, and enterprise security headers (`nosniff`, `DENY`) | Make the frontend accessible globally on Vercel Edge CDN with zero-maintenance scaling | ✅ Verified |
+| **4** | **Structured Logging & Error Tracking** | Implemented machine-readable structured JSON logging (`core/logging_config.py`), request correlation tracing (`middleware/correlation_id.py`), and Sentry SDK integration (`core/sentry_config.py`) with safe offline fallback | Identify, diagnose, and troubleshoot production exceptions with stack traces and user context | ✅ Verified |
+| **5** | **Health Checks & Monitoring** | Built multi-tier health endpoints (`routers/health_monitoring.py`) for liveness (`/health/live`), readiness (`/health/ready`), deep diagnostics (`/health/deep`), and Prometheus OpenMetrics scraper (`/metrics`) | Monitor application uptime, database connectivity, memory/CPU usage, and request latency | ✅ Verified |
+| **6** | **AWS IAM & Least Privilege** | Codified declarative least-privilege IAM policies (`deploy/aws/iam/`) for EC2 runtime (CloudWatch push + S3 read) and GitHub Actions deployers. Strictly disallowed wildcard root access | Improve cloud security posture by granting only the minimum permissions required | ✅ Verified |
+| **7** | **Amazon S3 Static Hosting** | Configured S3 public-read bucket policy (`deploy/aws/s3/s3_bucket_policy.json`), multi-origin CORS headers (`s3_cors.json`), and automated asset synchronization scripts | High-durability (99.999999999%) static asset and invoice PDF storage with browser caching | ✅ Verified |
+| **8** | **Load Balancing & Auto Scaling** | Authored CloudFormation infrastructure template (`deploy/aws/alb_asg/alb_asg_architecture.yaml`) defining Multi-AZ Application Load Balancer, `/health/live` Target Group, and EC2 Auto Scaling (2 to 6 instances at 70% CPU) | Distribute traffic evenly and scale application capacity automatically during traffic surges | ✅ Verified |
+| **9** | **CloudWatch Monitoring** | Configured CloudWatch Agent (`deploy/aws/cloudwatch/amazon-cloudwatch-agent.json`) streaming application and Nginx logs, alongside automated alarms for High CPU, 5xx error rates, and unhealthy hosts | Detect infrastructure degradation and trigger automated SNS alert notifications | ✅ Verified |
+| **10** | **Final Integration** | Validated entire architecture through comprehensive automated test suite (`backend/tests/test_day24_devops_aws.py` - 16 passed) and GitHub Actions cloud CI/CD quality gate | 100% green CI pipeline on every push and enterprise-ready cloud production deployment | ✅ Verified |
+
+---
+
+## 🏛️ Production Cloud Architecture Diagram
 
 ```text
-                                     +-------------------------------------------+
-                                     |             CLIENT TRAFFIC                |
-                                     |           (Port 80 / 5173)                |
-                                     +---------------------+---------------------+
-                                                           |
-                                                           v
-                                     +-------------------------------------------+
-                                     |     FRONTEND SERVICE (Nginx Alpine)       |
-                                     |  • Reverse proxy /api/ -> backend:8000    |
-                                     |  • Reverse proxy /ws/  -> backend:8000    |
-                                     |  • Single Page App (SPA) fallback routing |
-                                     |  • Gzip payload compression (>1KB)        |
-                                     +---------------------+---------------------+
-                                                           |
-                                    +----------------------+----------------------+
-                                    | (rmart-network - Internal Docker Bridge)    |
-                                    v                                             v
-  +----------------------------------------------------+      +------------------------------------------+
-  |              FASTAPI BACKEND SERVICE               |      |          CELERY DISTRIBUTED WORKERS      |
-  |  • Multi-stage Python 3.11-slim container          |      |  • Celery Worker: Async orders/invoices  |
-  |  • Non-root system user (appuser:appgroup)         |      |  • Celery Beat: Periodic cron scheduler  |
-  |  • Healthcheck: /api/v1/health                     |      |  • Shared media volume for PDF storage   |
-  +-------------------------+--------------------------+      +--------------------+---------------------+
-                            |                                                      |
-                            +--------------------------+---------------------------+
-                                                       |
-                            +--------------------------+---------------------------+
-                            |                                                      |
-                            v                                                      v
-  +----------------------------------------------------+      +------------------------------------------+
-  |            POSTGRESQL 16 DATABASE (db)             |      |             REDIS 7 CACHE & BROKER       |
-  |  • Image: postgres:16-alpine                       |      |  • Image: redis:7-alpine                 |
-  |  • Persistent named volume: postgres_data          |      |  • Persistent named volume: redis_data   |
-  |  • Healthcheck: pg_isready                         |      |  • Healthcheck: redis-cli ping           |
-  +----------------------------------------------------+      +------------------------------------------+
+                                [ End-User Clients ]
+                                         │
+                    ┌────────────────────┴────────────────────┐
+                    ▼ (HTTPS Static Assets)                   ▼ (HTTPS REST / WebSockets)
+        [ Vercel Edge CDN ]                       [ AWS Application Load Balancer ]
+        (React 19 SPA Bundle)                     (Port 443 SSL / Let's Encrypt)
+                                                              │
+                                            ┌─────────────────┴─────────────────┐
+                                            ▼ (Health: /api/v1/health/live)     ▼
+                             [ EC2 Auto Scaling Group (2 - 6 Nodes) ]
+                             │  • Nginx Reverse Proxy (TLSv1.3)     │
+                             │  • FastAPI ASGI Daemon (Systemd)     │
+                             │  • Structured JSON Logging           │
+                             │  • Prometheus Metrics (/metrics)     │
+                             └──────────────┬───────────────────────┘
+                                            │
+                    ┌───────────────────────┼───────────────────────┐
+                    ▼                       ▼                       ▼
+        [ PostgreSQL Neon/RDS ]    [ Redis 7 In-Memory ]   [ Amazon S3 Bucket ]
+        (Relational Database)      (Cache & Celery Broker) (Media & Invoices)
+                    │                       │                       │
+                    └───────────────────────┼───────────────────────┘
+                                            ▼
+                           [ Observability & SRE Layer ]
+                           • AWS CloudWatch Logs & Alarms
+                           • Sentry Real-Time Crash Reporting
+                           • Prometheus Telemetry
+                           • UptimeRobot Health Pings
 ```
 
 ---
 
-## 📦 Multi-Stage Dockerfile Deep Dive
+## 📂 Day 24 Directory Structure
 
-### 1. Backend Multi-Stage Build (`Day-23/backend/Dockerfile`)
-```dockerfile
-# Stage 1: Build stage (compile wheels and install in isolated virtualenv)
-FROM python:3.11-slim AS builder
-WORKDIR /build
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential libpq-dev curl
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Stage 2: Lean Production Runtime (drops gcc, build-essential, and pip caches)
-FROM python:3.11-slim AS runtime
-WORKDIR /app
-ENV PATH="/opt/venv/bin:$PATH" PYTHONPATH=/app
-RUN apt-get update && apt-get install -y --no-install-recommends curl libpq5 && rm -rf /var/lib/apt/lists/*
-RUN groupadd -g 1000 appgroup && useradd -u 1000 -g appgroup -s /bin/bash -m appuser
-COPY --from=builder /opt/venv /opt/venv
-COPY --chown=appuser:appgroup . /app
-USER appuser
-EXPOSE 8000
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD curl -f http://localhost:8000/api/v1/health || exit 1
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
-* **Footprint Reduction**: Dropping compilers (`gcc`, `make`, `build-essential`) reduces final image size from ~1.1GB to ~185MB.
-* **Security Hardening**: Runs under non-root system user (`appuser:1000`), mitigating container breakout risks.
-
----
-
-### 2. Frontend Multi-Stage Build (`Day-23/Dockerfile.frontend`)
-```dockerfile
-# Stage 1: Build stage (compiles modern React 19 + Vite bundle)
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --legacy-peer-deps || npm install
-COPY . .
-RUN npm run build
-
-# Stage 2: Production Nginx Server (under 25MB total footprint)
-FROM nginx:1.27-alpine AS production
-COPY nginx/nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/dist /usr/share/nginx/html
-EXPOSE 80
-HEALTHCHECK --interval=30s --timeout=3s --retries=3 CMD wget -q -O - http://localhost/nginx-health || exit 1
-CMD ["nginx", "-g", "daemon off;"]
-```
-* **Node.js Dropped**: The production container contains **zero** Node.js runtime and **zero** `node_modules`. It contains only static compiled assets served by Nginx.
-
----
-
-## ⏰ Celery Beat Periodic Task Scheduling
-
-Day 23 introduces automated background scheduling via **Celery Beat**:
-1. **`system-heartbeat-every-minute`** (Every 60s): Emits health telemetry and heartbeat keys to Redis with automatic TTL.
-2. **`cache-cleanup-every-5-minutes`** (Every 300s): Prunes stale temporary cache records, orphaned query keys, and rate limit counters.
-3. **`inventory-audit-every-10-minutes`** (Every 600s): Performs periodic stock level reconciliations.
-
----
-
-## 🔄 GitHub Actions CI/CD Pipeline
-
-The `.github/workflows/day23-devops-ci.yml` pipeline automates the full DevOps lifecycle:
-
-```text
-[Push / Pull Request]
-       │
-       ├──> Job 1: backend-test   (Flake8 Lint + PostgreSQL 16 + Redis 7 + Pytest Matrix)
-       │
-       ├──> Job 2: frontend-test  (TypeScript tsc --noEmit + Vitest Suite + Vite Build)
-       │
-       ├──> Job 3: docker-validate (Hadolint Dockerfile Lint + Docker Compose Config Check)
-       │
-       └──> Job 4: docker-build-push (Buildx Multi-Platform + GHCR Container Publishing)
+Day-24/
+├── backend/
+│   ├── core/
+│   │   ├── logging_config.py      # Structured JSON logging (ISO timestamp, correlation ID, latency)
+│   │   └── sentry_config.py       # Sentry SDK initialization & error interceptor
+│   ├── middleware/
+│   │   ├── correlation_id.py      # X-Correlation-ID tracing header middleware
+│   │   └── metrics_middleware.py  # Prometheus latency & request counter middleware
+│   ├── routers/
+│   │   └── health_monitoring.py   # Multi-tier health checks (/live, /ready, /deep, /metrics)
+│   ├── tests/
+│   │   └── test_day24_devops_aws.py # 16 automated tests covering all 10 topics
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── main.py
+├── deploy/
+│   ├── aws/
+│   │   ├── ec2_setup.sh           # Automated EC2 instance provisioning script
+│   │   ├── rmart.service          # Systemd Linux service unit file for FastAPI
+│   │   ├── security_groups.json   # Security Group rules (SSH 22, HTTP 80, HTTPS 443)
+│   │   ├── iam/                   # Least-privilege IAM roles & policies (JSON)
+│   │   │   ├── ec2_least_privilege_role.json
+│   │   │   └── github_actions_deployer_policy.json
+│   │   ├── s3/                    # S3 bucket policy, CORS configuration & sync script
+│   │   │   ├── s3_bucket_policy.json
+│   │   │   ├── s3_cors.json
+│   │   │   └── s3_static_hosting.sh
+│   │   ├── alb_asg/               # Elastic Load Balancer & Auto Scaling configuration
+│   │   │   └── alb_asg_architecture.yaml
+│   │   └── cloudwatch/            # CloudWatch agent config & alarm definitions
+│   │       ├── amazon-cloudwatch-agent.json
+│   │       └── cloudwatch_alarms.json
+│   └── nginx/
+│       ├── rmart_ssl.conf         # Nginx reverse proxy with HTTPS, WSS & security headers
+│       └── setup_ssl_certbot.sh   # Automated Certbot SSL provisioning & auto-renew script
+├── vercel.json                    # Vercel deployment routing, SPA rewrites & security headers
+├── .env.example                   # Full production environment template (Sentry, AWS, etc.)
+├── AWS_DEVOPS_RUNBOOK.md          # Complete evaluator presentation guide & step-by-step runbook
+├── DEPLOYMENT.md                  # Cloud deployment walkthrough
+└── PR_VERIFICATION.md             # Quality checklist & reviewer sign-off
 ```
 
 ---
 
-## 🚀 Single-Command Local Quickstart
+## 🧪 Automated Testing Verification
 
-### Prerequisites
-* [Docker Desktop](https://www.docker.com/products/docker-desktop/) or Docker Engine (v24+) & Docker Compose (v2.20+)
-
-### 1. Launch Full Stack
-```bash
-cd Day-23
-docker compose up --build
-```
-
-### 2. Access Services
-* 🌐 **Frontend Application:** `http://localhost:80` (or `http://localhost:5173`)
-* 🔌 **FastAPI REST API:** `http://localhost:8000`
-* 📖 **Interactive Swagger Docs:** `http://localhost:8000/docs`
-* 🐘 **PostgreSQL 16:** `localhost:5432` (User: `rmart_user`, DB: `rmart_db`)
-* ⚡ **Redis 7:** `localhost:6379`
-
-### 3. Teardown Stack
-```bash
-# Stop containers while preserving database and redis data
-docker compose down
-
-# Stop containers and remove all persistent volumes
-docker compose down -v
-```
-
----
-
-## 🧪 Automated Test Verification
-
-Day 23 adds comprehensive DevOps automated test coverage:
-
+Execute the Day 24 automated verification suite in PowerShell:
 ```powershell
-pytest Day-23/backend/tests/test_day23_devops.py -v
+cd Day-24\backend
+& "..\..\Day-22\backend\venv\Scripts\python.exe" -m pytest tests/test_day24_devops_aws.py -v
 ```
-
-```text
-============================= test session starts =============================
-platform win32 -- Python 3.13.6, pytest-9.1.1
-collected 8 items
-
-Day-23/backend/tests/test_day23_devops.py::test_docker_health_endpoints PASSED          [ 12%]
-Day-23/backend/tests/test_day23_devops.py::test_evaluator_database_dump_endpoint PASSED [ 25%]
-Day-23/backend/tests/test_day23_devops.py::test_environment_and_secret_configuration PASSED [ 37%]
-Day-23/backend/tests/test_day23_devops.py::test_celery_beat_schedule_registered PASSED  [ 50%]
-Day-23/backend/tests/test_day23_devops.py::test_celery_beat_tasks_execution PASSED      [ 62%]
-Day-23/backend/tests/test_day23_devops.py::test_docker_compose_topology_validation PASSED [ 75%]
-Day-23/backend/tests/test_day23_devops.py::test_dockerfile_multi_stage_structure PASSED [ 87%]
-Day-23/backend/tests/test_day23_devops.py::test_nginx_configuration_validity PASSED    [100%]
-
-======================== 8 passed in 0.41s ========================
-```
+**Result:** 16 passed in 1.62s.

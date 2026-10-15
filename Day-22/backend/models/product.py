@@ -18,6 +18,6 @@ class Product(Base):
 
     __table_args__ = (
         Index("idx_products_search_vector", "search_vector", postgresql_using="gin"),
-        Index("idx_products_name_trgm", "name", postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}),
+        # Index("idx_products_name_trgm", "name", postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}),
     )
 
